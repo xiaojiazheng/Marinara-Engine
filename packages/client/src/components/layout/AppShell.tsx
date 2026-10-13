@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────
 import { useQueryClient } from "@tanstack/react-query";
 import { ChatSidebar } from "./ChatSidebar";
+import { ShellOverlayPopover } from "./ShellOverlayPopover";
 import { TopBar } from "./TopBar";
 import { SpotifyMobileWidget } from "../spotify/SpotifyMiniPlayer";
 import { YouTubeMobileWidget } from "../chat/YouTubePlayer";
@@ -13,7 +14,6 @@ import { hasProfessorMariFloatingFollowup } from "../chat/professor-mari-floatin
 import {
   getTrackerPanelWidthForProfile,
   isMobileShellViewport,
-  MOBILE_SHELL_MEDIA_QUERY,
   RIGHT_PANEL_WIDTH_MAX,
   RIGHT_PANEL_WIDTH_MIN,
   SIDEBAR_WIDTH_MAX,
@@ -33,6 +33,7 @@ import { useCapabilityAgentRegistry, useCapabilityClientModules } from "../../ho
 import { CapabilityElement } from "../capabilities/CapabilityElement";
 import { FeatureAgentDetailHost } from "../agents/FeatureAgentDetailHost";
 import { getCssBackgroundStyle } from "../../lib/css-colors";
+import { MOBILE_SHELL_MEDIA_QUERY } from "../../lib/mobile-shell";
 import { resolveFeatureAgentPackage } from "../../lib/feature-agent-package";
 import { showConfirmDialog } from "../../lib/app-dialogs";
 import { isIosWebKitBrowser } from "../../lib/generation-stream-policy";
@@ -62,8 +63,6 @@ import {
   useCallback,
   useMemo,
   type CSSProperties,
-  type KeyboardEvent as ReactKeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
 } from "react";
 import { useTranslation as useUiTranslation } from "react-i18next";
 import { TRACKER_PANEL_BUBBLE_ID, useFloatingWindowStore } from "../../stores/floating-window.store";
@@ -115,8 +114,9 @@ function clampWidth(width: number, min: number, max: number) {
   return Math.max(min, Math.min(max, width));
 }
 
-const PANEL_RESIZE_STEP = 16;
-const PANEL_RESIZE_LARGE_STEP = 48;
+// Both desktop popovers take their width from one shared value: the Appearance slider writes
+// `sidebarWidth` and `rightPanelWidth` together, and the clamp keeps that value inside the range
+// the two panes were laid out for.
 const SHARED_SIDEBAR_WIDTH_MIN = Math.max(SIDEBAR_WIDTH_MIN, RIGHT_PANEL_WIDTH_MIN);
 const SHARED_SIDEBAR_WIDTH_MAX = Math.min(SIDEBAR_WIDTH_MAX, RIGHT_PANEL_WIDTH_MAX);
 const TRACKER_PANEL_EDGE_OFFSET = 8;
@@ -170,10 +170,6 @@ function readVisibleElementRect(element: HTMLElement) {
   const rect = element.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0 || window.getComputedStyle(element).display === "none") return null;
   return rect;
-}
-
-function getViewportWidth() {
-  return typeof window === "undefined" ? 0 : window.innerWidth;
 }
 
 function MainPaneFallback() {
@@ -395,11 +391,10 @@ export function AppShell({
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
   const sidebarWidth = useUIStore((s) => s.sidebarWidth);
-  const setSidebarWidth = useUIStore((s) => s.setSidebarWidth);
   const rightPanelOpen = useUIStore((s) => s.rightPanelOpen);
   const rightPanelWidth = useUIStore((s) => s.rightPanelWidth);
-  const setRightPanelWidth = useUIStore((s) => s.setRightPanelWidth);
   const closeRightPanel = useUIStore((s) => s.closeRightPanel);
+  const closeSidebar = useCallback(() => setSidebarOpen(false), [setSidebarOpen]);
   const trackerPanelEnabled = useUIStore((s) => s.trackerPanelEnabled);
   const trackerPanelOpen = useUIStore((s) => s.trackerPanelOpen);
   const trackerPanelSide = useUIStore((s) => s.trackerPanelSide);
@@ -435,17 +430,11 @@ export function AppShell({
     closeAgentDetail();
     openRightPanel("agents");
   }, [closeAgentDetail, openRightPanel]);
-  const [sidebarDragWidth, setSidebarDragWidth] = useState<number | null>(null);
-  const [rightPanelDragWidth, setRightPanelDragWidth] = useState<number | null>(null);
-  const sidebarDragWidthRef = useRef<number | null>(null);
-  const rightPanelDragWidthRef = useRef<number | null>(null);
   const sharedSidebarWidth = clampWidth(
     rightPanelWidth || sidebarWidth,
     SHARED_SIDEBAR_WIDTH_MIN,
     SHARED_SIDEBAR_WIDTH_MAX,
   );
-  const liveSidebarWidth = sidebarDragWidth ?? rightPanelDragWidth ?? sharedSidebarWidth;
-  const liveRightPanelWidth = rightPanelDragWidth ?? sidebarDragWidth ?? sharedSidebarWidth;
   const trackerPanelWidth = getTrackerPanelWidthForProfile(trackerPanelSizeProfile);
   const [trackerPanelResolvedWidth, setTrackerPanelResolvedWidth] = useState(trackerPanelWidth);
   const [trackerPanelWidthMeasured, setTrackerPanelWidthMeasured] = useState(false);
@@ -465,36 +454,15 @@ export function AppShell({
     ? getCssBackgroundStyle(trackerPanelBackgroundColor)
     : undefined;
 
-  // Use the same available-width decision as navigation and back dismissal.
+  // The available-width decision is a single media query now, and the query's own `change` event is
+  // the only signal it can produce: nothing here depends on the panel widths, so no resize listener.
   const [isMobile, setIsMobile] = useState(isMobileShellViewport);
   useEffect(() => {
     const mq = window.matchMedia(MOBILE_SHELL_MEDIA_QUERY);
     const handler = () => setIsMobile(isMobileShellViewport());
     handler();
     mq.addEventListener("change", handler);
-    window.addEventListener("resize", handler);
-    return () => {
-      mq.removeEventListener("change", handler);
-      window.removeEventListener("resize", handler);
-    };
-  }, [sharedSidebarWidth]);
-
-  const [viewportWidth, setViewportWidth] = useState(getViewportWidth);
-  useEffect(() => {
-    let rafId = 0;
-    const updateViewportWidth = () => {
-      window.cancelAnimationFrame(rafId);
-      rafId = window.requestAnimationFrame(() => {
-        setViewportWidth(getViewportWidth());
-      });
-    };
-
-    updateViewportWidth();
-    window.addEventListener("resize", updateViewportWidth);
-    return () => {
-      window.removeEventListener("resize", updateViewportWidth);
-      window.cancelAnimationFrame(rafId);
-    };
+    return () => mq.removeEventListener("change", handler);
   }, []);
 
   const shellOverlayMode = isMobile;
@@ -504,44 +472,14 @@ export function AppShell({
     if (rightPanelOpen) setRightPanelEverOpened(true);
   }, [rightPanelOpen]);
 
-  const layoutSidebarOpen = sidebarOpen;
-  const layoutRightPanelOpen = rightPanelOpen;
-  const desktopReservedSidebarWidth = layoutSidebarOpen ? liveSidebarWidth : 0;
-  const desktopReservedRightPanelWidth = layoutRightPanelOpen ? liveRightPanelWidth : 0;
-  const desktopCenterWidth = Math.max(0, viewportWidth - desktopReservedSidebarWidth - desktopReservedRightPanelWidth);
-  const centerSqueezedByPanels =
-    !isMobile &&
-    (layoutSidebarOpen || layoutRightPanelOpen) &&
-    viewportWidth > 0 &&
-    desktopCenterWidth < CENTER_COMPACT_WIDTH;
-  const chatUiInsetLeft = !shellOverlayMode && layoutSidebarOpen ? Math.round(liveSidebarWidth) : 0;
-  const chatUiInsetRight = !shellOverlayMode && layoutRightPanelOpen ? Math.round(liveRightPanelWidth) : 0;
-
-  useLayoutEffect(() => {
-    const root = document.documentElement;
-    root.style.setProperty("--mari-chat-ui-inset-left", `${chatUiInsetLeft}px`);
-    root.style.setProperty("--mari-chat-ui-inset-right", `${chatUiInsetRight}px`);
-    return () => {
-      root.style.removeProperty("--mari-chat-ui-inset-left");
-      root.style.removeProperty("--mari-chat-ui-inset-right");
-    };
-  }, [chatUiInsetLeft, chatUiInsetRight]);
-
   // ── Center-area compact detection ──
-  // Side panels can shrink the center pane below the chat chrome's usable desktop
-  // width even when the viewport itself is desktop-sized. Switch that pane to the
-  // compact chat layout before toolbar controls begin colliding.
+  // The chat pane's own content can outgrow its usable desktop width — a wide toolbar, a long
+  // table, a zoomed layout — even when the viewport itself is desktop-sized. Switch that pane to
+  // the compact chat layout before its controls begin colliding.
   const mainRef = useRef<HTMLElement>(null);
   const compactWidthRef = useRef(0); // width when we last switched to compact
   const centerCompact = useUIStore((s) => s.centerCompact);
   const setCenterCompact = useUIStore((s) => s.setCenterCompact);
-
-  useEffect(() => {
-    if (centerSqueezedByPanels && !useUIStore.getState().centerCompact) {
-      compactWidthRef.current = desktopCenterWidth;
-      setCenterCompact(true);
-    }
-  }, [centerSqueezedByPanels, desktopCenterWidth, setCenterCompact]);
 
   const checkOverflow = useCallback(() => {
     const el = mainRef.current;
@@ -549,8 +487,7 @@ export function AppShell({
     const compact = useUIStore.getState().centerCompact;
     const width = el.clientWidth;
     const tooNarrowForDesktopChatChrome = width > 0 && width < CENTER_COMPACT_WIDTH;
-    const shouldCompact =
-      centerSqueezedByPanels || tooNarrowForDesktopChatChrome || (!compact && hasHorizontalOverflow(el));
+    const shouldCompact = tooNarrowForDesktopChatChrome || (!compact && hasHorizontalOverflow(el));
 
     if (shouldCompact) {
       compactWidthRef.current = width;
@@ -576,7 +513,7 @@ export function AppShell({
         });
       });
     }
-  }, [centerSqueezedByPanels, setCenterCompact]);
+  }, [setCenterCompact]);
 
   // Debounce the overflow check so ResizeObserver doesn't cause layout thrashing
   const overflowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -704,126 +641,6 @@ export function AppShell({
     });
   }, [activeChat?.metadata, activeChatId, clearAutonomousUnread, clearUnread, isClearingAutonomousUnread]);
 
-  const startSidebarResize = useCallback(
-    (event: ReactMouseEvent<HTMLDivElement>) => {
-      if (shellOverlayMode) return;
-      event.preventDefault();
-      const originalCursor = document.body.style.cursor;
-      const originalUserSelect = document.body.style.userSelect;
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-      sidebarDragWidthRef.current = sharedSidebarWidth;
-      setSidebarDragWidth(sharedSidebarWidth);
-
-      const onMove = (moveEvent: MouseEvent) => {
-        const nextWidth = clampWidth(moveEvent.clientX, SHARED_SIDEBAR_WIDTH_MIN, SHARED_SIDEBAR_WIDTH_MAX);
-        sidebarDragWidthRef.current = nextWidth;
-        setSidebarDragWidth(nextWidth);
-      };
-      let finished = false;
-      const finishResize = () => {
-        if (finished) return;
-        finished = true;
-        const nextWidth = sidebarDragWidthRef.current ?? sharedSidebarWidth;
-        setSidebarWidth(nextWidth);
-        setRightPanelWidth(nextWidth);
-        sidebarDragWidthRef.current = null;
-        setSidebarDragWidth(null);
-        document.body.style.cursor = originalCursor;
-        document.body.style.userSelect = originalUserSelect;
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", finishResize);
-        window.removeEventListener("blur", finishResize);
-      };
-
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", finishResize);
-      window.addEventListener("blur", finishResize);
-    },
-    [setRightPanelWidth, setSidebarWidth, sharedSidebarWidth, shellOverlayMode],
-  );
-
-  const startRightPanelResize = useCallback(
-    (event: ReactMouseEvent<HTMLDivElement>) => {
-      if (shellOverlayMode) return;
-      event.preventDefault();
-      const originalCursor = document.body.style.cursor;
-      const originalUserSelect = document.body.style.userSelect;
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-      rightPanelDragWidthRef.current = sharedSidebarWidth;
-      setRightPanelDragWidth(sharedSidebarWidth);
-
-      const onMove = (moveEvent: MouseEvent) => {
-        const nextWidth = clampWidth(
-          window.innerWidth - moveEvent.clientX,
-          SHARED_SIDEBAR_WIDTH_MIN,
-          SHARED_SIDEBAR_WIDTH_MAX,
-        );
-        rightPanelDragWidthRef.current = nextWidth;
-        setRightPanelDragWidth(nextWidth);
-      };
-      let finished = false;
-      const finishResize = () => {
-        if (finished) return;
-        finished = true;
-        const nextWidth = rightPanelDragWidthRef.current ?? sharedSidebarWidth;
-        setSidebarWidth(nextWidth);
-        setRightPanelWidth(nextWidth);
-        rightPanelDragWidthRef.current = null;
-        setRightPanelDragWidth(null);
-        document.body.style.cursor = originalCursor;
-        document.body.style.userSelect = originalUserSelect;
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", finishResize);
-        window.removeEventListener("blur", finishResize);
-      };
-
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", finishResize);
-      window.addEventListener("blur", finishResize);
-    },
-    [setRightPanelWidth, setSidebarWidth, sharedSidebarWidth, shellOverlayMode],
-  );
-
-  const adjustSidebarWidth = useCallback(
-    (event: ReactKeyboardEvent<HTMLDivElement>) => {
-      const step = event.shiftKey ? PANEL_RESIZE_LARGE_STEP : PANEL_RESIZE_STEP;
-      let nextWidth: number;
-
-      if (event.key === "ArrowLeft") nextWidth = sharedSidebarWidth - step;
-      else if (event.key === "ArrowRight") nextWidth = sharedSidebarWidth + step;
-      else if (event.key === "Home") nextWidth = SHARED_SIDEBAR_WIDTH_MIN;
-      else if (event.key === "End") nextWidth = SHARED_SIDEBAR_WIDTH_MAX;
-      else return;
-
-      event.preventDefault();
-      const clampedWidth = clampWidth(nextWidth, SHARED_SIDEBAR_WIDTH_MIN, SHARED_SIDEBAR_WIDTH_MAX);
-      setSidebarWidth(clampedWidth);
-      setRightPanelWidth(clampedWidth);
-    },
-    [setRightPanelWidth, setSidebarWidth, sharedSidebarWidth],
-  );
-
-  const adjustRightPanelWidth = useCallback(
-    (event: ReactKeyboardEvent<HTMLDivElement>) => {
-      const step = event.shiftKey ? PANEL_RESIZE_LARGE_STEP : PANEL_RESIZE_STEP;
-      let nextWidth: number;
-
-      if (event.key === "ArrowLeft") nextWidth = sharedSidebarWidth + step;
-      else if (event.key === "ArrowRight") nextWidth = sharedSidebarWidth - step;
-      else if (event.key === "Home") nextWidth = SHARED_SIDEBAR_WIDTH_MIN;
-      else if (event.key === "End") nextWidth = SHARED_SIDEBAR_WIDTH_MAX;
-      else return;
-
-      event.preventDefault();
-      const clampedWidth = clampWidth(nextWidth, SHARED_SIDEBAR_WIDTH_MIN, SHARED_SIDEBAR_WIDTH_MAX);
-      setSidebarWidth(clampedWidth);
-      setRightPanelWidth(clampedWidth);
-    },
-    [setRightPanelWidth, setSidebarWidth, sharedSidebarWidth],
-  );
-
   const detailView = regexDetailId ? (
     <RegexScriptEditor />
   ) : personaDetailId ? (
@@ -879,11 +696,16 @@ export function AppShell({
     trackerPanelModeAvailable && !botBrowserOpen && !gameAssetsBrowserOpen && !hasDetailView;
   // The chat preference chooses the surface; its Trackers button controls visibility.
   const trackerPanelVisible = trackerPanelActive && trackerPanelSurfaceAvailable && !trackerPanelDetached;
+  // The chat is the visible surface while no full-screen view covers it AND no shell overlay is up
+  // on either viewport. The tracker panel only covers the chat in shell-overlay mode: on desktop it
+  // docks beside the chat, which stays visible.
   const chatSurfaceActive =
     !botBrowserOpen &&
     !gameAssetsBrowserOpen &&
     !hasDetailView &&
-    (!shellOverlayMode || (!sidebarOpen && !rightPanelOpen && !trackerPanelVisible));
+    !sidebarOpen &&
+    !rightPanelOpen &&
+    (!shellOverlayMode || !trackerPanelVisible);
   const trackerWindowHost = trackerPanelWindowTarget?.popup ?? window;
 
   const dockTrackerPanel = useCallback(() => {
@@ -1280,9 +1102,9 @@ export function AppShell({
             -56,
             Math.min(56, (trackerPanelToggleAnchorY ?? trackerPanelTop) - trackerPanelTop),
           )}px`,
-          ...(side === "left"
-            ? { left: sidebarOpen ? liveSidebarWidth : 0 }
-            : { right: rightPanelOpen ? liveRightPanelWidth : 0 }),
+          // The chat list and the settings panel are overlays now, so the tracker docks to the
+          // window edge on either side instead of clearing a reserved panel column.
+          ...(side === "left" ? { left: 0 } : { right: 0 }),
           ...(trackerPanelBackgroundStyle ?? {}),
         }}
       >
@@ -1328,49 +1150,20 @@ export function AppShell({
         />
       )}
 
-      {/* Left sidebar - Chat list */}
+      {/* Left sidebar - Chat list. Desktop shows it as a centered Windows 11 modal layer, rendered
+          here rather than inside a panel wrapper: an ancestor with `contain: paint` would become the
+          containing block for this fixed layer and clip it to its own box. */}
       {!shellOverlayMode && (
-        <aside
-          data-tour="sidebar"
-          data-component="ChatSidebarSlot"
-          aria-label={localizeUi("ui.layout.appshell.chatList")}
-          aria-hidden={!sidebarOpen}
-          inert={!sidebarOpen}
-          className={cn(
-            "mari-shell-panel-slot relative flex-shrink-0 overflow-hidden",
-            sidebarDragWidth != null && "!transition-none",
-            !sidebarOpen && "pointer-events-none",
-          )}
-          style={{ width: sidebarOpen ? liveSidebarWidth : 0 }}
+        <ShellOverlayPopover
+          open={sidebarOpen}
+          onClose={closeSidebar}
+          label={localizeUi("ui.layout.appshell.chatList")}
+          width={sharedSidebarWidth}
         >
-          <div
-            data-component="ChatSidebarPanel"
-            aria-hidden={!sidebarOpen}
-            inert={!sidebarOpen}
-            className={cn(
-              "mari-sidebar mari-shell-panel-motion mari-shell-panel-edge mari-shell-panel-edge--right absolute inset-y-0 left-0 overflow-hidden bg-[var(--background)]/95",
-              sidebarOpen ? "mari-shell-panel-enter-left" : "mari-shell-panel-exit-left pointer-events-none",
-            )}
-            style={{ width: liveSidebarWidth }}
-          >
+          <div data-tour="sidebar" data-component="ChatSidebarPanel" className="flex min-h-0 flex-1 flex-col">
             <ChatSidebar />
           </div>
-        </aside>
-      )}
-      {!shellOverlayMode && sidebarOpen && (
-        <div
-          role="separator"
-          aria-orientation="vertical"
-          aria-label={localizeUi("ui.layout.appshell.resizeLeftSidebar")}
-          aria-valuemin={SHARED_SIDEBAR_WIDTH_MIN}
-          aria-valuemax={SHARED_SIDEBAR_WIDTH_MAX}
-          aria-valuenow={Math.round(liveSidebarWidth)}
-          tabIndex={0}
-          onMouseDown={startSidebarResize}
-          onKeyDown={adjustSidebarWidth}
-          className="absolute inset-y-0 z-40 hidden w-1 cursor-col-resize bg-transparent transition-colors hover:bg-[var(--primary)]/30 focus-visible:bg-[var(--primary)]/40 focus-visible:outline-none md:block"
-          style={{ left: sidebarOpen ? liveSidebarWidth : 0 }}
-        />
+        </ShellOverlayPopover>
       )}
 
       {/* Center content */}
@@ -1535,7 +1328,6 @@ export function AppShell({
                   ? "mari-sidebar bg-[var(--background)]/95"
                   : "mari-right-panel bg-[var(--background)]/80",
               )}
-              style={{ "--mari-right-panel-width": "100vw" } as CSSProperties}
             >
               {mobileNavigationPanel === "chats" ? (
                 <ChatSidebar />
@@ -1548,56 +1340,27 @@ export function AppShell({
           )}
         </AnimatePresence>
       ) : (
-        <aside
-          data-component="RightPanelDesktopSlot"
-          aria-label={localizeUi("ui.layout.appshell.settingsAndToolsPanel")}
-          aria-hidden={!rightPanelOpen}
-          inert={!rightPanelOpen}
-          className={cn(
-            "mari-shell-panel-slot relative flex-shrink-0 overflow-hidden",
-            rightPanelDragWidth != null && "!transition-none",
-            !rightPanelOpen && "pointer-events-none",
-          )}
-          style={
-            {
-              width: rightPanelOpen ? liveRightPanelWidth : 0,
-              "--mari-right-panel-width": `${liveRightPanelWidth}px`,
-            } as CSSProperties
-          }
+        /* Desktop settings panel as a centered Windows 11 modal layer, rendered at the shell root for
+           the same `contain: paint` reason as the chat list above. */
+        <ShellOverlayPopover
+          open={rightPanelOpen}
+          onClose={closeRightPanel}
+          label={localizeUi("ui.layout.appshell.settingsAndToolsPanel")}
+          width={sharedSidebarWidth}
         >
-          {(rightPanelOpen || rightPanelEverOpened) && (
-            <div
-              data-component="RightPanelDesktop"
-              aria-hidden={!rightPanelOpen}
-              inert={!rightPanelOpen}
-              className={cn(
-                "mari-right-panel mari-shell-panel-motion mari-shell-panel-edge mari-shell-panel-edge--left absolute inset-y-0 right-0 overflow-hidden bg-[var(--background)]/95",
-                rightPanelOpen ? "mari-shell-panel-enter-right" : "mari-shell-panel-exit-right pointer-events-none",
-              )}
-              style={{ width: liveRightPanelWidth }}
-            >
+          {/* Mounted on first open and never unmounted, so `RightPanel`'s `mountedPanels` set and the
+              visited panels' scroll positions survive every close/reopen. `rightPanelOpen` is part of
+              the condition so the panel appears in the same commit the layer opens: waiting for
+              `rightPanelEverOpened` would paint one empty surface, and the pane's own focus move (which
+              then runs a commit later) would lose the race against the layer's focus fallback. */}
+          {(rightPanelEverOpened || rightPanelOpen) && (
+            <div data-component="RightPanelDesktop" className="flex min-h-0 flex-1 flex-col">
               <Suspense fallback={<SidePanelFallback />}>
                 <RightPanel />
               </Suspense>
             </div>
           )}
-        </aside>
-      )}
-
-      {!shellOverlayMode && rightPanelOpen && (
-        <div
-          role="separator"
-          aria-orientation="vertical"
-          aria-label={localizeUi("ui.layout.appshell.resizeRightSidebar")}
-          aria-valuemin={SHARED_SIDEBAR_WIDTH_MIN}
-          aria-valuemax={SHARED_SIDEBAR_WIDTH_MAX}
-          aria-valuenow={Math.round(liveRightPanelWidth)}
-          tabIndex={0}
-          onMouseDown={startRightPanelResize}
-          onKeyDown={adjustRightPanelWidth}
-          className="absolute inset-y-0 z-40 hidden w-1 cursor-col-resize bg-transparent transition-colors hover:bg-[var(--primary)]/30 focus-visible:bg-[var(--primary)]/40 focus-visible:outline-none md:block"
-          style={{ right: rightPanelOpen ? Math.max(0, liveRightPanelWidth - 4) : 0 }}
-        />
+        </ShellOverlayPopover>
       )}
 
       {spatialMapDetailChatId ? (

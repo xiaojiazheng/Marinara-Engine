@@ -1121,9 +1121,13 @@ for (const [preset, theme] of [
         .locator('[data-component="RightPanel"]')
         .getByRole("button", { name: "Close panel", exact: true })
         .click();
-      await expect(
-        page.locator('[data-component="RightPanelDesktopSlot"], [data-component="RightPanelMobile"]'),
-      ).toBeHidden();
+      const closedLayer = page.locator(
+        '[data-component="ShellOverlayPopover"]:has([data-component="RightPanelDesktop"]), [data-component="RightPanelMobile"]',
+      );
+      // Match first, then assert hidden: `toBeHidden()` also passes on an empty set, which is how the
+      // retired `RightPanelDesktopSlot` selector silently stopped testing anything.
+      await expect(closedLayer).toHaveCount(1);
+      await expect(closedLayer).toBeHidden();
       for (const chat of fixture.chats) {
         await showStyleScope(page, chat);
         if (chat.view === "visual-novel" || (chat.mode === "game" && info.project.name === "desktop-chromium")) {
@@ -1263,9 +1267,13 @@ test("movable button pixel size is independent, stays reachable and restores the
   };
   const closeAppearance = async () => {
     await page.getByRole("button", { name: "Close panel", exact: true }).click();
-    await expect(
-      page.locator('[data-component="RightPanelDesktopSlot"], [data-component="RightPanelMobile"]'),
-    ).toBeHidden();
+    const closedLayer = page.locator(
+      '[data-component="ShellOverlayPopover"]:has([data-component="RightPanelDesktop"]), [data-component="RightPanelMobile"]',
+    );
+    // Match first, then assert hidden: `toBeHidden()` also passes on an empty set, which is how the
+    // retired `RightPanelDesktopSlot` selector silently stopped testing anything.
+    await expect(closedLayer).toHaveCount(1);
+    await expect(closedLayer).toBeHidden();
   };
   const assertReachable = async () => {
     await expect

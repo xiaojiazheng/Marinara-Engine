@@ -124,7 +124,9 @@ for (const mode of ["conversation", "roleplay"] as const) {
       await expect(latest).toHaveCount(0);
       await expect(page.getByText(/^Other transcript message 80\./)).toBeInViewport();
       await expect.poll(distanceFromBottom).toBeLessThan(30);
-      if (testInfo.project.name.includes("mobile")) await page.locator('[data-tour="sidebar-toggle"]').click();
+      // Picking a chat closes the chat list on every viewport now, so reopen it before picking another.
+      await page.locator('[data-tour="sidebar-toggle"]').click();
+      await expect(sidebar).toBeVisible();
       await sidebar.locator(`[data-chat-id="${chatId}"]`).click();
       await expect(latest).toBeVisible();
       await expect(page.locator('img[alt="Delayed illustration"]').first()).toBeAttached();
@@ -137,7 +139,9 @@ for (const mode of ["conversation", "roleplay"] as const) {
       await expect(scroller).toHaveCount(0);
       // Mount without a layout box, as when the chat is covered by another pane.
       const pendingLayout = await page.addStyleTag({ content: "[data-chat-scroll] { display: none !important; }" });
-      if (testInfo.project.name.includes("mobile")) await page.locator('[data-tour="sidebar-toggle"]').click();
+      // Same close-on-select contract: the list has to be reopened before changing the mode.
+      await page.locator('[data-tour="sidebar-toggle"]').click();
+      await expect(sidebar).toBeVisible();
       await sidebar.locator(`[data-tour="chat-mode-${mode}"]`).click();
       await sidebar.locator(`[data-chat-id="${chatId}"]`).click();
       await expect(latest).toBeAttached();

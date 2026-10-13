@@ -494,11 +494,7 @@ export function GameInventory({
       role="dialog"
       aria-modal="true"
       aria-label={localizeUi("ui.game.gamecharactersheet.inventory")}
-      className="fixed inset-y-0 z-[80] flex items-center justify-center bg-black/70 p-3 pb-[max(var(--mari-safe-area-inset-bottom,env(safe-area-inset-bottom)),0.75rem)] pt-[max(env(safe-area-inset-top),0.75rem)] backdrop-blur-sm sm:p-4"
-      style={{
-        left: "var(--mari-chat-ui-inset-left, 0px)",
-        right: "var(--mari-chat-ui-inset-right, 0px)",
-      }}
+      className="fixed inset-y-0 inset-x-0 z-[80] flex items-center justify-center bg-black/70 p-3 pb-[max(var(--mari-safe-area-inset-bottom,env(safe-area-inset-bottom)),0.75rem)] pt-[max(env(safe-area-inset-top),0.75rem)] backdrop-blur-sm sm:p-4"
     >
       <div className="relative flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-lg border border-white/10 bg-black shadow-[0_0_40px_rgba(0,0,0,0.8)] supports-[height:100dvh]:max-h-[85dvh]">
         {/* Header */}

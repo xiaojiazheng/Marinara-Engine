@@ -32,7 +32,7 @@ function readCssPixelValue(element: HTMLElement, property: string) {
 
 export function getChatFloatingPanelDesktopRight(anchor: ChatToolbarFloatingPanelAnchor) {
   const triggerOffset = anchor ? Math.max(0, anchor.right - anchor.rightInset) : 12;
-  return `calc(var(--mari-chat-ui-inset-right, 0px) + var(--tracker-panel-hud-clear-right, 0px) + ${triggerOffset}px)`;
+  return `calc(var(--tracker-panel-hud-clear-right, 0px) + ${triggerOffset}px)`;
 }
 
 function readChatToolbarPanelAction(target: EventTarget | null): ChatToolbarPanelAction | null {
@@ -65,9 +65,7 @@ export function readChatToolbarFloatingPanelAnchor(trigger: HTMLElement | null):
   if (window.innerWidth < 768) return null;
 
   const rect = trigger.getBoundingClientRect();
-  const rightInset =
-    readCssPixelValue(trigger, "--mari-chat-ui-inset-right") +
-    readCssPixelValue(trigger, "--tracker-panel-hud-clear-right");
+  const rightInset = readCssPixelValue(trigger, "--tracker-panel-hud-clear-right");
   return {
     right: Math.max(0, window.innerWidth - rect.right),
     rightInset,

@@ -18,6 +18,7 @@ import {
 import type { LegacyNoodleNavigationState as NoodleNavigationState } from "../lib/legacy-noodle-navigation";
 import { isCssGradient, MARINARA_GRADIENT_PRESET, RAINBOW_GRADIENT_PRESET } from "../lib/css-colors";
 import { announceChatFloatingUiDismiss } from "../lib/chat-floating-ui-events";
+import { MOBILE_SHELL_MEDIA_QUERY } from "../lib/mobile-shell";
 import { detectConversationTimeZone, normalizeConversationTimeZone } from "../lib/conversation-time-zone";
 import { BASIC_PANEL_SORT_OPTIONS, normalizeBasicPanelSort, type BasicPanelSort } from "../lib/panel-sort";
 import { resetProfessorMariNavigator } from "../lib/professor-mari-navigation";
@@ -42,8 +43,6 @@ export type ChatModeShortcut = "conversation" | "roleplay" | "game";
 export const CHARACTER_LIBRARY_SORT_OPTIONS = ["name-asc", "name-desc", "newest", "oldest", "favorites"] as const;
 export type CharacterLibrarySort = (typeof CHARACTER_LIBRARY_SORT_OPTIONS)[number];
 export type CardLibraryKind = "characters" | "personas";
-export const MOBILE_SHELL_MEDIA_QUERY =
-  "(max-width: 767px), (max-width: 1440px) and (hover: none) and (any-pointer: coarse)";
 export const CHARACTER_PANEL_FAVORITE_FILTER_OPTIONS = ["all", "favorites", "non-favorites"] as const;
 export type CharacterPanelFavoriteFilter = (typeof CHARACTER_PANEL_FAVORITE_FILTER_OPTIONS)[number];
 export const LOREBOOK_PANEL_CATEGORY_OPTIONS = [
@@ -408,18 +407,25 @@ function normalizeScrollTop(value: unknown) {
 
 let mobileShellQuery: MediaQueryList | null = null;
 
+/**
+ * True while the shell should use its phone/tablet overlay form: phone-width viewports, plus wide
+ * touch screens whose on-screen keyboard would cover a docked panel.
+ *
+ * The chat list and the settings panel are Windows 11 popover layers on every desktop window width,
+ * so a narrow window is no longer a reason to switch shells and the media query alone decides.
+ */
 export function isMobileShellViewport(): boolean {
   if (typeof window === "undefined") return false;
   mobileShellQuery ??= window.matchMedia(MOBILE_SHELL_MEDIA_QUERY);
-  if (mobileShellQuery.matches) return true;
-  const { sidebarWidth, rightPanelWidth } = useUIStore.getState();
-  // Reserve both docked widths plus room for the topbar controls. Checking
-  // capacity, not open panels, avoids layout flips while switching sidebars.
-  return window.innerWidth < 2 * (rightPanelWidth || sidebarWidth) + 384;
+  return mobileShellQuery.matches;
 }
 
-function dismissChatFloatingUiForMobilePanel(open: boolean) {
-  if (open && isMobileShellViewport()) announceChatFloatingUiDismiss();
+/**
+ * Opening a shell panel puts a modal layer over the chat on every viewport, so floating chat UI
+ * (the chat row peek card, the game HUD panels) is dismissed first instead of being buried under it.
+ */
+function dismissChatFloatingUiWhenPanelOpens(open: boolean) {
+  if (open) announceChatFloatingUiDismiss();
 }
 
 function normalizeAppAccentColor(value: unknown) {
@@ -767,7 +773,7 @@ interface UIState {
   agentPanelSort: ResourcePanelSort;
   /** True when any open detail editor has unsaved changes */
   editorDirty: boolean;
-  /** Mobile-only return target for detail editors opened from a right panel */
+  /** Return target for detail editors opened from the settings panel, restored when the editor closes */
   detailReturnRightPanel: Panel | null;
 
   // ── Settings (persisted) ──
@@ -1349,15 +1355,19 @@ interface UIState {
   rememberUserActivity: (activity: string) => void;
 }
 
-function getMobileDetailReturnState(state: UIState) {
-  const useOverlayDetailReturn = isMobileShellViewport();
+/**
+ * A detail editor covers the chat on every viewport, so opening one closes the settings panel and
+ * remembers it: a modal layer above the editor would otherwise hide it. `restoreDetailReturnPanel`
+ * brings that panel back when the editor closes.
+ */
+function getOverlayDetailReturnState(state: UIState) {
   return {
-    detailReturnRightPanel: useOverlayDetailReturn && state.rightPanelOpen ? state.rightPanel : null,
-    ...(useOverlayDetailReturn && { rightPanelOpen: false }),
+    detailReturnRightPanel: state.rightPanelOpen ? state.rightPanel : null,
+    rightPanelOpen: false,
   };
 }
 
-function restoreMobileDetailReturnPanel(panel: Panel | null) {
+function restoreDetailReturnPanel(panel: Panel | null) {
   return {
     detailReturnRightPanel: null,
     ...(panel && { rightPanelOpen: true, rightPanel: panel }),
@@ -1823,7 +1833,9 @@ export const useUIStore = create<UIState>()(
       return {
         settingsSyncReady: false,
         showHomeBrowserAddressBar: true,
-        sidebarOpen: true,
+        // The chat list is a modal layer now, so it starts closed: a fresh install opens on the chat,
+        // not behind an overlay. A persisted value still wins (see `pickPersistedUIState`).
+        sidebarOpen: false,
         sidebarWidth: 320,
         rightPanelOpen: false,
         rightPanelWidth: 320,
@@ -2082,17 +2094,18 @@ export const useUIStore = create<UIState>()(
 
         toggleSidebar: () =>
           set((s) => {
-            const mobile = isMobileShellViewport();
-            const sidebarOpen = !s.sidebarOpen || (mobile && s.rightPanelOpen);
-            dismissChatFloatingUiForMobilePanel(sidebarOpen);
+            // The chat list and the settings panel are exclusive modal layers: opening either
+            // one closes the other, on every viewport.
+            const sidebarOpen = !s.sidebarOpen || s.rightPanelOpen;
+            dismissChatFloatingUiWhenPanelOpens(sidebarOpen);
             return {
               sidebarOpen,
-              ...(mobile && sidebarOpen ? { rightPanelOpen: false } : {}),
+              ...(sidebarOpen ? { rightPanelOpen: false } : {}),
             };
           }),
         setSidebarOpen: (open) => {
-          dismissChatFloatingUiForMobilePanel(open);
-          set({ sidebarOpen: open });
+          dismissChatFloatingUiWhenPanelOpens(open);
+          set(open ? { sidebarOpen: true, rightPanelOpen: false } : { sidebarOpen: false });
         },
         setSidebarWidth: (width) =>
           set({ sidebarWidth: Math.max(SIDEBAR_WIDTH_MIN, Math.min(SIDEBAR_WIDTH_MAX, width)) }),
@@ -2166,24 +2179,23 @@ export const useUIStore = create<UIState>()(
 
         openRightPanel: (panel) =>
           set(() => {
-            const mobile = isMobileShellViewport();
-            dismissChatFloatingUiForMobilePanel(true);
+            dismissChatFloatingUiWhenPanelOpens(true);
             return {
               rightPanelOpen: true,
               rightPanel: panel,
-              ...(mobile ? { sidebarOpen: false } : {}),
+              // Opening the settings panel closes the chat list: one modal layer at a time.
+              sidebarOpen: false,
             };
           }),
         closeRightPanel: () => set({ rightPanelOpen: false }),
         toggleRightPanel: (panel) =>
           set((s) => {
             if (s.rightPanelOpen && s.rightPanel === panel) return { rightPanelOpen: false };
-            const mobile = isMobileShellViewport();
-            dismissChatFloatingUiForMobilePanel(true);
+            dismissChatFloatingUiWhenPanelOpens(true);
             return {
               rightPanelOpen: true,
               rightPanel: panel,
-              ...(mobile ? { sidebarOpen: false } : {}),
+              sidebarOpen: false,
             };
           }),
 
@@ -2250,14 +2262,14 @@ export const useUIStore = create<UIState>()(
               botBrowserOpen: false,
               gameAssetsBrowserOpen: false,
               noodleOpen: false,
-              ...getMobileDetailReturnState(s),
+              ...getOverlayDetailReturnState(s),
             };
           }),
         closeCharacterDetail: () =>
           set((s) => ({
             characterDetailId: null,
             editorDirty: false,
-            ...restoreMobileDetailReturnPanel(s.detailReturnRightPanel),
+            ...restoreDetailReturnPanel(s.detailReturnRightPanel),
           })),
         setLorebookLinkClipboard: (links) => set({ lorebookLinkClipboard: links }),
         openLorebookDetail: (id, options) =>
@@ -2278,13 +2290,13 @@ export const useUIStore = create<UIState>()(
             personaDetailId: null,
             regexDetailId: null,
             spatialMapDetailChatId: null,
-            ...getMobileDetailReturnState(s),
+            ...getOverlayDetailReturnState(s),
           })),
         closeLorebookDetail: () =>
           set((s) => ({
             lorebookDetailId: null,
             editorDirty: false,
-            ...restoreMobileDetailReturnPanel(s.detailReturnRightPanel),
+            ...restoreDetailReturnPanel(s.detailReturnRightPanel),
           })),
         openPresetDetail: (id, options) =>
           set((s) => ({
@@ -2303,14 +2315,14 @@ export const useUIStore = create<UIState>()(
             personaDetailId: null,
             regexDetailId: null,
             spatialMapDetailChatId: null,
-            ...getMobileDetailReturnState(s),
+            ...getOverlayDetailReturnState(s),
           })),
         closePresetDetail: () =>
           set((s) => ({
             presetDetailId: null,
             presetDetailInitialTab: null,
             editorDirty: false,
-            ...restoreMobileDetailReturnPanel(s.detailReturnRightPanel),
+            ...restoreDetailReturnPanel(s.detailReturnRightPanel),
           })),
         openConnectionDetail: (id) =>
           set((s) => ({
@@ -2328,13 +2340,13 @@ export const useUIStore = create<UIState>()(
             personaDetailId: null,
             regexDetailId: null,
             spatialMapDetailChatId: null,
-            ...getMobileDetailReturnState(s),
+            ...getOverlayDetailReturnState(s),
           })),
         closeConnectionDetail: () =>
           set((s) => ({
             connectionDetailId: null,
             editorDirty: false,
-            ...restoreMobileDetailReturnPanel(s.detailReturnRightPanel),
+            ...restoreDetailReturnPanel(s.detailReturnRightPanel),
           })),
         openAgentDetail: (agentType) =>
           set((s) => ({
@@ -2352,13 +2364,13 @@ export const useUIStore = create<UIState>()(
             personaDetailId: null,
             regexDetailId: null,
             spatialMapDetailChatId: null,
-            ...getMobileDetailReturnState(s),
+            ...getOverlayDetailReturnState(s),
           })),
         closeAgentDetail: () =>
           set((s) => ({
             agentDetailId: null,
             editorDirty: false,
-            ...restoreMobileDetailReturnPanel(s.detailReturnRightPanel),
+            ...restoreDetailReturnPanel(s.detailReturnRightPanel),
           })),
         openToolDetail: (id) =>
           set((s) => ({
@@ -2376,13 +2388,13 @@ export const useUIStore = create<UIState>()(
             personaDetailId: null,
             regexDetailId: null,
             spatialMapDetailChatId: null,
-            ...getMobileDetailReturnState(s),
+            ...getOverlayDetailReturnState(s),
           })),
         closeToolDetail: () =>
           set((s) => ({
             toolDetailId: null,
             editorDirty: false,
-            ...restoreMobileDetailReturnPanel(s.detailReturnRightPanel),
+            ...restoreDetailReturnPanel(s.detailReturnRightPanel),
           })),
         openPersonaDetail: (id, options) =>
           set((s) => {
@@ -2405,14 +2417,14 @@ export const useUIStore = create<UIState>()(
               toolDetailId: null,
               regexDetailId: null,
               spatialMapDetailChatId: null,
-              ...getMobileDetailReturnState(s),
+              ...getOverlayDetailReturnState(s),
             };
           }),
         closePersonaDetail: () =>
           set((s) => ({
             personaDetailId: null,
             editorDirty: false,
-            ...restoreMobileDetailReturnPanel(s.detailReturnRightPanel),
+            ...restoreDetailReturnPanel(s.detailReturnRightPanel),
           })),
         openRegexDetail: (id, options) =>
           set((s) => ({
@@ -2433,7 +2445,7 @@ export const useUIStore = create<UIState>()(
             agentDetailId: null,
             toolDetailId: null,
             spatialMapDetailChatId: null,
-            ...getMobileDetailReturnState(s),
+            ...getOverlayDetailReturnState(s),
           })),
         closeRegexDetail: () =>
           set((s) => {
@@ -2457,7 +2469,7 @@ export const useUIStore = create<UIState>()(
               regexDetailDefaultCharacterIds: null,
               regexDetailDefaultPresetIds: null,
               editorDirty: false,
-              ...restoreMobileDetailReturnPanel(s.detailReturnRightPanel),
+              ...restoreDetailReturnPanel(s.detailReturnRightPanel),
             };
           }),
         openSpatialMapDetail: (chatId) =>
@@ -2476,7 +2488,7 @@ export const useUIStore = create<UIState>()(
             botBrowserOpen: false,
             gameAssetsBrowserOpen: false,
             noodleOpen: false,
-            ...getMobileDetailReturnState(s),
+            ...getOverlayDetailReturnState(s),
           })),
         openSpatialMapDraftReview: (review) =>
           set((s) => ({
@@ -2495,7 +2507,7 @@ export const useUIStore = create<UIState>()(
             botBrowserOpen: false,
             gameAssetsBrowserOpen: false,
             noodleOpen: false,
-            ...getMobileDetailReturnState(s),
+            ...getOverlayDetailReturnState(s),
           })),
         clearPendingSpatialMapDraftReview: () => set({ pendingSpatialMapDraftReview: null }),
         closeSpatialMapDetail: () =>
@@ -2503,7 +2515,7 @@ export const useUIStore = create<UIState>()(
             spatialMapDetailChatId: null,
             pendingSpatialMapDraftReview: null,
             editorDirty: false,
-            ...restoreMobileDetailReturnPanel(s.detailReturnRightPanel),
+            ...restoreDetailReturnPanel(s.detailReturnRightPanel),
           })),
         openCharacterLibrary: (characterId) =>
           set((state) => ({
@@ -2527,10 +2539,10 @@ export const useUIStore = create<UIState>()(
             noodleOpen: false,
             editorDirty: false,
             detailReturnRightPanel: null,
-            rightPanelOpen: isMobileShellViewport() ? false : state.rightPanelOpen,
+            rightPanelOpen: false,
           })),
         openPersonaLibrary: () =>
-          set((state) => ({
+          set(() => ({
             characterLibraryOpen: true,
             cardLibraryKind: "personas",
             agentCatalogOpen: false,
@@ -2549,11 +2561,11 @@ export const useUIStore = create<UIState>()(
             noodleOpen: false,
             editorDirty: false,
             detailReturnRightPanel: null,
-            rightPanelOpen: isMobileShellViewport() ? false : state.rightPanelOpen,
+            rightPanelOpen: false,
           })),
         closeCharacterLibrary: () => set({ characterLibraryOpen: false, characterLibraryInitialId: null }),
         openAgentCatalog: (packageId) =>
-          set((state) => ({
+          set(() => ({
             agentCatalogOpen: true,
             agentCatalogInitialPackageId: packageId ?? null,
             characterLibraryOpen: false,
@@ -2572,7 +2584,7 @@ export const useUIStore = create<UIState>()(
             noodleOpen: false,
             editorDirty: false,
             detailReturnRightPanel: null,
-            rightPanelOpen: isMobileShellViewport() ? false : state.rightPanelOpen,
+            rightPanelOpen: false,
           })),
         closeAgentCatalog: () => set({ agentCatalogOpen: false, agentCatalogInitialPackageId: null }),
         openBotBrowser: () =>
@@ -2592,7 +2604,7 @@ export const useUIStore = create<UIState>()(
             connectionDetailId: null,
             agentDetailId: null,
             toolDetailId: null,
-            ...(isMobileShellViewport() && { rightPanelOpen: false }),
+            rightPanelOpen: false,
           }),
         closeBotBrowser: () => set({ botBrowserOpen: false }),
         openGameAssetsBrowser: () =>
@@ -2612,7 +2624,7 @@ export const useUIStore = create<UIState>()(
             connectionDetailId: null,
             agentDetailId: null,
             toolDetailId: null,
-            ...(isMobileShellViewport() && { rightPanelOpen: false }),
+            rightPanelOpen: false,
           }),
         closeGameAssetsBrowser: () => set({ gameAssetsBrowserOpen: false }),
         openNoodle: () =>
@@ -2633,7 +2645,7 @@ export const useUIStore = create<UIState>()(
             agentDetailId: null,
             toolDetailId: null,
             editorDirty: false,
-            ...(isMobileShellViewport() && { rightPanelOpen: false }),
+            rightPanelOpen: false,
           }),
         closeNoodle: () => set({ noodleOpen: false }),
         setNoodleSelectedPersonaId: (id) => set({ noodleSelectedPersonaId: id }),
@@ -2681,7 +2693,7 @@ export const useUIStore = create<UIState>()(
         requestChatModeShortcut: (mode) =>
           set((state) => ({
             sidebarOpen: true,
-            rightPanelOpen: isMobileShellViewport() ? false : state.rightPanelOpen,
+            rightPanelOpen: false,
             characterDetailId: null,
             lorebookDetailId: null,
             presetDetailId: null,

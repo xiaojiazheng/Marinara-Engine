@@ -4,7 +4,7 @@
 // The openers are plain functions so a command palette, slash command or any
 // other surface can open the same modals without importing their components.
 import { useChatStore } from "../stores/chat.store";
-import { isMobileShellViewport, useUIStore } from "../stores/ui.store";
+import { useUIStore } from "../stores/ui.store";
 
 export const GLOBAL_SEARCH_MODAL = "global-chat-search";
 export const CHAT_STATS_MODAL = "chat-stats";
@@ -30,5 +30,7 @@ export function openChatAtMessage(chatId: string, messageNumber?: number) {
   const chat = useChatStore.getState();
   if (messageNumber && messageNumber > 0) chat.requestGotoMessage(chatId, messageNumber);
   chat.setActiveChatId(chatId);
-  if (isMobileShellViewport()) ui.setSidebarOpen(false);
+  // The chat list is a modal layer on every viewport now, so it has to get out of the way of the
+  // chat it just navigated to — leaving it open would cover the message the user asked for.
+  ui.setSidebarOpen(false);
 }

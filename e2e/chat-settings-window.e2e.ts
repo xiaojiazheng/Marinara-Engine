@@ -1211,30 +1211,41 @@ test("sidebars keep saved buttons separately reachable and restore their positio
     };
     await expectReachable();
     const topbar = page.locator('[data-component="TopBar"]');
+    const settingsLayer = page.locator(
+      '[data-component="ShellOverlayPopover"]:has([data-component="RightPanelDesktop"])',
+    );
+    const chatsLayer = page.locator('[data-component="ShellOverlayPopover"]:has([data-component="ChatSidebarPanel"])');
     await topbar.getByTitle("Settings", { exact: true }).click();
-    await expect(page.locator('[data-component="RightPanelDesktopSlot"]')).toHaveAttribute("aria-hidden", "false");
-    await expect
-      .poll(async () => (await box(page.locator('[data-component="RightPanelDesktopSlot"]'))).width)
-      .toBe(320);
-    await expectReachable();
+    await expect(settingsLayer).toHaveAttribute("aria-hidden", "false");
+    await expect.poll(async () => (await box(settingsLayer.locator('[role="dialog"]'))).width).toBe(320);
     await topbar.getByTitle("Chats", { exact: true }).click();
-    await expect(page.locator('[data-component="ChatSidebarSlot"]')).toHaveAttribute("aria-hidden", "false");
-    await expect.poll(async () => (await box(page.locator('[data-component="ChatSidebarSlot"]'))).width).toBe(320);
-    await expectReachable();
+    await expect(chatsLayer).toHaveAttribute("aria-hidden", "false");
+    await expect.poll(async () => (await box(chatsLayer.locator('[role="dialog"]'))).width).toBe(320);
+    // A centered layer covers the chat, so the floating bubbles are deliberately out of reach while one
+    // is open. Their saved places still must not move, so read the layout instead of hit-testing here.
     await expect.poll(() => readSavedLayout(request, chat.id)).toEqual(layout);
+
+    // Close the layer before driving the bubbles: nothing in the chat accepts a press under it.
+    await topbar.getByTitle("Chats", { exact: true }).click();
+    await expect(chatsLayer).toBeHidden();
+    await expectReachable();
+
     const locked = page.locator(`.mari-window-bubble[data-window="${ids[0]}"]`);
     await expect(locked).toHaveAttribute("data-locked", "true");
     const lockedPosition = await box(locked);
     await locked.press("ArrowLeft");
-    expectSameBox(await box(locked), lockedPosition, "locked button after sidebar reflow");
+    expectSameBox(await box(locked), lockedPosition, "locked button after the layer opened and closed");
     await locked.click();
     const opened = page.locator(`.mari-window[data-window="${ids[0]}"]`);
     await expect(opened).toBeVisible();
     await opened.locator('[data-window-control="close"]').click();
     await expectReachable();
+    // Opening a layer covers the chat without reflowing it, so the bubbles must stay where they were.
     await topbar.getByTitle("Settings", { exact: true }).click();
-    await expectReachable();
-    await topbar.getByTitle("Chats", { exact: true }).click();
+    await expect(settingsLayer).toHaveAttribute("aria-hidden", "false");
+    await expect.poll(readPositions).toEqual(initial);
+    await topbar.getByTitle("Settings", { exact: true }).click();
+    await expect(settingsLayer).toBeHidden();
     await expect.poll(readPositions).toEqual(initial);
     // Opening/closing a drawer may add its legacy window.bubble fallback; the saved places stay intact.
     await expect.poll(() => readSavedLayout(request, chat.id)).toMatchObject(layout);
@@ -1244,8 +1255,8 @@ test("sidebars keep saved buttons separately reachable and restore their positio
   }
 });
 
-test("sidebars keep the default Settings button clear of a saved button", async ({ page, request }, testInfo) => {
-  test.skip(!testInfo.project.name.includes("desktop"), "Desktop sidebars resize the chat area.");
+test("a shell layer keeps the default Settings button clear of a saved button", async ({ page, request }, testInfo) => {
+  test.skip(!testInfo.project.name.includes("desktop"), "Desktop shell layers are the surface under test.");
   await page.setViewportSize({ width: 1365, height: 900 });
   const id = "drawer:chat-settings:conversation-chat-branches";
   const chat = await createChat(request, "conversation");
@@ -1268,10 +1279,32 @@ test("sidebars keep the default Settings button clear of a saved button", async 
     const saved = page.locator(`.mari-window-bubble[data-window="${id}"]`);
     await expect(saved).toBeVisible();
     const before = await box(saved);
+    const settingsLayer = page.locator(
+      '[data-component="ShellOverlayPopover"]:has([data-component="RightPanelDesktop"])',
+    );
     await page.locator('[data-component="TopBar"]').getByTitle("Settings", { exact: true }).click();
-    await expect
-      .poll(async () => (await box(page.locator('[data-component="RightPanelDesktopSlot"]'))).width)
-      .toBe(320);
+    await expect(settingsLayer).toHaveAttribute("aria-hidden", "false");
+    await expect.poll(async () => (await box(settingsLayer.locator('[role="dialog"]'))).width).toBe(320);
+    // The layer covers the chat instead of reserving a column, so nothing reflows under it. The
+    // invariant this test is about is overlap, not movement: the default Chat Settings button has to
+    // stay clear of the saved bubble, which sits 320px to its left.
+    expectSameBox(await box(saved), before, "the saved button keeps its position");
+    const savedBox = await box(saved);
+    const buttonBox = await box(chatSettingsButton(page));
+    expectSameBox(buttonBox, originalSettings, "the Settings button is not moved by the layer");
+    expect(
+      !(
+        buttonBox.x + buttonBox.width <= savedBox.x ||
+        savedBox.x + savedBox.width <= buttonBox.x ||
+        buttonBox.y + buttonBox.height <= savedBox.y ||
+        savedBox.y + savedBox.height <= buttonBox.y
+      ),
+      "the default Settings button stays clear of the saved bubble",
+    ).toBe(true);
+
+    await page.locator('[data-component="TopBar"]').getByTitle("Settings", { exact: true }).click();
+    await expect(settingsLayer).toBeHidden();
+    // Closed again: the chat is reachable and both buttons are still where they were.
     await expect
       .poll(() =>
         page.locator(".mari-window-bubble").evaluateAll((elements) =>
@@ -1283,12 +1316,6 @@ test("sidebars keep the default Settings button clear of a saved button", async 
         ),
       )
       .toBe(true);
-    expectSameBox(await box(saved), before, "the saved button keeps its position");
-    const movedSettings = await box(chatSettingsButton(page));
-    expect(
-      Math.abs(movedSettings.x - before.x) >= before.width || Math.abs(movedSettings.y - before.y) >= before.height,
-    ).toBe(true);
-    await page.locator('[data-component="TopBar"]').getByTitle("Settings", { exact: true }).click();
     await expect.poll(async () => (await box(chatSettingsButton(page))).x).toBe(originalSettings.x);
     await expect.poll(() => readSavedLayout(request, chat.id)).toEqual(layout);
   } finally {

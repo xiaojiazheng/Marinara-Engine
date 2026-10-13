@@ -46,7 +46,17 @@ test("folder rename owns Escape while nested folder actions close the panel", as
   await expect(header).toHaveAttribute("aria-expanded", "true");
   await folder.getByRole("button", { name: "Delete folder", exact: true }).press("Escape");
   await expect(page.locator('[data-tour="panel-characters"]')).toHaveAttribute("aria-pressed", "false");
-  await expect(panel).not.toBeInViewport();
+  // The panel is closed: the drawer unmounts on mobile, the desktop layer stays mounted as
+  // `aria-hidden`. Do not use `not.toBeInViewport()` here — `visibility: hidden` keeps the box laid
+  // out, so the geometry check can never report "gone" for a mounted modal layer.
+  await expect(panel).toBeHidden();
+  if (!testInfo.project.name.includes("mobile")) {
+    const layer = page.locator('[data-component="ShellOverlayPopover"]:has([data-component="RightPanelDesktop"])');
+    // Assert the locator is not empty first: `toBeHidden()` also passes on an empty set, which would
+    // let a renamed selector stop testing anything at all.
+    await expect(layer).toHaveCount(1);
+    await expect(layer).toHaveAttribute("aria-hidden", "true");
+  }
   await page.screenshot({ path: testInfo.outputPath("expanded-folder-escape-panel-closed.png") });
 });
 

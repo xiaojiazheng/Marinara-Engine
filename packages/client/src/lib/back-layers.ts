@@ -15,11 +15,14 @@ import type { BackLayer } from "./back-navigation";
 import { hasEditorLeaveHandler } from "./editor-leave";
 
 /**
- * The shell docks the sidebar / right panel / tracker panel on a desktop-sized
- * viewport and floats them over the content below it (`AppShell.tsx`'s
- * `shellOverlayMode`). Only the floating form is something back should dismiss:
- * a docked panel is layout, not an overlay, and treating it as one would leave
- * a desktop browser permanently unable to navigate away.
+ * The shell floats the tracker panel over the content on a small viewport and docks it
+ * beside the chat on a desktop one (`AppShell.tsx`'s `shellOverlayMode`). Only the floating
+ * form is something back should dismiss: a docked tracker panel is layout, not an overlay,
+ * and treating it as one would leave a desktop browser permanently unable to navigate away.
+ *
+ * The chat list and the settings panel are a different case: `ShellOverlayPopover` shows them
+ * as Windows 11 centered modal layers on desktop and as full-screen drawers here, so both are
+ * overlays on every viewport and always register below.
  */
 function isShellOverlayMode() {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
@@ -64,9 +67,10 @@ export function getStoreBackLayers(): BackLayer[] {
   const dialog = useDialogStore.getState();
   const layers: BackLayer[] = [];
 
+  if (ui.sidebarOpen) layers.push({ id: "sidebar", close: () => useUIStore.getState().setSidebarOpen(false) });
+  if (ui.rightPanelOpen) layers.push({ id: "right-panel", close: () => useUIStore.getState().closeRightPanel() });
+
   if (isShellOverlayMode()) {
-    if (ui.sidebarOpen) layers.push({ id: "sidebar", close: () => useUIStore.getState().setSidebarOpen(false) });
-    if (ui.rightPanelOpen) layers.push({ id: "right-panel", close: () => useUIStore.getState().closeRightPanel() });
     // The chat's panel preference leaves a button on screen; only the open panel is a layer.
     const trackerPanelShowing =
       ui.trackerPanelEnabled &&

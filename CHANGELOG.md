@@ -4,6 +4,8 @@ This file is the release-notes source of truth for Marinara Engine. Reuse these 
 
 ## [Unreleased]
 
+- On desktop, the chat list and the settings panel now open as centered Windows 11-style windows over a dimmed backdrop instead of squeezing the chat: the chat keeps its full width while either one is open. **Esc**, a click outside the window, the header's X or the matching top-bar button closes it, and only one opens at a time. Selecting a chat or starting a new one closes the list, and closing a character, lorebook, preset, connection, persona or agent editor brings back the settings panel you opened it from. A fresh install starts with the chat list closed, and the dividers for dragging their width are gone. The top bar stays visible and clickable while a window is open, so switching straight from **Chats** to **Settings** takes one click.
+
 - Simplified Chinese UI and documentation are bundled with the app, so switching language and repairing Chinese packs works offline without downloading from GitHub.
 
 - Contributor docs now state that this fork maintains English and Simplified Chinese only: the bundled Simplified Chinese packs are kept in step with `docs/` and UI copy changes, while the `docs-i18n` branch and its community languages are no longer maintained here.

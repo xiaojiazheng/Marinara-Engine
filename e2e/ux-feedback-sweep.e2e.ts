@@ -50,27 +50,28 @@ async function openEditor(page: Page, kind: string, id: string) {
   await expect(page.locator(".mari-editor-shell")).toBeVisible();
 }
 
-test("UX sweep: narrow desktop windows use the overlay shell before sidebar topbar controls collide", async ({
+test("UX sweep: narrow desktop windows keep the centered panel layer without squeezing the top bar", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name.includes("mobile"), "Desktop window and docked-sidebar transition.");
+  test.skip(testInfo.project.name.includes("mobile"), "Desktop window width behaviour.");
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
+  const center = page.locator('[data-component="CenterContent"]');
+  const chatsLayer = page.locator('[data-component="ShellOverlayPopover"]:has([data-component="ChatSidebarPanel"])');
+  const settingsLayer = page.locator(
+    '[data-component="ShellOverlayPopover"]:has([data-component="RightPanelDesktop"])',
+  );
+
+  // A narrow window with a fine pointer is still a desktop window: the media query alone decides now,
+  // so 768–1440px keeps the centered layer instead of switching to the phone drawer.
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await expect(center).not.toHaveAttribute("data-shell-overlay-mode", "true");
   await page.evaluate(async () => {
     const { useUIStore } = await import("/src/stores/ui.store.ts" as string);
-    useUIStore.setState({
-      sidebarWidth: 400,
-      rightPanelWidth: 400,
-      sidebarOpen: true,
-      rightPanelOpen: true,
-      rightPanel: "settings",
-    });
+    useUIStore.getState().openRightPanel("settings");
   });
-  const center = page.locator('[data-component="CenterContent"]');
-  await expect(center).not.toHaveAttribute("data-shell-overlay-mode", "true");
-  await page.setViewportSize({ width: 1100, height: 900 });
-  await expect(center).toHaveAttribute("data-shell-overlay-mode", "true");
-  await expect(page.locator('[data-component="RightPanelMobile"]')).toBeVisible();
+  await expect(settingsLayer).toHaveAttribute("aria-hidden", "false");
+  await expect(page.locator('[data-component="RightPanelMobile"]')).toHaveCount(0);
   const buttons = await page
     .locator('[data-component="TopBar"] button[data-topbar-hover-key]')
     .evaluateAll((elements) =>
@@ -85,14 +86,15 @@ test("UX sweep: narrow desktop windows use the overlay shell before sidebar topb
     for (let j = i + 1; j < buttons.length; j++)
       expect(buttons[i]!.right <= buttons[j]!.left || buttons[j]!.right <= buttons[i]!.left).toBe(true);
   }
+  // One press switches layers even with a layer covering the chat: the top bar sits outside it.
   await page.locator('[data-topbar-hover-key="chats"]').click();
-  await expect(page.locator('[data-component="ChatSidebarPanel"]')).toBeVisible();
+  await expect(chatsLayer).toHaveAttribute("aria-hidden", "false");
+  await expect(settingsLayer).toBeHidden();
   await expect(page.locator('[data-component="RightPanelMobile"]')).toHaveCount(0);
-  await clickTopbarPanel(page, "settings");
-  await expect(page.locator('[data-component="RightPanelMobile"]')).toBeVisible();
+
   await page.setViewportSize({ width: 1600, height: 900 });
   await expect(center).not.toHaveAttribute("data-shell-overlay-mode", "true");
-  await expect(page.locator('[data-component="RightPanelDesktop"]')).toBeVisible();
+  await expect(chatsLayer).toHaveAttribute("aria-hidden", "false");
 });
 
 test("UX sweep: achievement highlights stay inside their window with padding", async ({ page }, testInfo) => {
@@ -227,43 +229,52 @@ test("UX sweep: Character Voice names a same-name card's voice and keeps typing 
       .getByText("Text to Speech", { exact: true })
       .locator("xpath=../../..");
     await ttsCard.getByTitle("Expand").click();
+    // Phase 1 — the editor names the voice of a same-name card. Opening an editor takes the settings
+    // layer down, so the editor is the only painted surface here; the card's own live-refetch coverage
+    // moved to phase 2, where its layer is open again.
     await openEditor(page, "Character", auId);
     const editor = page.locator(".mari-editor-shell");
     await openSection(editor, "Voice");
     const input = editor.locator('[data-editor-section="voice"]').getByTestId("character-voice-input");
-    const cardInput = ttsCard.getByTestId(`tts-custom-voice-input-character-${auId}`);
     // Without a voice of its own, the copy speaks with the original card's voice, so it must not say "Default voice".
     await expect(input).toHaveAttribute("placeholder", "echo (from a card with a matching name)");
 
     // Another tab saves a new speed after this page read the config. Saving a voice here must keep it.
     const latest = await (await request.get("/api/tts/config")).json();
     expect((await request.put("/api/tts/config", { data: { ...latest, speed: 1.5 } })).ok()).toBeTruthy();
-    await expect(ttsCard.getByText("Speed — 1.00×")).toBeVisible();
     await input.fill("nova");
-    await expect(cardInput).toHaveValue("nova");
     const saved = await (await request.get("/api/tts/config")).json();
     expect(saved.speed).toBe(1.5);
     expect(saved.voiceAssignments).toContainEqual({ characterId: auId, characterName: name, voice: "nova" });
+
+    // Phase 2 — the card is the surface that shows each refetch as it lands, and the value typed there
+    // must outlive an older one. It is only painted while its layer is open, so close the editor first:
+    // a hidden layer does not render new rows, so the card cannot be observed behind an editor.
+    await editor.locator(".mari-editor-header .mari-editor-action").first().click();
+    await expect(editor).toHaveCount(0);
+    await clickTopbarPanel(page, "connections");
+    await expect(page.locator('[data-component="RightPanel"]')).toBeVisible();
+    const cardInput = ttsCard.getByTestId(`tts-custom-voice-input-character-${auId}`);
+    await expect(cardInput).toHaveValue("nova");
+    await expect(ttsCard.getByText("Speed — 1.00×")).toBeVisible();
 
     // Hold each save so the first save's refetch lands while the second one is still unanswered.
     await page.route("**/api/tts/config/voice-assignment", async (route) => {
       await new Promise<void>((release) => heldSaves.push(release));
       await route.continue();
     });
-    await input.fill("abc");
+    await cardInput.fill("abc");
     await expect.poll(() => heldSaves.length).toBe(1);
-    await input.pressSequentially("d");
+    await cardInput.pressSequentially("d");
     // The next save waits for the held one, so the server gets the saves in the order they were made.
     await page.waitForTimeout(1_000);
     expect(heldSaves).toHaveLength(1);
-    // The settings card shows each refetch as it lands; the typed "abcd" must outlive the older "abc" one.
+    // The card shows each refetch as it lands; the typed "abcd" must outlive the older "abc" one.
     heldSaves[0]!();
     await expect.poll(() => heldSaves.length).toBe(2);
-    await expect(cardInput).toHaveValue("abc");
-    await expect(input).toHaveValue("abcd");
+    await expect(cardInput).toHaveValue("abcd");
     heldSaves[1]!();
     await expect(cardInput).toHaveValue("abcd");
-    await expect(input).toHaveValue("abcd");
 
     // A failed save shows an error and the saved voice again, and does not stop the next pick from saving.
     await page.unroute("**/api/tts/config/voice-assignment");
@@ -272,12 +283,12 @@ test("UX sweep: Character Voice names a same-name card's voice and keeps typing 
       (route) => route.fulfill({ status: 500, json: { error: "Internal Server Error" } }),
       { times: 1 },
     );
-    await input.fill("fable");
+    await cardInput.fill("fable");
     await expect(
       page.locator('[data-sonner-toast][data-type="error"]').filter({ hasText: "Could not save the voice." }),
     ).toBeVisible();
-    await expect(input).toHaveValue("abcd");
-    await input.fill("sage");
+    await expect(cardInput).toHaveValue("abcd");
+    await cardInput.fill("sage");
     await expect(cardInput).toHaveValue("sage");
   } finally {
     for (const release of heldSaves) release();
@@ -350,14 +361,23 @@ test("UX sweep: Appearance groups, quick access, width and hidden-panel state", 
   await page.getByRole("button", { name: /Backgrounds Section/ }).click();
   await expect(modes.getByRole("button", { name: "App", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(panel.locator("#settings-section-chat-backgrounds")).toBeInViewport();
-  await expect(modes).not.toBeInViewport();
+  // Jumping to that section scrolls the mode group out of the panel's own clipped scroll area, which
+  // is what "no longer visible" means here. Do not express this as `not.toBeInViewport()`: the panel
+  // layer is centered in the window now, so absolute viewport coordinates no longer decide it.
+  expect(
+    await modes.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      return Boolean(hit && (hit === element || element.contains(hit)));
+    }),
+  ).toBe(false);
   for (const mode of ["Conversation", "Game"]) {
     await modes.getByRole("button", { name: mode, exact: true }).click();
     await expect(panel.locator("#settings-section-roleplay-tracker")).toHaveCount(0);
     await expect(panel.getByRole("heading", { name: mode, exact: true })).toBeVisible();
   }
   await modes.getByRole("button", { name: "App", exact: true }).click();
-  const slider = panel.getByLabel("Desktop sidebar width", { exact: true });
+  const slider = panel.getByLabel("Desktop panel width", { exact: true });
   await slider.fill("280");
   await modes.scrollIntoViewIfNeeded();
   expect(
@@ -380,7 +400,7 @@ test("UX sweep: Appearance groups, quick access, width and hidden-panel state", 
     useUIStore.getState().openRightPanel("settings");
   });
   await page.getByRole("tab", { name: "Appearance", exact: true }).click();
-  await expect(page.getByLabel("Desktop sidebar width", { exact: true })).toHaveValue("480");
+  await expect(page.getByLabel("Desktop panel width", { exact: true })).toHaveValue("480");
 });
 
 test("UX sweep: Background library mobile toolbar, accent marker and settled modal", async ({ page }, testInfo) => {

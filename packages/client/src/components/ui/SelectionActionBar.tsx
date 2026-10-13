@@ -35,9 +35,14 @@ export function SelectionActionBar({
   const actionBar = (
     <div
       className={cn(
+        // Both placements keep the bar in the panel's own flow: it is the last child of a `flex`
+        // column that fills (or overflows) the panel, so `mt-auto` puts it at the bottom and `sticky`
+        // holds it there while the list scrolls. `fixed` would escape a centered panel layer and land
+        // outside it — behind the backdrop, where it cannot be clicked.
+        "mari-selection-action-bar sticky bottom-0 z-20 -mx-3 mt-auto px-3",
         isPanelFooter
-          ? "mari-selection-action-bar fixed bottom-0 right-0 z-[60] w-[min(var(--mari-right-panel-width,20rem),100vw)] px-3 pb-[calc(0.625rem+var(--mari-safe-area-inset-bottom,env(safe-area-inset-bottom)))] pt-2.5"
-          : "mari-selection-action-bar sticky bottom-0 z-20 -mx-3 mt-auto px-3 py-2.5",
+          ? "pb-[calc(0.625rem+var(--mari-safe-area-inset-bottom,env(safe-area-inset-bottom)))] pt-2.5"
+          : "py-2.5",
         className,
       )}
     >
@@ -70,18 +75,6 @@ export function SelectionActionBar({
       </div>
     </div>
   );
-
-  if (isPanelFooter) {
-    return (
-      <>
-        <div
-          aria-hidden="true"
-          className="h-[calc(6rem+var(--mari-safe-area-inset-bottom,env(safe-area-inset-bottom)))] shrink-0"
-        />
-        {actionBar}
-      </>
-    );
-  }
 
   return actionBar;
 }

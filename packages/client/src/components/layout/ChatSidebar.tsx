@@ -46,7 +46,7 @@ import { useCharacterSummaries } from "../../hooks/use-characters";
 import { handleFolderRenameKeyDown, useFolderRenameGesture } from "../../hooks/use-folder-rename-gesture";
 import { useChatStore } from "../../stores/chat.store";
 import { confirmNonEmptyFolderDelete, showConfirmDialog } from "../../lib/app-dialogs";
-import { isMobileShellViewport, useUIStore, type UserStatus } from "../../stores/ui.store";
+import { useUIStore, type UserStatus } from "../../stores/ui.store";
 import { cn, getAvatarCropStyle } from "../../lib/utils";
 import { chatBackgroundMetadataToUrl } from "../../lib/backgrounds";
 import { formatRelativeContact } from "../../lib/relative-time";
@@ -669,7 +669,7 @@ export function ChatSidebar() {
       const connectionRows = ((connections ?? []) as Array<{ id: string }>).filter((connection) => !!connection.id);
       if (connectionRows.length === 0) {
         setPendingNewChatMode(mode, "sidebar");
-        if (isMobileShellViewport()) setSidebarOpen(false);
+        setSidebarOpen(false);
         return;
       }
 
@@ -694,7 +694,7 @@ export function ChatSidebar() {
         {
           onSuccess: (chat) => {
             setActiveChatId(chat.id);
-            if (isMobileShellViewport()) setSidebarOpen(false);
+            setSidebarOpen(false);
             useChatStore.getState().setShouldOpenSettings(true);
             useChatStore.getState().setShouldOpenWizard(true);
             if (starred) {
@@ -1012,7 +1012,7 @@ export function ChatSidebar() {
           }
           internalNavRef.current = true;
           setActiveChatId(chat.id);
-          if (isMobileShellViewport()) setSidebarOpen(false);
+          setSidebarOpen(false);
         }}
         className={cn(
           "group relative isolate flex w-full touch-pan-y items-center gap-2.5 overflow-hidden rounded-lg px-3 py-2.5 text-left transition-all duration-150",
@@ -1313,7 +1313,7 @@ export function ChatSidebar() {
           <PersonalExtensionContributionSlot surface="chats" position="header" className="max-w-28" />
           <button
             onClick={() => setSidebarOpen(false)}
-            className="mari-chrome-control mari-chrome-control--small mari-accent-animated p-1.5 active:scale-90 md:hidden max-md:h-9 max-md:w-9 [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:w-9"
+            className="mari-chrome-control mari-chrome-control--small mari-accent-animated p-1.5 active:scale-90 max-md:h-9 max-md:w-9 [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:w-9"
             title={localize("Close")}
             aria-label={localize("Close chats")}
           >

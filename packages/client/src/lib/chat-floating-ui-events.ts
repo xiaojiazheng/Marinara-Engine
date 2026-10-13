@@ -1,3 +1,5 @@
+import { MOBILE_SHELL_MEDIA_QUERY } from "./mobile-shell";
+
 export const CHAT_FLOATING_UI_DISMISS_EVENT = "marinara:chat-floating-ui-dismiss";
 export const CHAT_SUMMARY_OPEN_REQUEST_EVENT = "marinara:chat-summary-open-request";
 
@@ -25,7 +27,7 @@ export function blurActiveChatFloatingUiControl(options?: { keepWindowFocus?: bo
 }
 
 export function isDesktopShellNavigationTarget(target: EventTarget | null) {
-  if (typeof window === "undefined" || window.matchMedia("(max-width: 767px)").matches) return false;
+  if (typeof window === "undefined" || window.matchMedia(MOBILE_SHELL_MEDIA_QUERY).matches) return false;
   const element = target instanceof Element ? target : target instanceof Node ? target.parentElement : null;
   // A window toggle in the topbar, such as Chat Settings, is a chat control: pressing it closes chat popovers.
   if (element?.closest("[data-window-opener]")) return false;

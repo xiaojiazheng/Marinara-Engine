@@ -4788,65 +4788,6 @@ strong {
   box-shadow: var(--glass-strong-shadow);
 }
 
-.mari-shell-panel-edge {
-  border-right-width: 0 !important;
-  border-left-width: 0 !important;
-}
-
-.mari-shell-panel-edge::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  z-index: 30;
-  width: 1px;
-  pointer-events: none;
-  background: var(--marinara-shell-edge-border);
-}
-
-.mari-shell-panel-edge--left::after {
-  left: 0;
-}
-
-.mari-shell-panel-edge--right::after {
-  right: 0;
-}
-
-.mari-shell-panel-slot {
-  transition: width 220ms cubic-bezier(0.16, 1, 0.3, 1);
-  contain: layout paint;
-}
-
-.mari-shell-panel-motion {
-  transform: translate3d(0, 0, 0);
-  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform;
-  contain: paint;
-}
-
-.mari-shell-panel-enter-left {
-  transform: translate3d(0, 0, 0);
-}
-
-.mari-shell-panel-enter-right {
-  transform: translate3d(0, 0, 0);
-}
-
-.mari-shell-panel-exit-left {
-  transform: translate3d(-100%, 0, 0);
-}
-
-.mari-shell-panel-exit-right {
-  transform: translate3d(100%, 0, 0);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mari-shell-panel-slot,
-  .mari-shell-panel-motion {
-    transition: none;
-  }
-}
-
 /* Use the same opaque surface as sidebar headers and item action trays.
    Keep specificity low so authored theme backgrounds still take precedence. */
 :where(.mari-sidebar, .mari-right-panel) {
@@ -4856,13 +4797,6 @@ strong {
 /* Firefox on Windows can rasterize text inside large blurred/translucent layout layers,
    which shows up most clearly on high-DPI displays. Fall back to opaque shell chrome there. */
 @supports (-moz-appearance: none) {
-  @media (min-width: 768px) {
-    .mari-shell-panel-slot,
-    .mari-shell-panel-motion {
-      transition: none;
-    }
-  }
-
   :root {
     --marinara-topbar-surface: var(--card);
     /* Gecko on Android reports env(safe-area-inset-bottom) as the system
@@ -6659,7 +6593,7 @@ strong {
   }
 }
 
-/* Touch tablets get the phone shell (MOBILE_SHELL_MEDIA_QUERY in ui.store.ts),
+/* Touch tablets get the phone shell (MOBILE_SHELL_MEDIA_QUERY in lib/mobile-shell.ts),
    so they also need its keyboard-aware viewport. */
 @media (max-width: 767px), (max-width: 1440px) and (hover: none) and (any-pointer: coarse) {
   .mari-topbar {

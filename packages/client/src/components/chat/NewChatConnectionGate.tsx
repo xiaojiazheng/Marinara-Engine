@@ -4,7 +4,7 @@ import { useConnections } from "../../hooks/use-connections";
 import { useCreateChat } from "../../hooks/use-chats";
 import { useChatPresets, useApplyChatPreset } from "../../hooks/use-chat-presets";
 import { useChatStore } from "../../stores/chat.store";
-import { isMobileShellViewport, useUIStore } from "../../stores/ui.store";
+import { useUIStore } from "../../stores/ui.store";
 import { useSidecarStore } from "../../stores/sidecar.store";
 import { appendLocalSidecarConnectionOption } from "../../lib/connection-filters";
 import { cn } from "../../lib/utils";
@@ -80,7 +80,9 @@ export function NewChatConnectionGate({ mode, onClose }: NewChatConnectionGatePr
           store.setPendingNewChatMode(null);
           if (pendingNewChatOrigin === "home") {
             setSidebarOpen(true);
-          } else if (isMobileShellViewport()) {
+          } else {
+            // Started from a panel flow: the chat list is a modal layer on every viewport now, so it
+            // would cover the new chat.
             setSidebarOpen(false);
           }
           store.setActiveChatId(chat.id);

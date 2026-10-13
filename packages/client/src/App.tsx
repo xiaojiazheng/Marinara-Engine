@@ -32,9 +32,9 @@ import {
   getDefaultAppAccentColor,
   getDefaultAppBackgroundColor,
   getDefaultChatChromeTextColor,
-  MOBILE_SHELL_MEDIA_QUERY,
   useUIStore,
 } from "./stores/ui.store";
+import { MOBILE_SHELL_MEDIA_QUERY } from "./lib/mobile-shell";
 import { useSidecarStore } from "./stores/sidecar.store";
 import { useDialogStore } from "./stores/dialog.store";
 import { api, requestTimeoutSignal } from "./lib/api-client";
