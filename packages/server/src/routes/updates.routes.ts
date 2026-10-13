@@ -72,13 +72,6 @@ const PNPM_UPDATE_INSTALL_ARGS = ["install", "--force", "--frozen-lockfile"];
 // A forced reinstall is verbose; the execFile default (1 MiB) can abort an
 // otherwise healthy install with a maxBuffer error.
 const PNPM_OUTPUT_MAX_BUFFER = 32 * 1024 * 1024;
-// Termux on Android runs on slow flash storage without prebuilt-binary
-// caches, so channel switches (full dependency purge + reinstall) routinely
-// need far longer than desktop installs.
-const UPDATE_STEP_TIMEOUT_MULTIPLIER = process.platform === "android" ? 4 : 1;
-function updateStepTimeout(baseMs: number): number {
-  return baseMs * UPDATE_STEP_TIMEOUT_MULTIPLIER;
-}
 const MANUAL_PNPM_COMMAND = `corepack pnpm@${DEFAULT_PNPM_DESCRIPTOR}`;
 const DOCKER_IMAGE = "ghcr.io/pasta-devs/marinara-engine";
 const MANUAL_GIT_UPDATE_COMMAND = `git fetch origin +refs/heads/main:refs/remotes/origin/main && (git merge --ff-only origin/main || git checkout --detach origin/main) && ${MANUAL_PNPM_COMMAND} --config.trustPolicy=off --config.confirmModulesPurge=false install --force --frozen-lockfile && ${MANUAL_PNPM_COMMAND} --filter @marinara-engine/shared build && ${MANUAL_PNPM_COMMAND} --filter @marinara-engine/server --filter @marinara-engine/client --parallel run build && ${MANUAL_PNPM_COMMAND} start`;
@@ -150,8 +143,6 @@ function getGitLauncherCommand(platform: ServerPlatform) {
   switch (platform) {
     case "windows":
       return "start.bat";
-    case "android-termux":
-      return "./start-termux.sh";
     case "macos":
     case "linux":
       return "./start.sh";
@@ -224,10 +215,7 @@ export function getManualGitApplyCommand(
   // only path available when UPDATES_APPLY_ENABLED is false) cannot build with
   // stale untracked sources left behind by a failed checkout.
   const cleanCommand = `git clean -fd -- ${STALE_SOURCE_CLEAN_PATHS.join(" ")}`;
-  const buildCommand =
-    platform === "android-termux"
-      ? `${pnpmCommand} --filter @marinara-engine/shared build && ${pnpmCommand} --filter @marinara-engine/server build && ${pnpmCommand} --filter @marinara-engine/client build`
-      : `${pnpmCommand} --filter @marinara-engine/shared build && ${pnpmCommand} --filter @marinara-engine/server --filter @marinara-engine/client --parallel run build`;
+  const buildCommand = `${pnpmCommand} --filter @marinara-engine/shared build && ${pnpmCommand} --filter @marinara-engine/server --filter @marinara-engine/client --parallel run build`;
   const applyCommand = `git fetch ${UPDATE_REMOTE} ${channel.fetchRef} && ${checkoutCommand} && ${cleanCommand} && ${pnpmCommand} --config.trustPolicy=off --config.confirmModulesPurge=false ${PNPM_UPDATE_INSTALL_ARGS.join(" ")} && ${buildCommand}`;
   return repoRoot ? `${getChangeDirectoryCommand(platform, repoRoot)} && ${applyCommand}` : applyCommand;
 }
@@ -621,7 +609,7 @@ async function resolvePinnedPnpmRunner(root: string): Promise<PnpmRunner> {
     const { stdout } = await execFileAsync(invocation.command, invocation.args, {
       cwd: root,
       // First run downloads the pinned pnpm; slow devices need extra headroom.
-      timeout: updateStepTimeout(20_000),
+      timeout: 20_000,
     });
     if (stdout.trim() === pnpmVersion) {
       return { command: "corepack", prefixArgs: [`pnpm@${pnpmDescriptor}`] };
@@ -636,7 +624,7 @@ async function resolvePinnedPnpmRunner(root: string): Promise<PnpmRunner> {
     const invocation = commandInvocation("pnpm", ["--version"]);
     const { stdout } = await execFileAsync(invocation.command, invocation.args, {
       cwd: root,
-      timeout: updateStepTimeout(10_000),
+      timeout: 10_000,
     });
     if (stdout.trim() === pnpmVersion) {
       return { command: "pnpm", prefixArgs: [] };
@@ -649,7 +637,7 @@ async function resolvePinnedPnpmRunner(root: string): Promise<PnpmRunner> {
     const invocation = commandInvocation("npx", ["--yes", `pnpm@${pnpmVersion}`, "--version"]);
     const { stdout } = await execFileAsync(invocation.command, invocation.args, {
       cwd: root,
-      timeout: updateStepTimeout(60_000),
+      timeout: 60_000,
     });
     if (stdout.trim() === pnpmVersion) {
       return { command: "npx", prefixArgs: ["--yes", `pnpm@${pnpmVersion}`] };
@@ -694,7 +682,7 @@ function describePnpmFailure(err: unknown, args: string[], timeout: number): Err
 
 async function runPinnedPnpm(root: string, args: string[], baseTimeout: number) {
   const runner = await resolvePinnedPnpmRunner(root);
-  const timeout = updateStepTimeout(baseTimeout);
+  const timeout = baseTimeout;
   const invocation = commandInvocation(runner.command, [...runner.prefixArgs, ...PNPM_NONINTERACTIVE_ARGS, ...args]);
   try {
     await execFileAsync(invocation.command, invocation.args, {
@@ -710,11 +698,6 @@ async function runPinnedPnpm(root: string, args: string[], baseTimeout: number) 
 
 async function runPinnedBuild(root: string) {
   await runPinnedPnpm(root, ["--filter", "@marinara-engine/shared", "build"], 120_000);
-  if (process.platform === "android") {
-    await runPinnedPnpm(root, ["--filter", "@marinara-engine/server", "build"], 300_000);
-    await runPinnedPnpm(root, ["--filter", "@marinara-engine/client", "build"], 300_000);
-    return;
-  }
   await runPinnedPnpm(
     root,
     ["--filter", "@marinara-engine/server", "--filter", "@marinara-engine/client", "--parallel", "run", "build"],

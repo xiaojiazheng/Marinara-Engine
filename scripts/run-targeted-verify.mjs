@@ -94,6 +94,8 @@ if (!guardsOnly) {
     ...E2E_SPECS,
     '--project=desktop-chromium',
     '--workers=1',
+    // Own artifacts dir so a concurrent run cannot collide on test-results/ (AGENTS.md rule 2).
+    '--output=.tmp/verify-artifacts',
   ], { env: { ...process.env, PLAYWRIGHT_ONLY_PROJECT: 'desktop' } });
 }
 
