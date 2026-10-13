@@ -1,0 +1,18 @@
+services:
+  marinara:
+    image: ${MARINARA_IMAGE:?Set MARINARA_IMAGE to a tested custom image digest}
+    container_name: marinara-lite
+    init: true
+    network_mode: bridge
+    restart: unless-stopped
+    env_file:
+      - path: ./marinara.env
+        format: raw
+    ports:
+      - "127.0.0.1:7860:7860"
+    volumes:
+      - type: bind
+        source: ${MARINARA_DATA_DIR:-/var/lib/docker/volumes/marinara-data/_data}
+        target: /app/data
+        bind:
+          create_host_path: false
