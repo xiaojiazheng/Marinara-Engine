@@ -10,6 +10,11 @@ const APP_VERSION = (
 ).version;
 const WIDE = { width: 1920, height: 1080 };
 
+const chatsLayer = (page: Page) =>
+  page.locator('[data-component="ShellOverlayPopover"]:has([data-component="ChatSidebarPanel"])');
+const settingsLayer = (page: Page) =>
+  page.locator('[data-component="ShellOverlayPopover"]:has([data-component="RightPanelDesktop"])');
+
 type Position = "left" | "center" | "right";
 type Rect = { left: number; right: number; top: number; bottom: number; width: number };
 
@@ -96,8 +101,12 @@ async function readLayout(page: Page) {
       composer: rect(document.querySelector('[data-roleplay-chat-column="true"]'))!,
       columns: [...all(".mari-roleplay-message-body"), ...all(".rpg-narrator-msg > div:first-child")],
       avatars: all(".mari-roleplay-message-row > .mari-message-avatar"),
-      sidebar: rect(document.querySelector('[data-component="ChatSidebarSlot"]')),
-      rightPanel: rect(document.querySelector('[data-component="RightPanelDesktopSlot"]')),
+      chatsLayer: rect(
+        document.querySelector('[data-component="ShellOverlayPopover"]:has([data-component="ChatSidebarPanel"])'),
+      ),
+      settingsLayer: rect(
+        document.querySelector('[data-component="ShellOverlayPopover"]:has([data-component="RightPanelDesktop"])'),
+      ),
       scrollbar: scroll ? scroll.offsetWidth - scroll.clientWidth : 0,
       pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       transcriptOverflow: scroll ? scroll.scrollWidth - scroll.clientWidth : 0,
@@ -130,13 +139,14 @@ function expectOneColumnOnPhone(layout: Layout) {
   }
 }
 
-/** The visible chat area is the pane between the open sidebars. */
+/**
+ * The chat area is the whole center pane now: the chat list and the settings panel float over it as
+ * centered modal layers and reserve no column, so the visible area is `CenterContent` itself.
+ */
 function expectInsideArea(layout: Layout) {
-  const left = Math.max(layout.area.left, layout.sidebar?.right ?? 0);
-  const right = Math.min(layout.area.right, layout.rightPanel?.width ? layout.rightPanel.left : Infinity);
   for (const box of [layout.composer, ...layout.columns, ...layout.avatars]) {
-    expect(box.left).toBeGreaterThanOrEqual(left - 1);
-    expect(box.right).toBeLessThanOrEqual(right + 1);
+    expect(box.left).toBeGreaterThanOrEqual(layout.area.left - 1);
+    expect(box.right).toBeLessThanOrEqual(layout.area.right + 1);
   }
 }
 
@@ -217,15 +227,17 @@ test("Chat position moves the Roleplay column and composer together inside the v
       expect(Math.abs(leftGap - rightGap)).toBeLessThanOrEqual(1 + layout.scrollbar);
     });
     await shot(page, "center");
+    // The chat list is a modal layer: opening it must not move the column at all.
     await page.locator('[data-tour="sidebar-toggle"]').click();
+    await expect(chatsLayer(page)).toHaveAttribute("aria-hidden", "false");
     await settledLayout(page, (layout) => {
-      expect(layout.sidebar!.width).toBeGreaterThan(200);
       expectOneColumn(layout);
       expectInsideArea(layout);
+      expect(layout.composer).toEqual(center.composer);
     });
     await shot(page, "center-chats-sidebar");
     await page.locator('[data-tour="sidebar-toggle"]').click();
-    await settledLayout(page, (layout) => expect(layout.sidebar?.width ?? 0).toBeLessThanOrEqual(1));
+    await expect(chatsLayer(page)).toHaveAttribute("aria-hidden", "true");
 
     // Left: the column moves to the left edge of the chat area, keeping room for its avatars.
     await choosePosition(page, "left");
@@ -240,30 +252,28 @@ test("Chat position moves the Roleplay column and composer together inside the v
     await shot(page, "left");
     await expectConnectionsMenuOnScreen(page);
 
-    // Opening the chats sidebar pushes the column right instead of covering it.
+    // Opening the chat list no longer pushes the column: the layer floats over it.
     await page.locator('[data-tour="sidebar-toggle"]').click();
+    await expect(chatsLayer(page)).toHaveAttribute("aria-hidden", "false");
     const leftWithSidebar = await settledLayout(page, (layout) => {
-      expect(layout.sidebar!.width).toBeGreaterThan(200);
       expectOneColumn(layout);
       expectInsideArea(layout);
-      expect(layout.composer.left - layout.sidebar!.right).toBeLessThanOrEqual(160);
     });
-    expect(leftWithSidebar.composer.left).toBeGreaterThan(left.composer.left + 200);
+    expect(leftWithSidebar.composer).toEqual(left.composer);
     await shot(page, "left-chats-sidebar");
 
-    // Both sidebars at once still leave the column inside the pane between them.
+    // One layer at a time: the resource panel takes the chat list down and still leaves the column be.
     await clickTopbarPanel(page, "characters");
-    await settledLayout(page, (layout) => {
-      expect(layout.rightPanel!.width).toBeGreaterThan(200);
+    await expect(settingsLayer(page)).toHaveAttribute("aria-hidden", "false");
+    await expect(chatsLayer(page)).toBeHidden();
+    const leftWithPanel = await settledLayout(page, (layout) => {
       expectOneColumn(layout);
       expectInsideArea(layout);
     });
+    expect(leftWithPanel.composer).toEqual(left.composer);
     await clickTopbarPanel(page, "characters");
-    await page.locator('[data-tour="sidebar-toggle"]').click();
-    await settledLayout(page, (layout) => {
-      expect(layout.sidebar?.width ?? 0).toBeLessThanOrEqual(1);
-      expect(layout.rightPanel?.width ?? 0).toBeLessThanOrEqual(1);
-    });
+    await expect(settingsLayer(page)).toBeHidden();
+    await settledLayout(page, (layout) => expectOneColumn(layout));
 
     // The choice is saved.
     await page.reload();
@@ -288,15 +298,15 @@ test("Chat position moves the Roleplay column and composer together inside the v
     await shot(page, "right");
     await expectConnectionsMenuOnScreen(page);
     await clickTopbarPanel(page, "characters");
+    await expect(settingsLayer(page)).toHaveAttribute("aria-hidden", "false");
     const rightWithPanel = await settledLayout(page, (layout) => {
-      expect(layout.rightPanel!.width).toBeGreaterThan(200);
       expectOneColumn(layout);
       expectInsideArea(layout);
-      expect(layout.rightPanel!.left - layout.composer.right).toBeLessThanOrEqual(160);
     });
-    expect(rightWithPanel.composer.right).toBeLessThan(right.composer.right - 200);
+    expect(rightWithPanel.composer).toEqual(right.composer);
     await shot(page, "right-characters-panel");
     await clickTopbarPanel(page, "characters");
+    await expect(settingsLayer(page)).toBeHidden();
 
     // Back to Center restores the original geometry exactly.
     await choosePosition(page, "center");

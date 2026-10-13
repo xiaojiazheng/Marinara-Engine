@@ -649,7 +649,7 @@ export function ConversationPresenceCard({
             className={cn(NEUTRAL_PANEL_SHELL, "mari-chat-style-surface fixed z-[9999] overflow-hidden")}
             style={{
               top: position.top,
-              left: `max(calc(var(--mari-chat-ui-inset-left, 0px) + 0.75rem), min(${position.left}px, calc(100vw - var(--mari-chat-ui-inset-right, 0px) - ${position.width}px - 0.75rem)))`,
+              left: `max(0.75rem, min(${position.left}px, calc(100vw - ${position.width}px - 0.75rem)))`,
               width: position.width,
             }}
           >

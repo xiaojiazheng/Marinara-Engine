@@ -1030,9 +1030,12 @@ const SETTINGS_SEARCHABLE_CONTROLS: readonly SettingsSearchableControlMeta[] = [
   {
     id: "desktop-sidebar-width",
     sectionId: "app-style",
-    label: "Desktop sidebar width",
+    // These two literals mirror `settings.appearance.sidebarWidth` / `sidebarWidthHelp` in en.json:
+    // the search index matches on English text and `localize()` resolves a key by looking the text up,
+    // so a copy that drifts from the canonical value stops being translated and shows English.
+    label: "Desktop panel width",
     description:
-      "Adjust both desktop sidebars. Their contents adapt to the available space; mobile panels keep their existing layout.",
+      "Both desktop panels open at this width. Their contents adapt to the space they get; mobile panels keep their existing layout.",
     aliases: ["sidebar", "width", "resize", "left panel", "right panel"],
     kind: "Slider",
   },

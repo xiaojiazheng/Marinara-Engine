@@ -1,5 +1,5 @@
 import { useStartChatFromCharacter } from "../../hooks/use-start-chat-from-character";
-import { isMobileShellViewport, useUIStore } from "../../stores/ui.store";
+import { useUIStore } from "../../stores/ui.store";
 import { ChatModeSelectorModal, type ChatLaunchMode } from "../chat/ChatModeSelectorModal";
 
 interface StartCharacterChatModalProps {
@@ -22,7 +22,10 @@ export function StartCharacterChatModal({ open, onClose, characterId, characterN
       shortcutMode: false,
       onSuccess: () => {
         closeAllDetails();
-        if (isMobileShellViewport()) closeRightPanel();
+        // The settings panel is a modal layer on every viewport now, so it would cover the chat that
+        // was just started. `closeAllDetails` is a plain state reset — it never reopens the panel —
+        // so both calls land in one batched render and there is no visible open-then-close.
+        closeRightPanel();
         onClose();
       },
     });

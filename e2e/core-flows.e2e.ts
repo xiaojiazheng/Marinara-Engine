@@ -3902,6 +3902,46 @@ test("Character Chat actions reuse mode selection and seed the chosen setup wiza
     await expect(editCharacter).toHaveCSS("font-weight", "400");
     await expect(chatNow).toHaveCSS("font-weight", "400");
     expect(await readButtonTypography(chatNow)).toEqual(await readButtonTypography(editCharacter));
+    // No-flash guard for the settings layer while this launch starts a chat. `StartCharacterChatModal`
+    // closes the right panel unconditionally on success, and this launcher starts from a state where that
+    // panel is already closed: opening the character library ran `getOverlayDetailReturnState`, which
+    // remembered the characters panel in `detailReturnRightPanel`. If the launch path let that remembered
+    // panel be restored, the settings layer would blink open over the chat it just created.
+    // `closeAllDetails` clears the return target in the same batched `set`, so the layer has to stay
+    // hidden for the whole launch.
+    const settingsLayer = page.locator(
+      '[data-component="ShellOverlayPopover"]:has([data-component="RightPanelDesktop"])',
+    );
+    if (!mobile) {
+      // Mounted and closed *before* sampling: a layer that never mounted would record an empty sequence
+      // and make the "no false" assertion below pass vacuously — the exact false-green this guards.
+      await expect(settingsLayer).toHaveCount(1);
+      await expect(settingsLayer).toHaveAttribute("aria-hidden", "true");
+      await settingsLayer.evaluate((layer) => {
+        const samples: string[] = [];
+        (window as unknown as { __settingsLayerAriaHidden?: string[] }).__settingsLayerAriaHidden = samples;
+        samples.push(layer.getAttribute("aria-hidden") ?? "");
+        const isSettingsLayer = (node: Node | null) =>
+          node instanceof Element &&
+          node.getAttribute("data-component") === "ShellOverlayPopover" &&
+          node.querySelector('[data-component="RightPanelDesktop"]') !== null;
+        new MutationObserver((mutations) => {
+          for (const mutation of mutations) {
+            if (mutation.type === "attributes" && isSettingsLayer(mutation.target)) {
+              samples.push((mutation.target as Element).getAttribute("aria-hidden") ?? "");
+            }
+            for (const added of mutation.addedNodes) {
+              if (isSettingsLayer(added)) samples.push((added as Element).getAttribute("aria-hidden") ?? "");
+            }
+          }
+        }).observe(document.documentElement, {
+          attributeFilter: ["aria-hidden"],
+          attributes: true,
+          childList: true,
+          subtree: true,
+        });
+      });
+    }
     await chatNow.click();
 
     const libraryModeSelector = await expectModeSelector();
@@ -3924,6 +3964,19 @@ test("Character Chat actions reuse mode selection and seed the chosen setup wiza
     await gameWizard.getByRole("button", { name: "Close setup", exact: true }).click();
     await expect(gameWizard).toHaveCount(0);
 
+    if (!mobile) {
+      // Read the recorded sequence only after the launch settled and before the panel is opened again
+      // below. "false" at any point would mean the settings layer became visible during the launch,
+      // i.e. the flash this guard exists to catch; a non-empty sequence proves the observer really was
+      // attached to the mounted layer instead of silently watching nothing. Negative control: forcing
+      // the panel open here makes this exact assertion fail/go red, so the sampling is not a no-op.
+      const ariaHiddenSamples = await page.evaluate(
+        () => (window as unknown as { __settingsLayerAriaHidden?: string[] }).__settingsLayerAriaHidden ?? [],
+      );
+      expect(ariaHiddenSamples.length).toBeGreaterThan(0);
+      expect(ariaHiddenSamples).not.toContain("false");
+    }
+
     await ensureCharacterPanelOpen();
     const characterRow = rightPanel.locator(`[data-touch-drag-card="character"][data-character-id="${character.id}"]`);
     await expect(characterRow).toBeVisible();
@@ -3931,9 +3984,17 @@ test("Character Chat actions reuse mode selection and seed the chosen setup wiza
 
     const actions = characterRow.locator("[data-character-row-actions]");
     await expect(actions).toBeVisible();
-    const sidebarSurface = await rightPanel.evaluate(
-      (panel) => getComputedStyle(panel.closest(".mari-right-panel")!).backgroundColor,
-    );
+    // The row action tray paints the sidebar chrome token. On desktop the pane is no longer an opaque
+    // docked column (it sits on the layer's acrylic plate, so it sets no background of its own), so
+    // resolve the token in the panel's own theme scope instead of reading the pane's background.
+    const sidebarSurface = await rightPanel.evaluate((panel) => {
+      const probe = document.createElement("span");
+      probe.style.backgroundColor = "var(--sidebar)";
+      panel.append(probe);
+      const value = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return value;
+    });
     await expect(actions).toHaveCSS("background-color", sidebarSurface);
     await expect(rightPanel.locator(".mari-right-panel-header")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     const duplicateButton = actions.getByRole("button", { name: "Duplicate", exact: true });
@@ -7808,8 +7869,10 @@ test("editing the preceding Roleplay message keeps one live stream row", async (
   }
 });
 
-test("Roleplay side panels synchronize their slide with the desktop shell resize", async ({ page }, testInfo) => {
-  test.skip(!testInfo.project.name.includes("desktop"), "Desktop panel animation regression.");
+test("Roleplay shell layers open and close over a dense transcript without reflowing the chat", async ({
+  page,
+}, testInfo) => {
+  test.skip(!testInfo.project.name.includes("desktop"), "Desktop shell layer regression.");
 
   const chatResponse = await page.request.post("/api/chats", {
     data: { name: "Roleplay Panel Performance Smoke", mode: "roleplay", characterIds: [] },
@@ -7838,57 +7901,47 @@ test("Roleplay side panels synchronize their slide with the desktop shell resize
     // Exercise the panel over a dense transcript, including its lazy first open.
     await charactersButton.click();
     await expect(page.locator('[data-component="RightPanel"]')).toBeVisible();
-    const rightSlot = page.locator('[data-component="RightPanelDesktopSlot"]');
-    const rightPanel = page.locator('[data-component="RightPanelDesktop"]');
-    const leftSlot = page.locator('[data-component="ChatSidebarSlot"]');
-    const leftPanel = page.locator('[data-component="ChatSidebarPanel"]');
+    const settingsLayer = page.locator(
+      '[data-component="ShellOverlayPopover"]:has([data-component="RightPanelDesktop"])',
+    );
+    const chatsLayer = page.locator('[data-component="ShellOverlayPopover"]:has([data-component="ChatSidebarPanel"])');
     const centerContent = page.locator('[data-component="CenterContent"]');
-    await expect(rightPanel).toHaveClass(/mari-shell-panel-enter-right/);
-    await rightSlot.evaluate(async (element) => {
-      const panel = element.querySelector('[data-component="RightPanelDesktop"]');
-      await Promise.all(
-        [element, panel]
-          .flatMap((target) => target?.getAnimations() ?? [])
-          .map((animation) => animation.finished.catch(() => undefined)),
+    // Wait for the box to stop changing rather than for `getAnimations().finished`: a loading spinner
+    // inside the pane is an infinite animation, so that promise never settles.
+    const waitForStableBox = async (child: string) => {
+      const layerSurface = page.locator(
+        `[data-component="ShellOverlayPopover"]:has([data-component="${child}"]) [role="dialog"]`,
       );
-    });
-    const openRightSlotWidth = (await rightSlot.boundingBox())?.width ?? 0;
-    expect(openRightSlotWidth).toBeGreaterThan(0);
-    const centerWidthWithRightPanel = (await centerContent.boundingBox())?.width ?? 0;
+      await expect
+        .poll(async () => {
+          const first = JSON.stringify(await layerSurface.boundingBox());
+          await page.waitForTimeout(120);
+          return first === JSON.stringify(await layerSurface.boundingBox());
+        })
+        .toBe(true);
+    };
+    // Both layers are centered modals over the chat now: the chat area keeps the full shell width
+    // whether they are open or closed, instead of the old shared-baseline slide and column reflow.
+    const closedCenterWidth = (await centerContent.boundingBox())!.width;
+    await expect(settingsLayer).toHaveAttribute("aria-hidden", "false");
+    await waitForStableBox("RightPanelDesktop");
+    await expect(page.locator('[data-component="RightPanel"]')).toBeVisible();
+    await expect.poll(async () => (await centerContent.boundingBox())!.width).toBe(closedCenterWidth);
+
     await page.getByRole("button", { name: "Close panel" }).click();
-    await expect(rightPanel).toHaveClass(/mari-shell-panel-exit-right/);
-    await expect(rightSlot).toHaveCSS("width", "0px");
-    expect((await centerContent.boundingBox())?.width ?? 0).toBeGreaterThan(centerWidthWithRightPanel);
+    await expect(settingsLayer).toHaveAttribute("aria-hidden", "true");
+    await expect(page.locator('[data-component="RightPanel"]')).toBeHidden();
+    await expect.poll(async () => (await centerContent.boundingBox())!.width).toBe(closedCenterWidth);
 
     await page.locator('[data-tour="sidebar-toggle"]').click();
-    await expect(leftSlot).not.toHaveCSS("width", "0px");
-    await expect(leftPanel).toHaveClass(/mari-shell-panel-enter-left/);
-    await leftSlot.evaluate(async (element) => {
-      const panel = element.querySelector('[data-component="ChatSidebarPanel"]');
-      await Promise.all(
-        [element, panel]
-          .flatMap((target) => target?.getAnimations() ?? [])
-          .map((animation) => animation.finished.catch(() => undefined)),
-      );
-    });
-    const openLeftSlotWidth = (await leftSlot.boundingBox())?.width ?? 0;
-    expect(openLeftSlotWidth).toBeGreaterThan(0);
-    const centerWidthWithLeftPanel = (await centerContent.boundingBox())?.width ?? 0;
-    await page.locator('[data-tour="sidebar-toggle"]').click();
-    await expect(leftPanel).toHaveClass(/mari-shell-panel-exit-left/);
-    await expect(leftSlot).toHaveCSS("width", "0px");
-    expect((await centerContent.boundingBox())?.width ?? 0).toBeGreaterThan(centerWidthWithLeftPanel);
+    await expect(chatsLayer).toHaveAttribute("aria-hidden", "false");
+    await expect(page.locator('[data-component="ChatSidebarPanel"]')).toBeVisible();
+    await waitForStableBox("ChatSidebarPanel");
+    await expect.poll(async () => (await centerContent.boundingBox())!.width).toBe(closedCenterWidth);
 
-    for (const [slot, panel] of [
-      [rightSlot, rightPanel],
-      [leftSlot, leftPanel],
-    ] as const) {
-      const slotTransitions = await slot.evaluate((element) => getComputedStyle(element).transitionProperty);
-      const panelTransitions = await panel.evaluate((element) => getComputedStyle(element).transitionProperty);
-      expect(slotTransitions.split(",").map((property) => property.trim())).toContain("width");
-      expect(panelTransitions.split(",").map((property) => property.trim())).toContain("transform");
-      expect(panelTransitions.split(",").map((property) => property.trim())).not.toContain("width");
-    }
+    await page.locator('[data-tour="sidebar-toggle"]').click();
+    await expect(chatsLayer).toHaveAttribute("aria-hidden", "true");
+    await expect.poll(async () => (await centerContent.boundingBox())!.width).toBe(closedCenterWidth);
   } finally {
     await page.request.delete(`/api/chats/${chat.id}`);
   }
@@ -13130,8 +13183,8 @@ test("Professor Mari replaces the Noodle tour with highlighted Home guidance", a
   await expect(page.locator("h3").filter({ hasText: /^Noodle$/ })).toHaveCount(0);
 });
 
-test("settings search divider stays aligned with editor headers across text scales", async ({ page }, testInfo) => {
-  test.skip(!testInfo.project.name.includes("desktop"), "Desktop split-pane alignment regression.");
+test("the shell layer stays pinned under the top bar across text scales", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.includes("desktop"), "Desktop shell layer geometry regression.");
 
   await page.goto("/");
   await page.evaluate(async () => {
@@ -13151,24 +13204,26 @@ test("settings search divider stays aligned with editor headers across text scal
     await expect
       .poll(async () =>
         page.evaluate(() => {
-          const topbar = document.querySelector<HTMLElement>('[data-component="TopBar"]');
-          const rightPanelHeader = document.querySelector<HTMLElement>(".mari-right-panel-header");
-          const editorHeader = document.querySelector<HTMLElement>(
-            ".mari-editor-header:not(.mari-settings-search-header)",
+          const layer = document.querySelector<HTMLElement>(
+            '[data-component="ShellOverlayPopover"]:has([data-component="RightPanelDesktop"])',
           );
-          const settingsSearchHeader = document.querySelector<HTMLElement>(".mari-settings-search-header");
-          if (!topbar || !rightPanelHeader || !editorHeader || !settingsSearchHeader) return null;
+          const topbar = document.querySelector<HTMLElement>('[data-component="TopBar"]');
+          const surface = layer?.querySelector<HTMLElement>('[role="dialog"]') ?? null;
+          const paneHeader = layer?.querySelector<HTMLElement>(".mari-right-panel-header") ?? null;
+          if (!layer || !topbar || !surface || !paneHeader) return null;
+          const topbarBox = topbar.getBoundingClientRect();
+          const surfaceBox = surface.getBoundingClientRect();
+          const paneHeaderBox = paneHeader.getBoundingClientRect();
           return {
-            shellHeadersAligned:
-              Math.abs(topbar.getBoundingClientRect().bottom - rightPanelHeader.getBoundingClientRect().bottom) < 0.1,
-            contentHeadersAligned:
-              Math.abs(
-                editorHeader.getBoundingClientRect().bottom - settingsSearchHeader.getBoundingClientRect().bottom,
-              ) < 0.1,
+            // The layer is pinned under the top bar; it must never reach back over it. This also checks
+            // that the layer's 3rem top inset still tracks the top bar's own height at every text scale.
+            surfaceBelowTopbar: surfaceBox.top >= topbarBox.bottom - 1,
+            // The pane keeps its own header flush with the layer's top edge (1px surface border).
+            paneHeaderAtSurfaceTop: Math.abs(paneHeaderBox.top - surfaceBox.top) <= 1.5,
           };
         }),
       )
-      .toEqual({ shellHeadersAligned: true, contentHeadersAligned: true });
+      .toEqual({ surfaceBelowTopbar: true, paneHeaderAtSurfaceTop: true });
   }
 });
 
@@ -17701,25 +17756,33 @@ test("desktop resource editors open beside their source sidebars", async ({ page
     await page.locator('[data-tour="sidebar-toggle"]').click();
     const chatSidebar = page.locator('[data-component="ChatSidebarPanel"]');
     const resourceSidebar = page.locator('[data-component="RightPanelDesktop"]');
+    const settingsLayer = page.locator(
+      '[data-component="ShellOverlayPopover"]:has([data-component="RightPanelDesktop"])',
+    );
     const centerContent = page.locator('[data-component="CenterContent"]');
     await expect(chatSidebar).toBeVisible();
 
     for (const resource of resources) {
       await clickTopbarPanel(page, resource.panel);
       await expect(resourceSidebar).toBeVisible();
-      await expect(centerContent).toHaveAttribute("data-center-compact", "true");
+      // One modal layer at a time: opening the resource panel takes the chat list down.
+      await expect(chatSidebar).toBeHidden();
+      // The chat area keeps its full width; the layer floats over it instead of squeezing it compact.
+      await expect(centerContent).not.toHaveAttribute("data-center-compact", "true");
       const resourceRow = resourceSidebar.getByText(resource.name, { exact: true }).first();
       await expect(resourceRow).toBeVisible();
       await resourceRow.evaluate((element) => (element as HTMLElement).click());
 
       const editor = centerContent.locator(".mari-editor-shell");
       await expect(editor).toBeVisible();
-      await expect(resourceSidebar).toBeVisible();
-      await expect(chatSidebar).toBeVisible();
-      await expect(resourceSidebar.getByText(resource.name, { exact: true }).first()).toBeVisible();
+      // Opening an editor takes the layer down — it would cover the editor — and the panel returns when
+      // the editor closes (`getOverlayDetailReturnState`).
+      await expect(settingsLayer).toBeHidden();
 
       await editor.locator(".mari-editor-header .mari-editor-action").first().click();
       await expect(editor).toHaveCount(0);
+      await expect(settingsLayer).toHaveAttribute("aria-hidden", "false");
+      await expect(resourceSidebar.getByText(resource.name, { exact: true }).first()).toBeVisible();
     }
   } finally {
     if (!page.isClosed()) {

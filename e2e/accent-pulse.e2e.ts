@@ -365,10 +365,20 @@ for (const theme of ["dark", "light"] as const) {
       }
       await clickTopbarPanel(page, "settings");
       await page.getByRole("tab", { name: "Appearance", exact: true }).click();
-      await expect(page.locator(".mari-right-panel:visible")).toHaveCSS(
-        "background-color",
-        await renderedColor("var(--sidebar)"),
-      );
+      if (info.project.name.includes("mobile")) {
+        await expect(page.locator(".mari-right-panel:visible")).toHaveCSS(
+          "background-color",
+          await renderedColor("var(--sidebar)"),
+        );
+      } else {
+        // The desktop settings pane is a Windows 11 acrylic layer now, not an opaque docked column:
+        // its chrome surface is the layer's own acrylic plate.
+        await expect(
+          page.locator(
+            '[data-component="ShellOverlayPopover"]:has([data-component="RightPanelDesktop"]) [role="dialog"]',
+          ),
+        ).toHaveCSS("background-color", await renderedColor("var(--marinara-home-acrylic-surface)"));
+      }
       await expect(page.locator(".mari-right-panel-header:visible")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
       await expect(page.locator("#settings-section-app-style")).toHaveCSS(
         "background-color",
@@ -398,14 +408,13 @@ for (const theme of ["dark", "light"] as const) {
         await renderedColor(`color-mix(in oklab, ${border} 60%, transparent)`),
       );
       if (!info.project.name.includes("mobile")) {
-        const edgeColor = await renderedColor(`color-mix(in srgb, ${color} 14%, var(--background) 86%)`);
-        await expect
-          .poll(() =>
-            page
-              .locator(".mari-right-panel.mari-shell-panel-edge:visible")
-              .evaluate((element) => getComputedStyle(element, "::after").backgroundColor),
-          )
-          .toBe(edgeColor);
+        // The docked panel's accent-tinted edge went away with the docked layout (`.mari-shell-panel-edge`
+        // no longer exists): the centered layer draws its edge from the acrylic border token instead.
+        await expect(
+          page.locator(
+            '[data-component="ShellOverlayPopover"]:has([data-component="RightPanelDesktop"]) [role="dialog"]',
+          ),
+        ).toHaveCSS("border-top-color", await renderedColor("var(--marinara-home-acrylic-border)"));
       }
       await page.screenshot({
         path: info.outputPath(`settings-borders-${theme}-${color.slice(1)}.png`),
