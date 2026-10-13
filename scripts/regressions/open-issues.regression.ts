@@ -6548,11 +6548,17 @@ const illustratorReferencesSource = readFileSync(
   "utf8",
 );
 assert.match(appSource, /--marinara-app-accent-static-gradient/u);
-assert.match(appSource, /position=\{notificationPosition === "bottom" \? "bottom-center" : "top-center"\}/u);
+// T-d made the toast position a named three-value map so a notification can sit above the
+// taskbar's right corner without collapsing back into the old top/bottom pair. Pin the table
+// AND the call site: the table alone would still pass if the toast stopped reading it.
 assert.match(
   appSource,
-  /swipeDirections=\{\["left", "right", notificationPosition === "bottom" \? "bottom" : "top"\]\}/u,
+  /const NOTIFICATION_POSITIONS = \{\s*"bottom-right": "bottom-right",\s*bottom: "bottom-center",\s*top: "top-center",\s*\} as const;/u,
 );
+assert.match(appSource, /position=\{NOTIFICATION_POSITIONS\[notificationPosition\]\}/u);
+// Swipe polarity is the opposite of the position: only "top" swipes up, every other position
+// (bottom, bottom-right) swipes down.
+assert.match(appSource, /swipeDirections=\{\["left", "right", notificationPosition === "top" \? "top" : "bottom"\]\}/u);
 assert.doesNotMatch(agentEditorSource, /fetch\(["']\/api\/game-assets\/pick-local-music-folder/u);
 assert.match(agentEditorSource, /api\.post<[^>]+>\(["']\/game-assets\/pick-local-music-folder["']\)/u);
 assert.match(localMusicPlayerSource, /api\.raw\(`\/game-assets\/local-music-file\?path=\$\{encodedPath\}`\)/u);
