@@ -12,6 +12,8 @@ This file is the release-notes source of truth for Marinara Engine. Reuse these 
 
 - Home's desktop is now a Windows 11 icon desk. Icons line up along the left and open on double-click: **Conversation**, **Roleplay** and **Game** start a chat, **Recent Chats**, **What's New**, **Learn the Engine**, **Community**, the **Clock** and **Achievements** open their own windows, and **Character Library**, **Professor Mari**, **Discovery** and **Character of the Day** open the matching Marinara surface. Drag an icon to move it and the arrangement is remembered; right-click the desktop for **View** (large, medium or small icons), **Sort by → Name**, **Refresh** and **Personalize**, or right-click an icon for **Open** and **Refresh**. The old widget grid and its manager are gone: your desk always starts with the same built-in icons, and the retired widget preferences are cleaned up on first launch. The package URL bar switch moved to **Settings → Appearance → App Style**.
 
+- The light theme now renders as a native Windows 11 desktop: soft grey `#f3f3f3` surfaces, white windows, near-black text and the Windows accent blue `#0078d4` instead of the lavender-and-pink palette. The dark theme keeps Marinara's night purple identity.
+
 - Added a custom-branch container build and a deployment guide for preserving existing data, credentials, and rollback backups on a personal fork.
 
 ## [2.5.0]

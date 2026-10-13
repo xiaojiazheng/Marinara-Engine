@@ -471,31 +471,34 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  --background: #faf8ff;
+  /* Light scheme renders as a native Windows 11 desktop (user-directed):
+     neutral Fluent surfaces (#f3f3f3 mica, white windows) with the Win11
+     accent blue #0078d4. The dark scheme keeps the Marinara night identity. */
+  --background: #f3f3f3;
   --marinara-app-background-paint: var(--background);
-  --foreground: #1a1025;
+  --foreground: #1b1b1b;
   --card: #ffffffee;
-  --card-foreground: #1a1025;
+  --card-foreground: #1b1b1b;
   --popover: #ffffffee;
-  --popover-foreground: #1a1025;
-  --primary: #ec4b97;
-  --primary-foreground: #0a0a0a;
-  --secondary: #f0eaf7;
-  --secondary-foreground: #3a2960;
-  --marinara-conversation-gradient-from: #f2eff7;
-  --marinara-conversation-gradient-to: #eae6f0;
-  --muted: #f0eaf7;
-  --muted-foreground: #65656f;
-  --accent: #ede4f7;
-  --accent-foreground: #1a1025;
+  --popover-foreground: #1b1b1b;
+  --primary: #0078d4;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #1b1b1b;
+  --marinara-conversation-gradient-from: #fbfbfb;
+  --marinara-conversation-gradient-to: #f3f3f3;
+  --muted: #f5f5f5;
+  --muted-foreground: #5d5d5d;
+  --accent: #f0f0f0;
+  --accent-foreground: #1b1b1b;
   --destructive: var(--primary);
   --destructive-foreground: var(--primary-foreground);
-  --border: color-mix(in srgb, var(--primary) 27%, transparent);
+  --border: color-mix(in srgb, var(--foreground) 9%, transparent);
   --input: var(--border);
   --ring: var(--primary);
-  --sidebar: #f5f0fc;
-  --sidebar-foreground: #3a2960;
-  --sidebar-border: color-mix(in srgb, var(--primary) 20%, transparent);
+  --sidebar: #f9f9f9;
+  --sidebar-foreground: #1b1b1b;
+  --sidebar-border: color-mix(in srgb, var(--foreground) 8%, transparent);
   --sidebar-accent: color-mix(in srgb, var(--primary) 9%, transparent);
   --sidebar-accent-foreground: var(--primary);
   --glow-primary: color-mix(in srgb, var(--primary) 12%, transparent);
@@ -519,7 +522,7 @@
   --marinara-home-acrylic-surface: color-mix(in srgb, var(--card) 78%, transparent);
   --marinara-home-acrylic-surface-strong: color-mix(in srgb, var(--card) 88%, transparent);
   --marinara-home-acrylic-border: color-mix(in srgb, var(--foreground) 12%, transparent);
-  --marinara-home-acrylic-shadow: 0 18px 44px -30px rgb(26 16 37 / 0.32);
+  --marinara-home-acrylic-shadow: 0 18px 44px -30px rgb(0 0 0 / 0.32);
   --marinara-taskbar-divider: color-mix(in srgb, var(--foreground) 14%, transparent);
   --marinara-taskbar-hover: color-mix(in srgb, var(--foreground) 8%, transparent);
   --marinara-taskbar-active: color-mix(in srgb, var(--primary) 16%, transparent);
@@ -531,20 +534,20 @@
   --tracker-card-active-surface-bottom: color-mix(in srgb, var(--background) 90%, var(--card-foreground) 10%);
   --tracker-card-active-surface-material: color-mix(in srgb, var(--card) 94%, var(--card-foreground) 6%);
   --tracker-card-active-surface-lift: color-mix(in srgb, var(--card) 90%, var(--card-foreground) 10%);
-  --tracker-card-material-bright-target: oklch(0.975 0.012 315);
-  --tracker-card-material-dark-target: oklch(0.055 0.014 300);
-  --tracker-card-readable-light-ink: oklch(0.94 0.012 315);
-  --tracker-card-readable-dark-ink: oklch(0.17 0.026 300);
-  --tracker-card-muted-light-ink: oklch(0.76 0.018 315);
-  --tracker-card-muted-dark-ink: oklch(0.34 0.028 300);
+  --tracker-card-material-bright-target: oklch(0.975 0 0);
+  --tracker-card-material-dark-target: oklch(0.055 0 0);
+  --tracker-card-readable-light-ink: oklch(0.94 0 0);
+  --tracker-card-readable-dark-ink: oklch(0.17 0 0);
+  --tracker-card-muted-light-ink: oklch(0.76 0 0);
+  --tracker-card-muted-dark-ink: oklch(0.34 0 0);
   --tracker-card-nameplate-base-top: color-mix(in srgb, var(--card) 84%, var(--primary) 16%);
   --tracker-card-nameplate-base-mid: color-mix(in srgb, var(--secondary) 88%, var(--card) 12%);
   --tracker-card-nameplate-base-bottom: color-mix(in srgb, var(--secondary) 92%, var(--card-foreground) 8%);
   --tracker-card-nameplate-text-base: color-mix(in srgb, var(--card-foreground) 94%, var(--primary) 6%);
 
-  --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(245, 240, 252, 0.6) 100%);
+  --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(243, 243, 243, 0.6) 100%);
   --glass-border: rgba(0, 0, 0, 0.06);
-  --glass-strong-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(245, 240, 252, 0.75) 100%);
+  --glass-strong-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(243, 243, 243, 0.75) 100%);
   --glass-strong-border: rgba(0, 0, 0, 0.08);
   --glass-strong-shadow: 0 4px 16px rgba(0, 0, 0, 0.06), inset 0 1px rgba(255, 255, 255, 0.5);
 
@@ -570,12 +573,12 @@
    4. LIGHT THEME — COMPONENT OVERRIDES
    ───────────────────────────────────────────── */
 [data-theme="light"] .glass {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(245, 240, 252, 0.6) 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(243, 243, 243, 0.6) 100%);
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="light"] .glass-strong {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(245, 240, 252, 0.75) 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(243, 243, 243, 0.75) 100%);
   border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.06),
@@ -584,8 +587,8 @@
 
 [data-theme="light"] .geometric-grid {
   background-image:
-    linear-gradient(rgba(180, 140, 230, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(180, 140, 230, 0.06) 1px, transparent 1px);
+    linear-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
 }
 
 [data-theme="light"] .texting-bubble-other {
@@ -620,7 +623,7 @@
 }
 
 [data-theme="light"] .shimmer {
-  background: linear-gradient(90deg, #f0eaf7 25%, #ede4f7 50%, #f0eaf7 75%);
+  background: linear-gradient(90deg, #f5f5f5 25%, #ebebeb 50%, #f5f5f5 75%);
   background-size: 200% 100%;
 }
 
@@ -6281,10 +6284,10 @@ strong {
 [data-theme="light"] .rpg-overlay {
   background: linear-gradient(
     180deg,
-    rgba(250, 248, 255, 0.4) 0%,
-    rgba(250, 248, 255, 0.25) 30%,
-    rgba(250, 248, 255, 0.3) 70%,
-    rgba(250, 248, 255, 0.45) 100%
+    rgba(243, 243, 243, 0.4) 0%,
+    rgba(250, 250, 250, 0.25) 30%,
+    rgba(250, 250, 250, 0.3) 70%,
+    rgba(250, 250, 250, 0.45) 100%
   );
 }
 
@@ -6293,7 +6296,7 @@ strong {
 }
 
 [data-theme="light"] .mari-rp-reduced-paint > .rpg-overlay {
-  background: rgba(250, 248, 255, 0.35);
+  background: rgba(243, 243, 243, 0.35);
 }
 
 .rpg-vignette {
@@ -6301,7 +6304,7 @@ strong {
 }
 
 [data-theme="light"] .rpg-vignette {
-  background: radial-gradient(ellipse at center, transparent 60%, rgba(120, 100, 160, 0.12) 100%);
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.12) 100%);
 }
 
 .mari-rp-reduced-paint > .rpg-vignette {
