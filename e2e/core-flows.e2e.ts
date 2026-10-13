@@ -312,21 +312,6 @@ async function dragChatResource(page: Page, source: Locator, target: Locator) {
   }
 }
 
-async function expectHomeWidgetHeightsMatch(page: Page, baseline: number) {
-  await expect
-    .poll(async () => {
-      const heights = await page
-        .locator("[data-home-widget-id]")
-        .evaluateAll(
-          (elements, expected) =>
-            elements.map((element) => Math.abs(element.getBoundingClientRect().height - expected)),
-          baseline,
-        );
-      return Math.max(...heights);
-    })
-    .toBeLessThanOrEqual(2);
-}
-
 // Playwright's pointer-input actionability machinery can wedge the WebKit web
 // process mid-test (the page's main thread hard-blocks until the test times
 // out — an engine-level bug; plain DOM clicks never trip it and Chromium is
@@ -343,21 +328,11 @@ async function activateControl(control: Locator, testInfo: TestInfo) {
 }
 
 async function openHomeBookmark(page: Page, name: string) {
-  // #5743: at phone widths the bookmarks live behind the compact tab-strip
-  // trigger and open in the dropdown menu; on desktop the full labeled bar
-  // renders its entries directly.
-  const mobileTrigger = page.getByRole("button", { name: "Open bookmarks", exact: true });
-  if (await mobileTrigger.isVisible()) {
-    if ((await mobileTrigger.getAttribute("aria-expanded")) !== "true") await mobileTrigger.click();
-    await expect(mobileTrigger).toHaveAttribute("aria-expanded", "true");
-    await page
-      .locator('[data-component="HomeBrowserHub.MobileBookmarksMenu"]')
-      .getByText(name, { exact: true })
-      .click();
-    return;
-  }
-  const bookmarks = page.getByRole("navigation", { name: "Home bookmarks" });
-  await bookmarks.getByRole("button", { name, exact: true }).filter({ visible: true }).click();
+  // The Win11 Home redesign removed the bookmark bar and its phone-width dropdown menu. The same
+  // entries (bookmarks, docs, FAQ, achievements, widgets) now live in the start menu's pinned grid,
+  // still opened from the taskbar's start button - same reachability, new path.
+  await page.locator('[data-component="HomeBrowserHub.TaskbarStart"]').click();
+  await page.locator('[data-component="HomeBrowserHub.StartMenuPinned"]').getByText(name, { exact: true }).click();
 }
 
 async function updateLiveReasoningState(
@@ -12299,61 +12274,24 @@ test(
     await page.goto("/");
 
     await expect(page.locator('[data-component="TopBar"]')).toBeVisible();
-    await expect(page.getByRole("heading", { name: "What shall we cook tonight?" })).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByRole("tab", { name: "Home", exact: true })).toHaveAttribute("aria-selected", "true");
-    await expect(page.locator('[data-component="HomeBrowserHub.Address"]')).toContainText("marinara/home");
-    await expect(page.locator('[data-component="HomeBrowserHub.Address"] img')).toHaveAttribute("src", "/favicon.png");
-    await expect(page.locator('.mari-home-browser-chrome img[src="/logo-splash.gif"]')).toBeVisible();
+    // The Win11 desktop replaced the browser tab strip, the address bar, the header wordmark, and the
+    // widget grid: Home shows the hero wordmark, the icon desk, and the taskbar.
+    await expect(page.locator('[data-component="HomeDesktopIcons"]')).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('[data-component="HomeBrowserHub.Taskbar"]')).toBeVisible();
+    await expect(page.locator('[data-component="HomeBrowserHub.TabList"]')).toHaveCount(0);
+    await expect(page.locator('[data-component="HomeBrowserHub.Address"]')).toHaveCount(0);
+    await expect(page.locator('.mari-home-hero img[src="/logo.png"]')).toBeVisible();
     await expect(page.locator('.mari-home-hero img[src="/logo-splash.gif"]')).toHaveCount(0);
     await expect(page.locator('[data-tour="noodle-tab"]')).toHaveCount(0);
-    const guideGeometry = await page.locator('[data-home-widget-id="professor"]').evaluate((guide) => {
-      const panel = guide.querySelector<HTMLElement>('[data-component="HomeBrowserHub.ProfessorWidget"]')!;
-      const content = guide.querySelector<HTMLElement>("[data-home-professor-content]")!;
-      const art = guide.querySelector<HTMLElement>("[data-home-professor-art]")!;
-      const action = guide.querySelector<HTMLElement>("[data-home-professor-action]")!;
-      const grid = guide.parentElement!;
-      const guideBounds = guide.getBoundingClientRect();
-      const panelBounds = panel.getBoundingClientRect();
-      const contentBounds = content.getBoundingClientRect();
-      const artBounds = art.getBoundingClientRect();
-      const actionBounds = action.getBoundingClientRect();
-      const gap = Number.parseFloat(getComputedStyle(grid).columnGap) || 0;
-      const siblingSeparations = Array.from(grid.querySelectorAll<HTMLElement>("[data-home-widget-id]"))
-        .filter((widget) => widget !== guide)
-        .map((widget) => {
-          const bounds = widget.getBoundingClientRect();
-          const horizontal = Math.max(bounds.left - guideBounds.right, guideBounds.left - bounds.right, 0);
-          const vertical = Math.max(bounds.top - guideBounds.bottom, guideBounds.top - bounds.bottom, 0);
-          return Math.max(horizontal, vertical);
-        });
-      const inside = (child: DOMRect, parent: DOMRect) =>
-        child.left >= parent.left - 1 &&
-        child.top >= parent.top - 1 &&
-        child.right <= parent.right + 1 &&
-        child.bottom <= parent.bottom + 1;
-      return {
-        panelInsideFrame: inside(panelBounds, guideBounds),
-        contentInsidePanel: inside(contentBounds, panelBounds),
-        artInsidePanel: inside(artBounds, panelBounds),
-        actionInsidePanel: inside(actionBounds, panelBounds),
-        preservesGridGap: siblingSeparations.every((separation) => separation >= gap - 1),
-        // The card lets Mari rise past its top border (#7032), so its text column clips the overflow instead.
-        contentOverflowY: getComputedStyle(content).overflowY,
-      };
-    });
-    expect(guideGeometry).toEqual({
-      panelInsideFrame: true,
-      contentInsidePanel: true,
-      artInsidePanel: true,
-      actionInsidePanel: true,
-      preservesGridGap: true,
-      contentOverflowY: "clip",
-    });
-    const chromeSurfaces = await page.evaluate(() => ({
-      app: getComputedStyle(document.querySelector<HTMLElement>('[data-component="TopBar"]')!).backgroundColor,
-      home: getComputedStyle(document.querySelector<HTMLElement>(".mari-home-browser-chrome")!).backgroundColor,
-    }));
-    expect(chromeSurfaces.home).toBe(chromeSurfaces.app);
+    // The Professor Mari guide card and its grid-geometry contract retired with the widget grid. The
+    // card's guarantees (panel inside frame, Mari inside the card, grid gap preserved) have no host
+    // left; the desk's own containment is asserted in e2e/home-desktop-icons-fit.e2e.ts.
+    // The address row only exists while a capability package tab is open, so the Home chrome check now
+    // reads the taskbar's acrylic surface: it must stay opaque and follow the theme in both modes.
+    const taskbarSurface = () =>
+      page.evaluate(
+        () => getComputedStyle(document.querySelector<HTMLElement>(".mari-win11-taskbar")!).backgroundColor,
+      );
     const surfaceLightness = (value: string) => {
       // Phones flatten the chrome to an rgb() backing while its color-mix() rows serialize as color(srgb 0–1).
       const scale = value.startsWith("color(") ? 255 : 1;
@@ -12364,32 +12302,17 @@ test(
           .map(Number) ?? [];
       return channels.reduce((total, channel) => total + channel * scale, 0);
     };
-    const darkAddressSurfaces = await page.evaluate(() => ({
-      chrome: getComputedStyle(document.querySelector<HTMLElement>(".mari-home-browser-chrome")!).backgroundColor,
-      addressRow: getComputedStyle(document.querySelector<HTMLElement>(".mari-home-browser-address-row")!)
-        .backgroundColor,
-    }));
-    for (const surface of Object.values(darkAddressSurfaces)) {
-      expect(surface).not.toMatch(/^(?:transparent|rgba\([^)]*,\s*0\))$/u);
-    }
-    expect(surfaceLightness(darkAddressSurfaces.addressRow)).toBeLessThan(surfaceLightness(darkAddressSurfaces.chrome));
+    const darkTaskbar = await taskbarSurface();
+    expect(darkTaskbar).not.toMatch(/^(?:transparent|rgba\([^)]*,\s*0\))$/u);
 
     await page.evaluate(async () => {
       const module = (await import("/src/stores/ui.store.ts" as string)) as PageUiStoreModule;
       module.useUIStore.getState().setTheme("light");
     });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-    const lightAddressSurfaces = await page.evaluate(() => ({
-      chrome: getComputedStyle(document.querySelector<HTMLElement>(".mari-home-browser-chrome")!).backgroundColor,
-      addressRow: getComputedStyle(document.querySelector<HTMLElement>(".mari-home-browser-address-row")!)
-        .backgroundColor,
-    }));
-    for (const surface of Object.values(lightAddressSurfaces)) {
-      expect(surface).not.toMatch(/^(?:transparent|rgba\([^)]*,\s*0\))$/u);
-    }
-    expect(surfaceLightness(lightAddressSurfaces.addressRow)).toBeLessThan(
-      surfaceLightness(lightAddressSurfaces.chrome),
-    );
+    const lightTaskbar = await taskbarSurface();
+    expect(lightTaskbar).not.toMatch(/^(?:transparent|rgba\([^)]*,\s*0\))$/u);
+    expect(surfaceLightness(lightTaskbar)).toBeGreaterThan(surfaceLightness(darkTaskbar));
     await page.evaluate(async () => {
       const module = (await import("/src/stores/ui.store.ts" as string)) as PageUiStoreModule;
       module.useUIStore.getState().setTheme("dark");
@@ -12604,31 +12527,31 @@ test("installed Home destinations appear as browser tabs without returning to th
   );
 
   await page.goto("/");
-  await setAppAccentColor(page, "#14b8a6");
   await expect(page.locator('[data-tour="noodle-tab"]')).toHaveCount(0);
+  // The Win11 Home redesign hides the tab strip and address bar on the desktop, so the noodle refresh
+  // badge - a tab-strip child - is not rendered while the desktop is showing.
+  await expect(page.locator('[data-component="HomeBrowserHub.TabList"]')).toHaveCount(0);
+  await expect(page.locator('[data-component="HomeBrowserHub.Address"]')).toHaveCount(0);
+
+  // Package views are reached from the desktop through the floating navigator (the taskbar carries only
+  // Home and Professor), so this test drives that path instead of clicking a home-screen tab.
+  await setAppAccentColor(page, "#14b8a6");
+  await page.evaluate(async () => {
+    const { useUIStore } = (await import("/src/stores/ui.store.ts" as string)) as {
+      useUIStore: { getState: () => { setProfessorMariNavigationEnabled: (enabled: boolean) => void } };
+    };
+    useUIStore.getState().setProfessorMariNavigationEnabled(true);
+  });
+  const navigator = page.locator(".mari-home-professor-popup__bubble");
+  await expect(navigator).toBeVisible({ timeout: 30_000 });
+  await navigator.locator("input").fill("noodle");
+  await navigator.locator("input").press("Enter");
+
   const noodleTab = page.getByRole("tab", { name: "Open Noodle and NoodleR" });
   await expect(noodleTab).toBeVisible();
   await expect(noodleTab.locator("img")).toHaveCount(2);
   await expect(noodleTab.locator("img").first()).toHaveAttribute("src", /noodle-klusek\.png/u);
   await expect(noodleTab.locator("img").last()).toHaveAttribute("src", /noodler-klusek\.png/u);
-  const refreshBadge = noodleTab.locator('[data-component="HomeBrowserHub.NoodleRefreshBadge"]');
-  await expect(refreshBadge).toHaveText("1");
-  await expect(refreshBadge).toHaveClass(/mari-chrome-accent-tile/u);
-  const tealBadgeBackground = await refreshBadge.evaluate((element) => getComputedStyle(element).backgroundImage);
-  await setAppAccentColor(page, "#3b82f6");
-  await expect
-    .poll(() => refreshBadge.evaluate((element) => getComputedStyle(element).backgroundImage))
-    .not.toBe(tealBadgeBackground);
-  const [noodleTabBounds, refreshBadgeBounds] = await Promise.all([
-    noodleTab.boundingBox(),
-    refreshBadge.boundingBox(),
-  ]);
-  expect(noodleTabBounds).not.toBeNull();
-  expect(refreshBadgeBounds).not.toBeNull();
-  expect(refreshBadgeBounds!.y).toBeGreaterThanOrEqual(noodleTabBounds!.y);
-  expect(refreshBadgeBounds!.y + refreshBadgeBounds!.height).toBeLessThanOrEqual(
-    noodleTabBounds!.y + noodleTabBounds!.height + 1,
-  );
   if (mobile) {
     const tabList = page.locator('[data-component="HomeBrowserHub.TabList"]');
     await expect(tabList.getByRole("tab")).toHaveCount(3);
@@ -12653,8 +12576,8 @@ test("installed Home destinations appear as browser tabs without returning to th
     expect(tabLayout.tabsWithClippedContent).toBe(0);
     expect(tabLayout.labelsWithClippedContent).toBe(0);
   }
-  await noodleTab.click();
-  await expect(refreshBadge).toHaveCount(0);
+  // Already on the noodle view: the refresh badge has nothing left to mark.
+  await expect(page.locator('[data-component="HomeBrowserHub.NoodleRefreshBadge"]')).toHaveCount(0);
   await expect
     .poll(() => page.evaluate(() => localStorage.getItem("marinara:home:noodle-refresh-seen:v1")))
     .toBe(refreshMarker);
@@ -12662,9 +12585,13 @@ test("installed Home destinations appear as browser tabs without returning to th
   await expect(noodleTab).toHaveAttribute("aria-selected", "true");
   await expect(page.locator('[data-component="HomeBrowserHub.Address"]')).toContainText("marinara/noodle");
   await expect(page.locator('[data-component="HomeBrowserHub.Address"] img')).toHaveAttribute("src", "/favicon.png");
-  await page.getByRole("tab", { name: "Home", exact: true }).click();
-  await expect(page.locator('[data-component="HomeBrowserHub.Address"]')).toContainText("marinara/home");
-  await expect(page.getByRole("heading", { name: "What shall we cook tonight?" })).toBeVisible();
+
+  await page.locator('[data-component="HomeBrowserHub.TaskbarHome"]').click();
+  // Back on the desktop the browser chrome is gone again: no tab strip, no address bar, no package tab.
+  await expect(page.locator('[data-component="HomeBrowserHub.TabList"]')).toHaveCount(0);
+  await expect(page.locator('[data-component="HomeBrowserHub.Address"]')).toHaveCount(0);
+  await expect(noodleTab).toHaveCount(0);
+  await expect(page.locator('[data-component="HomeDesktopIcons"]')).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -12762,9 +12689,13 @@ test("Home recent chats use mode colors and show character sprites", async ({ pa
   });
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "What shall we cook tonight?" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-component="HomeDesktopIcons"]')).toBeVisible({ timeout: 30_000 });
+  // The mode accents now live on two launchers (the taskbar's pinned entries and the desk's chat-mode
+  // icons), so the taskbar copy is the one under test here.
   for (const mode of ["conversation", "roleplay", "game"] as const) {
-    const launcher = page.locator(`[data-home-chat-mode="${mode}"]`);
+    const launcher = page
+      .locator('[data-component="HomeBrowserHub.Taskbar"]')
+      .locator(`[data-home-chat-mode="${mode}"]`);
     const icon = launcher.locator(`[data-chat-mode-icon="${mode}"]`);
     const colors = await launcher.evaluate((element, currentMode) => {
       const modeIcon = element.querySelector<SVGElement>(`[data-chat-mode-icon="${currentMode}"]`);
@@ -12781,6 +12712,11 @@ test("Home recent chats use mode colors and show character sprites", async ({ pa
     expect(colors.icon).toBe(colors.accent);
     await expect(icon).toHaveClass(/mari-rgb-static-icon/u);
   }
+  // The recent-chats feed rows moved with the widget card into the window the desk's Recent Chats icon
+  // opens, so the window is opened before the row assertions below.
+  await page.locator('[data-home-desktop-icon="recent"] button').dblclick();
+  const recentWindow = page.locator('[data-component="Modal"] .mari-modal-panel');
+  await expect(recentWindow.locator('[data-component="RecentChats"]')).toBeVisible({ timeout: 30_000 });
   const expectedAccents = [
     ["Cyan chat", "oklch(0.79 0.16 205)"],
     ["Orange story", "oklch(0.76 0.19 52)"],
@@ -12825,19 +12761,20 @@ test("Home recent chats use mode colors and show character sprites", async ({ pa
     await expect(fourthCard).toBeHidden();
     const recentCards = page.locator('[data-component="RecentChats"] > button:visible');
     await expect(recentCards).toHaveCount(3);
-    const recentWidgetBounds = await page.locator('[data-home-widget-id="recent"]').boundingBox();
+    // The window that hosts the rows replaced the widget card as the containment box.
+    const recentHostBounds = await recentWindow.boundingBox();
     const recentCardBounds = await recentCards.evaluateAll((elements) =>
       elements.map((element) => {
         const bounds = element.getBoundingClientRect();
         return { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom };
       }),
     );
-    expect(recentWidgetBounds).not.toBeNull();
+    expect(recentHostBounds).not.toBeNull();
     for (const bounds of recentCardBounds) {
-      expect(bounds.left).toBeGreaterThanOrEqual(recentWidgetBounds!.x - 1);
-      expect(bounds.right).toBeLessThanOrEqual(recentWidgetBounds!.x + recentWidgetBounds!.width + 1);
-      expect(bounds.top).toBeGreaterThanOrEqual(recentWidgetBounds!.y - 1);
-      expect(bounds.bottom).toBeLessThanOrEqual(recentWidgetBounds!.y + recentWidgetBounds!.height + 1);
+      expect(bounds.left).toBeGreaterThanOrEqual(recentHostBounds!.x - 1);
+      expect(bounds.right).toBeLessThanOrEqual(recentHostBounds!.x + recentHostBounds!.width + 1);
+      expect(bounds.top).toBeGreaterThanOrEqual(recentHostBounds!.y - 1);
+      expect(bounds.bottom).toBeLessThanOrEqual(recentHostBounds!.y + recentHostBounds!.height + 1);
     }
   } else {
     await expect(fourthCard).toBeVisible();
@@ -12926,63 +12863,15 @@ test("Home feed prioritizes read-only visits and exposes current Game presentati
   }
 });
 
-test("new Professor Mari Home widgets receive a movable layout slot immediately", async ({ page }) => {
-  const widget = {
-    id: `mari-widget-${Date.now()}`,
-    title: "Mari's Field Formula",
-    description: "A safe custom note created for the Home layout regression.",
-    accent: "cyan",
-    icon: "sparkles",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  await page.addInitScript(() => {
-    localStorage.removeItem("marinara:home:custom-widget-known:v1");
-    localStorage.removeItem("marinara:home:widget-layout:v2");
-    localStorage.removeItem("marinara:home:widget-visibility:v2");
-  });
-  const originalResponse = await page.request.get("/api/app-settings/home_custom_widgets");
-  expect(originalResponse.ok()).toBeTruthy();
-  const originalCatalog = (await originalResponse.json()) as HomeCustomWidgetCatalog;
-  let savedCatalog = originalCatalog;
-
-  try {
-    const saveResponse = await page.request.put("/api/app-settings/home_custom_widgets", {
-      data: { ...originalCatalog, widgets: [widget] },
-    });
-    expect(saveResponse.ok()).toBeTruthy();
-    savedCatalog = (await saveResponse.json()) as HomeCustomWidgetCatalog;
-    const staleResponse = await page.request.put("/api/app-settings/home_custom_widgets", {
-      data: { ...originalCatalog, widgets: [] },
-    });
-    expect(staleResponse.status()).toBe(409);
-    await page.goto("/");
-    const customWidget = page.locator(`[data-home-widget-id="custom:${widget.id}"]`);
-    await expect(customWidget).toBeVisible({ timeout: 30_000 });
-    const initialOrder = Number(await customWidget.evaluate((element) => getComputedStyle(element).order));
-    expect(initialOrder).toBeGreaterThan(0);
-
-    const handle = customWidget.locator("[data-home-drag-handle]");
-    await handle.press("ArrowUp");
-    await expect
-      .poll(() => customWidget.evaluate((element) => Number(getComputedStyle(element).order)))
-      .toBe(initialOrder - 1);
-  } finally {
-    const currentResponse = await page.request.get("/api/app-settings/home_custom_widgets");
-    const currentCatalog = currentResponse.ok()
-      ? ((await currentResponse.json()) as HomeCustomWidgetCatalog)
-      : savedCatalog;
-    const restoreResponse = await page.request.put("/api/app-settings/home_custom_widgets", {
-      data: { ...currentCatalog, widgets: originalCatalog.widgets },
-    });
-    expect(restoreResponse.ok()).toBeTruthy();
-  }
-});
+// "new Professor Mari Home widgets receive a movable layout slot immediately" retired with the widget
+// grid: the Win11 desk renders a fixed built-in icon set, so a personal widget no longer gets a cell.
+// The server-side catalog (app-settings/home_custom_widgets, including its 409 conflict guard) and
+// agent/package widget storage stay in place as backend-only capability; see agent-home-widgets.regression.ts.
 
 test("Professor Mari visibly arrives on Home and navigates without AI", async ({ page }, testInfo) => {
   test.setTimeout(45_000);
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "What shall we cook tonight?" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-component="HomeDesktopIcons"]')).toBeVisible({ timeout: 30_000 });
 
   const assistant = page.locator('aside[aria-label="Professor Mari assistant"]');
   await expect(assistant).toBeVisible({ timeout: 6_000 });
@@ -13052,11 +12941,11 @@ test("Professor Mari visibly arrives on Home and navigates without AI", async ({
     page.locator('[data-component="HomeProfessorMariChat.Window"]').getByRole("button", { name: "Close", exact: true }),
   ).toHaveCount(0);
   await expect(page.locator('[data-component="HomeBrowserHub.Address"]')).toContainText("marinara/professor");
-  await expect(page.locator('[data-component="HomeBrowserHub.Address"] img')).toHaveAttribute("src", "/favicon.png");
-  await expect(page.locator(".mari-home-browser-chrome")).toBeVisible();
+  // address bar and browser chrome hidden by the Win11 Home redesign: Home and Professor are
+  // desktop/taskbar surfaces now, so the header renders only inside capability package views.
 
-  await page.getByRole("tab", { name: "Home", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "What shall we cook tonight?" })).toBeVisible();
+  await page.locator('[data-component="HomeBrowserHub.TaskbarHome"]').click();
+  await expect(page.locator('[data-component="HomeDesktopIcons"]')).toBeVisible();
   await expect(assistant).toBeVisible({ timeout: 1_000 });
   await expect(navigationInput).toBeVisible();
 
@@ -13076,7 +12965,7 @@ test("Professor Mari visibly arrives on Home and navigates without AI", async ({
     }, chat.id);
     await expect(page.locator('[data-component="HomeBrowserHub"]')).toHaveCount(0);
     await page.locator('[data-component="TopBar"] button[title="Home"]').click();
-    await expect(page.getByRole("heading", { name: "What shall we cook tonight?" })).toBeVisible({
+    await expect(page.locator('[data-component="HomeDesktopIcons"]')).toBeVisible({
       timeout: 30_000,
     });
     await expect(page.locator('aside[aria-label="Professor Mari assistant"]')).toBeVisible({ timeout: 6_000 });
@@ -13100,7 +12989,7 @@ test("Professor Mari opens a named character directly in its editor", async ({ p
     });
     await page.goto("/");
     await characterListResponse;
-    await expect(page.getByRole("heading", { name: "What shall we cook tonight?" })).toBeVisible({
+    await expect(page.locator('[data-component="HomeDesktopIcons"]')).toBeVisible({
       timeout: 30_000,
     });
     const assistant = page.locator('aside[aria-label="Professor Mari assistant"]');
@@ -13219,7 +13108,8 @@ test("Professor Mari replaces the Noodle tour with highlighted Home guidance", a
 
   await next.click();
   await expect(page.locator("h3").filter({ hasText: /^Guides and Home Controls$/ })).toBeVisible();
-  for (const target of ["home-documentation", "home-tutorial", "home-faq", "home-widgets"]) {
+  // "home-widgets" retired with the widget manager; the remaining start-menu bookmarks still highlight.
+  for (const target of ["home-documentation", "home-tutorial", "home-faq"]) {
     await expect(page.locator(`[data-tour="${target}"]`)).toBeVisible();
     await expect(
       page.locator(`[data-component="OnboardingTutorial.Spotlight"][data-tour-target="${target}"]`),
@@ -18062,7 +17952,7 @@ test("Professor Mari suggestions stay visible after chat history loads", async (
       useUIStore.getState().setChatChromeTextColor("#14b8a6");
     });
 
-    await page.getByRole("tab", { name: "Professor", exact: true }).click();
+    await page.locator('[data-component="HomeBrowserHub.TaskbarProfessor"]').click();
     const window = page.locator('[data-component="HomeProfessorMariChat.Window"]');
     await expect(window.getByText(messageContent, { exact: true })).toBeVisible();
 
@@ -18164,7 +18054,7 @@ test("Professor Mari shows the latest context budget when token usage is enabled
       useUIStore.getState().setChatChromeTextColor("#14b8a6");
       useUIStore.getState().setShowContextUsage(true);
     });
-    await page.getByRole("tab", { name: "Professor", exact: true }).click();
+    await page.locator('[data-component="HomeBrowserHub.TaskbarProfessor"]').click();
 
     const window = page.locator('[data-component="HomeProfessorMariChat.Window"]');
     await window.getByRole("button", { name: "Select connection" }).click();
@@ -19412,96 +19302,79 @@ test("Settings profile import reuses its preview upload and skips one invalid as
   }
 });
 
-test("a fresh Home desk starts with the guided five-widget composition", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name.includes("mobile"), "Desktop verifies the four-column first-run composition.");
+test("a fresh Home desk starts with the shipped icon set and drops the retired grid preferences", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Desktop verifies the first-run icon composition.");
 
   await page.setViewportSize({ width: 2560, height: 1440 });
   await page.goto("/");
+  // Plant the retired widget-grid keys: the desk's first mount must drop them instead of migrating a
+  // layout whose row/column slots never described desktop cells.
   await page.evaluate(() => {
-    localStorage.removeItem("marinara:home:widget-visibility:v1");
-    localStorage.removeItem("marinara:home:widget-visibility:v2");
-    localStorage.removeItem("marinara:home:widget-layout:v2");
-    localStorage.removeItem("marinara:home:widget-order:v1");
+    localStorage.setItem("marinara:home:widget-visibility:v1", JSON.stringify(["recent"]));
+    localStorage.setItem("marinara:home:widget-visibility:v2", JSON.stringify(["recent"]));
+    localStorage.setItem("marinara:home:widget-layout:v2", JSON.stringify({ 4: ["recent", null] }));
+    localStorage.setItem("marinara:home:widget-order:v1", JSON.stringify(["recent"]));
+    localStorage.setItem("marinara:home:custom-widget-known:v1", JSON.stringify(["retired"]));
   });
   await page.reload();
-  await expect(page.getByRole("heading", { name: "What shall we cook tonight?" })).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('[data-component="HomeBrowserHub.Feed"]')).toHaveAttribute("data-home-grid-columns", "4");
-
-  const expectedVisible = ["professor", "whats-new", "recent", "learn", "community"];
-  await expect(page.locator("[data-home-widget-id]")).toHaveCount(expectedVisible.length);
-  for (const id of expectedVisible) {
-    await expect(page.locator(`[data-home-widget-id="${id}"]`)).toBeVisible();
-  }
-  for (const id of ["discovery", "character", "clock", "achievements"]) {
-    await expect(page.locator(`[data-home-widget-id="${id}"]`)).toHaveCount(0);
-  }
+  await expect(page.locator('[data-component="HomeDesktopIcons"]')).toBeVisible({ timeout: 30_000 });
 
   await expect
     .poll(() =>
-      page.evaluate(() => {
-        const layouts = JSON.parse(localStorage.getItem("marinara:home:widget-layout:v2") ?? "{}") as Record<
-          string,
-          Array<string | null>
-        >;
-        return layouts["4"]?.slice(0, 5);
-      }),
+      page.evaluate(() =>
+        [
+          "marinara:home:widget-visibility:v1",
+          "marinara:home:widget-visibility:v2",
+          "marinara:home:widget-layout:v2",
+          "marinara:home:widget-order:v1",
+          "marinara:home:custom-widget-known:v1",
+        ].map((key) => localStorage.getItem(key)),
+      ),
     )
-    .toEqual(["recent", "professor", "learn", "whats-new", "community"]);
+    .toEqual([null, null, null, null, null]);
 
-  const widgetBounds = await page.locator("[data-home-widget-id]").evaluateAll((elements) =>
-    Object.fromEntries(
-      elements.map((element) => {
-        const bounds = element.getBoundingClientRect();
-        return [
-          (element as HTMLElement).dataset.homeWidgetId,
-          { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height },
-        ];
-      }),
-    ),
-  );
-  const recent = widgetBounds.recent;
-  const professor = widgetBounds.professor;
-  const learn = widgetBounds.learn;
-  const whatsNew = widgetBounds["whats-new"];
-  const community = widgetBounds.community;
-  expect(recent.x + recent.width).toBeLessThanOrEqual(professor.x + 1);
-  expect(Math.abs(professor.y - learn.y)).toBeLessThanOrEqual(2);
-  expect(Math.abs(professor.x - whatsNew.x)).toBeLessThanOrEqual(2);
-  expect(Math.abs(learn.x - community.x)).toBeLessThanOrEqual(2);
-  expect(whatsNew.y).toBeGreaterThan(professor.y);
-  expect(Math.abs(whatsNew.y - community.y)).toBeLessThanOrEqual(2);
+  const expectedIcons = [
+    "conversation",
+    "roleplay",
+    "game",
+    "recent",
+    "character-library",
+    "professor",
+    "whats-new",
+    "learn",
+    "community",
+    "discovery",
+    "character",
+    "clock",
+    "achievements",
+  ];
+  await expect(page.locator("[data-home-desktop-icon]")).toHaveCount(expectedIcons.length);
+  for (const id of expectedIcons) {
+    await expect(page.locator(`[data-home-desktop-icon="${id}"]`)).toBeVisible();
+  }
+
+  // The shipped opening order lays the icons out top-to-bottom in the first column, as Windows does.
+  const orderedIds = await page.evaluate(() => {
+    const layout = JSON.parse(localStorage.getItem("marinara:home:desktop-icons:v1") ?? "{}") as {
+      positions?: Record<string, { col: number; row: number }>;
+    };
+    return Object.entries(layout.positions ?? {})
+      .sort((left, right) => left[1].col - right[1].col || left[1].row - right[1].row)
+      .map(([id]) => id);
+  });
+  expect(orderedIds).toEqual(expectedIcons);
 });
 
-test("Home Community and clock widgets are useful, timezone-aware, and optional", async ({ page }) => {
+test("the Home Community and clock windows are useful and timezone-aware", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "What shall we cook tonight?" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-component="HomeDesktopIcons"]')).toBeVisible({ timeout: 30_000 });
 
-  // Seed the legacy-visibility state from an init script rather than mutating
-  // the live page: the running Home hub persists the current visibility back
-  // to v2 whenever its layouts update, which can race an evaluate-then-reload
-  // and re-erase the v2 removal before the new document loads.
-  await page.addInitScript(() => {
-    if (sessionStorage.getItem("marinara:e2e:legacy-visibility-seeded") === "true") return;
-    sessionStorage.setItem("marinara:e2e:legacy-visibility-seeded", "true");
-    localStorage.removeItem("marinara:home:widget-visibility:v2");
-    localStorage.setItem(
-      "marinara:home:widget-visibility:v1",
-      JSON.stringify(["professor", "recent", "whats-new", "discovery", "character", "learn", "achievements"]),
-    );
-  });
-  await page.reload();
-  await expect(page.locator('[data-home-widget-id="community"]')).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('[data-home-widget-id="clock"]')).toBeVisible();
-  await expect
-    .poll(() =>
-      page.evaluate(() => {
-        const visible = JSON.parse(localStorage.getItem("marinara:home:widget-visibility:v2") ?? "[]") as string[];
-        return visible.includes("community") && visible.includes("clock");
-      }),
-    )
-    .toBe(true);
-
-  const community = page.locator('[data-home-widget-id="community"]');
+  // The retired widget cards hosted these two surfaces; the desk's Community and Clock icons open them
+  // as windows now, and the per-widget visibility switches retired with the widget manager.
+  await page.locator('[data-home-desktop-icon="community"] button').dblclick();
+  const community = page.locator('[data-component="Modal"] .mari-modal-panel').last();
   await expect(community.getByRole("heading", { name: "Around the table" })).toBeVisible();
   await expect(community.getByRole("link", { name: /Discord/ })).toHaveAttribute(
     "href",
@@ -19526,23 +19399,30 @@ test("Home Community and clock widgets are useful, timezone-aware, and optional"
     communityBounds!.y + communityBounds!.height + 1,
   );
 
+  await page.keyboard.press("Escape");
+  await expect(community).toBeHidden();
+
+  await page.locator('[data-home-desktop-icon="learn"] button').dblclick();
   await expect(
     page
-      .locator('[data-home-widget-id="learn"]')
+      .locator('[data-component="Modal"] .mari-modal-panel')
+      .last()
       .getByText("Search official documentation and guides without leaving Marinara.", { exact: true }),
   ).toBeVisible();
+  await page.keyboard.press("Escape");
 
   const timeZone = "America/Los_Angeles";
   await page.evaluate(async (nextTimeZone) => {
     const module = (await import("/src/stores/ui.store.ts" as string)) as PageUiStoreModule;
     module.useUIStore.getState().setConversationTimeZone(nextTimeZone);
   }, timeZone);
-  const clock = page.locator('[data-component="HomeClockCalendar"]');
-  await expect(clock).toHaveAttribute("data-time-zone", timeZone);
+  await page.locator('[data-home-desktop-icon="clock"] button').dblclick();
+  const clock = page.locator('[data-component="HomeDesktopIconModals.Clock"]');
+  await expect(clock).toBeVisible();
+  // The window reuses the calendar body, so the clock eyebrow/reference plate (part of the retired
+  // card shell) is not part of this surface; the remaining accents must still read as one color.
   const clockAccentColors = await clock
-    .locator(
-      "[data-clock-accent-reference], [data-clock-eyebrow], [data-clock-seconds], [data-calendar-accent], [data-calendar-icon]",
-    )
+    .locator("[data-clock-seconds], [data-calendar-accent], [data-calendar-icon]")
     .evaluateAll((elements) => elements.map((element) => getComputedStyle(element).color));
   expect(new Set(clockAccentColors).size).toBe(1);
   const expected = await page.evaluate((activeTimeZone) => {
@@ -19572,59 +19452,30 @@ test("Home Community and clock widgets are useful, timezone-aware, and optional"
   await expect(clock.locator("[data-calendar-date]")).toContainText(expected.month);
   await expect(clock.locator("[data-calendar-date]")).toContainText(expected.day);
 
-  await openHomeBookmark(page, "Widgets");
-  const widgetManager = page.getByRole("dialog", { name: "Home Widgets" });
-  await expect(widgetManager.getByRole("switch")).toHaveCount(10);
-  for (const label of [
-    "Your guide — Professor Mari",
-    "Continue chatting — Recent chats",
-    "From the kitchen — What's New",
-    "Discovery desk — Something new for your engine",
-    "Daily encounter — Character of the Day",
-    "Field notes — Learn the engine",
-    "Community — Around the table",
-    "Clock & calendar — Right now",
-    "Your shelf — Achievements",
-  ]) {
-    await expect(widgetManager.getByText(label, { exact: true })).toBeVisible();
-  }
-  await widgetManager.getByRole("switch", { name: "Hide Community — Around the table" }).click();
-  await widgetManager.getByRole("switch", { name: "Hide Clock & calendar — Right now" }).click();
-  await expect(page.locator('[data-home-widget-id="community"]')).toHaveCount(0);
-  await expect(page.locator('[data-home-widget-id="clock"]')).toHaveCount(0);
   await page.keyboard.press("Escape");
-  await page.reload();
-  await expect(page.getByRole("heading", { name: "What shall we cook tonight?" })).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('[data-home-widget-id="community"]')).toHaveCount(0);
-  await expect(page.locator('[data-home-widget-id="clock"]')).toHaveCount(0);
+  await expect(clock).toBeHidden();
+  // The widget manager and its per-widget visibility switches retired with the widget grid: the desk
+  // ships a fixed icon set, so "hide the Community widget" has no equivalent to assert here.
 });
 
-test("mobile Home collects its bookmarks into a Marinara-colored menu", async ({ page }, testInfo) => {
-  test.skip(!testInfo.project.name.includes("mobile"), "Mobile-only bookmark menu.");
+test("mobile Home reaches every first-party entry from the Win11 start menu", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.includes("mobile"), "Mobile-only start menu check.");
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "What shall we cook tonight?" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-component="HomeDesktopIcons"]')).toBeVisible({ timeout: 30_000 });
 
-  // #5743: the full bookmarks bar no longer spends a line at phone widths -
-  // the compact tab-strip trigger replaces it outright.
-  const bookmarksBar = page.getByRole("navigation", { name: "Home bookmarks" });
-  const trigger = page.getByRole("button", { name: "Open bookmarks", exact: true });
-  const menu = page.locator('[data-component="HomeBrowserHub.MobileBookmarksMenu"]');
-  const addressRow = page.locator('[data-component="HomeBrowserHub.AddressRow"]');
-  await expect(addressRow).toBeHidden();
-  expect(await addressRow.boundingBox()).toBeNull();
-  await expect(bookmarksBar).toBeHidden();
-  await expect(trigger).toBeVisible();
-  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  // The Win11 Home redesign removed the bookmark bar and its phone-width dropdown menu. The same eight
+  // entries now live in the start menu's pinned grid, still opened from the taskbar's start button.
+  const startButton = page.locator('[data-component="HomeBrowserHub.TaskbarStart"]');
+  const menu = page.locator('[data-component="HomeBrowserHub.StartMenu"]');
+  // address bar hidden by the Win11 Home redesign
+  await expect(page.locator('[data-component="HomeBrowserHub.AddressRow"]')).toHaveCount(0);
+  await expect(startButton).toHaveAttribute("aria-expanded", "false");
   await expect(menu).toHaveCount(0);
 
-  await trigger.click();
-  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+  await startButton.click();
+  await expect(startButton).toHaveAttribute("aria-expanded", "true");
   await expect(menu).toBeVisible();
-  await expect(menu).toHaveAttribute("data-bookmarks-motion", "slide");
-  await expect(menu.locator(":scope > a, :scope > button")).toHaveCount(8);
-  await expect(menu.locator(":scope > a img, :scope > button img")).toHaveCount(8);
-  expect(await menu.evaluate((element) => element.scrollHeight <= element.clientHeight + 1)).toBe(true);
   for (const label of [
     "Discord",
     "Support",
@@ -19638,13 +19489,11 @@ test("mobile Home collects its bookmarks into a Marinara-colored menu", async ({
     await expect(menu.getByText(label, { exact: true })).toBeVisible();
   }
 
-  // Exit lifecycle: activate the FAQ bookmark in-page and sample the DOM in
-  // the same task — a menu torn down synchronously by the click would already
-  // be gone, while the intended animated exit cannot be. Sampling on the
-  // driver side (attached checks around a wall-clock wait) races the exit
-  // animation on slow runners.
+  // Exit lifecycle: activate the FAQ entry in-page and sample the DOM in the same task — a menu torn
+  // down synchronously by the click would already be gone, while the intended animated exit cannot be.
+  // Sampling on the driver side (attached checks around a wall-clock wait) races the exit animation.
   const menuStayedMountedForExit = await page.evaluate(() => {
-    const menuElement = document.querySelector('[data-component="HomeBrowserHub.MobileBookmarksMenu"]');
+    const menuElement = document.querySelector('[data-component="HomeBrowserHub.StartMenu"]');
     if (!menuElement) return null;
     const faqButton = Array.from(menuElement.querySelectorAll("button")).find(
       (button) => button.textContent?.trim() === "FAQ",
@@ -19658,116 +19507,10 @@ test("mobile Home collects its bookmarks into a Marinara-colored menu", async ({
   await expect(menu).toHaveCount(0);
 });
 
-test("enabling Recent Chats anchors its 2 by 2 footprint and repacks smaller widgets", async ({ page }, testInfo) => {
-  const mobile = testInfo.project.name.includes("mobile");
-  await page.setViewportSize({ width: mobile ? 390 : 2560, height: mobile ? 844 : 1440 });
-  await page.addInitScript(() => {
-    localStorage.setItem(
-      "marinara:home:widget-visibility:v2",
-      JSON.stringify(["professor", "whats-new", "learn", "community"]),
-    );
-    localStorage.removeItem("marinara:home:widget-layout:v2");
-    localStorage.removeItem("marinara:home:widget-order:v1");
-  });
-  await page.goto("/");
-  await expect(page.getByRole("heading", { name: "What shall we cook tonight?" })).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('[data-home-widget-id="recent"]')).toHaveCount(0);
-
-  await openHomeBookmark(page, "Widgets");
-  const widgetManager = page.getByRole("dialog", { name: "Home Widgets" });
-  await widgetManager.getByRole("switch", { name: "Show Continue chatting — Recent chats" }).click();
-  const recent = page.locator('[data-home-widget-id="recent"]');
-  await expect(recent).toBeVisible();
-  await expect
-    .poll(() =>
-      page
-        .locator("[data-home-widget-id]")
-        .evaluateAll((elements) =>
-          elements.reduce(
-            (total, element) =>
-              total + element.getAnimations().filter((animation) => animation.playState === "running").length,
-            0,
-          ),
-        ),
-    )
-    .toBe(0);
-  await page.keyboard.press("Escape");
-
-  await expect
-    .poll(() =>
-      page.evaluate(() => {
-        const layouts = JSON.parse(localStorage.getItem("marinara:home:widget-layout:v2") ?? "{}") as Record<
-          string,
-          Array<string | null>
-        >;
-        return layouts["4"]?.slice(0, 5);
-      }),
-    )
-    .toEqual(["recent", "professor", "learn", "whats-new", "community"]);
-
-  const smallIds = ["professor", "learn", "whats-new", "community"];
-  const [recentBounds, smallBounds] = await Promise.all([
-    recent.boundingBox(),
-    Promise.all(
-      smallIds.map((id) =>
-        page.locator(`[data-home-widget-id="${id}"]`).evaluate((element) => {
-          const bounds = element.getBoundingClientRect();
-          return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
-        }),
-      ),
-    ),
-  ]);
-  expect(recentBounds).not.toBeNull();
-
-  if (mobile) {
-    await expect(page.locator('[data-component="HomeBrowserHub.Feed"]')).toHaveAttribute("data-home-grid-columns", "1");
-    expect(smallBounds.every((bounds) => Math.abs(bounds.x - recentBounds!.x) <= 2)).toBe(true);
-    expect(Math.min(...smallBounds.map((bounds) => bounds.y))).toBeGreaterThan(
-      recentBounds!.y + recentBounds!.height - 2,
-    );
-  } else {
-    await expect(page.locator('[data-component="HomeBrowserHub.Feed"]')).toHaveAttribute("data-home-grid-columns", "4");
-    const [firstRowLeft, firstRowRight, secondRowLeft, secondRowRight] = smallBounds;
-    if (!firstRowLeft || !firstRowRight || !secondRowLeft || !secondRowRight) {
-      throw new Error(`expected four small-widget bounds, got ${smallBounds.length}`);
-    }
-    expect(recentBounds!.x + recentBounds!.width).toBeLessThanOrEqual(firstRowLeft.x + 1);
-    expect(Math.abs(recentBounds!.y - firstRowLeft.y)).toBeLessThanOrEqual(2);
-    expect(Math.abs(firstRowLeft.y - firstRowRight.y)).toBeLessThanOrEqual(2);
-    expect(Math.abs(firstRowLeft.x - secondRowLeft.x)).toBeLessThanOrEqual(2);
-    expect(Math.abs(firstRowRight.x - secondRowRight.x)).toBeLessThanOrEqual(2);
-    expect(secondRowLeft.y).toBeGreaterThan(firstRowLeft.y);
-    expect(Math.abs(secondRowLeft.y - secondRowRight.y)).toBeLessThanOrEqual(2);
-    expect(
-      Math.abs(recentBounds!.y + recentBounds!.height - (secondRowRight.y + secondRowRight.height)),
-    ).toBeLessThanOrEqual(2);
-  }
-
-  await openHomeBookmark(page, "Widgets");
-  for (const widget of [
-    "Discovery desk — Something new for your engine",
-    "Daily encounter — Character of the Day",
-    "Clock & calendar — Right now",
-    "Your shelf — Achievements",
-  ]) {
-    await widgetManager.getByRole("switch", { name: `Show ${widget}` }).click();
-  }
-  await page.keyboard.press("Escape");
-  await expect(page.locator("[data-home-widget-id]")).toHaveCount(9);
-  if (!mobile) {
-    const content = page.locator('[data-component="HomeBrowserHub.Content"]');
-    expect(await content.evaluate((element) => element.scrollHeight <= element.clientHeight + 2)).toBe(true);
-  }
-});
+// The Recent Chats 2x2 footprint and its repacking of smaller widgets retired with the widget grid.
 
 test("Home achievements preview the latest unlock and nearest measurable goal", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1024, height: 700 });
-  await page.addInitScript(() => {
-    localStorage.setItem(
-      "marinara:home:widget-visibility:v2",
-      JSON.stringify(["professor", "whats-new", "recent", "learn", "community", "achievements"]),
-    );
-  });
   const recentUnlockAt = new Date(Date.now() - 60_000).toISOString();
   await page.route("**/api/achievements*", (route) =>
     route.fulfill({
@@ -19834,9 +19577,12 @@ test("Home achievements preview the latest unlock and nearest measurable goal", 
     module.useUIStore.getState().setHasCompletedOnboarding(true);
     module.useUIStore.getState().setProfessorMariNavigationEnabled(false);
   });
-  await expect(page.getByRole("heading", { name: "What shall we cook tonight?" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-component="HomeDesktopIcons"]')).toBeVisible({ timeout: 30_000 });
 
-  const achievementsWidget = page.locator(".mari-home-widget--achievements");
+  // The retired widget card hosted this preview; the desk's Achievements icon opens the same compact
+  // preview inside a window, so every assertion below is scoped to that window's panel.
+  await page.locator('[data-home-desktop-icon="achievements"] button').dblclick();
+  const achievementsWidget = page.locator('[data-component="Modal"] .mari-modal-panel').last();
   const latestAchievement = achievementsWidget.locator('[data-achievement-highlight="latest"]');
   const closestAchievement = achievementsWidget.locator('[data-achievement-highlight="closest"]');
   await expect(latestAchievement).toContainText("Last obtained");
@@ -19865,10 +19611,7 @@ test("Home achievements preview the latest unlock and nearest measurable goal", 
       .poll(() => achievementsLauncher.evaluate((element) => getComputedStyle(element).backgroundColor))
       .not.toBe(launcherBackground);
   }
-  await expect(achievementsWidget.getByRole("button", { name: "Open Achievements" }).locator("img")).toHaveAttribute(
-    "src",
-    "/home/tab-icons/achievements.png",
-  );
+  await expect(achievementsLauncher.locator("img")).toHaveAttribute("src", "/home/tab-icons/achievements.png");
 
   const [widgetBounds, closestBounds] = await Promise.all([
     achievementsWidget.boundingBox(),
@@ -19878,26 +19621,31 @@ test("Home achievements preview the latest unlock and nearest measurable goal", 
   expect(closestBounds).not.toBeNull();
   expect(closestBounds!.y + closestBounds!.height).toBeLessThanOrEqual(widgetBounds!.y + widgetBounds!.height + 1);
 
-  const achievementsDialog = page.getByRole("dialog", { name: "Achievements", exact: true });
-  await achievementsWidget.getByRole("button", { name: "Open Achievements" }).click();
+  const achievementsDialog = page.getByRole("dialog", { name: "Achievements", exact: true }).last();
+  await achievementsLauncher.click();
   await expect(achievementsDialog).toBeVisible();
   await page.keyboard.press("Escape");
 
-  const bookmarks = page.getByRole("navigation", { name: "Home bookmarks" });
-  const bookmarkLabels = (await bookmarks.locator("a, button").allTextContents()).map((label) => label.trim());
-  const faqIndex = bookmarkLabels.indexOf("FAQ");
-  const achievementsIndex = bookmarkLabels.indexOf("Achievements");
-  const widgetsIndex = bookmarkLabels.indexOf("Widgets");
+  // The Win11 Home redesign removed the bookmark bar; the same entries, in the same order, now live in
+  // the start menu's pinned grid. The menu dismisses on any outside pointer, so it is reopened wherever
+  // the assertions need it.
+  const startButton = page.locator('[data-component="HomeBrowserHub.TaskbarStart"]');
+  const pinned = page.locator('[data-component="HomeBrowserHub.StartMenuPinned"]');
+  await startButton.click();
+  await expect(pinned).toBeVisible();
+  const pinnedLabels = (await pinned.locator("a, button").allTextContents()).map((label) => label.trim());
+  const faqIndex = pinnedLabels.indexOf("FAQ");
+  const achievementsIndex = pinnedLabels.indexOf("Achievements");
   expect(faqIndex).toBeGreaterThanOrEqual(0);
   expect(achievementsIndex).toBeGreaterThanOrEqual(0);
-  expect(widgetsIndex).toBeGreaterThanOrEqual(0);
   expect(faqIndex).toBeLessThan(achievementsIndex);
-  expect(achievementsIndex).toBeLessThan(widgetsIndex);
-  await expect(bookmarks.getByRole("button", { name: "Achievements", exact: true }).locator("img")).toHaveAttribute(
+  // The "Widgets" tile retired with the widget manager; the pinned grid no longer offers it.
+  expect(pinnedLabels).not.toContain("Widgets");
+  await expect(pinned.getByRole("button", { name: "Achievements", exact: true }).locator("img")).toHaveAttribute(
     "src",
     "/home/tab-icons/achievements.png",
   );
-  await bookmarks.getByRole("button", { name: "Achievements", exact: true }).click();
+  await pinned.getByRole("button", { name: "Achievements", exact: true }).click();
   await expect(achievementsDialog).toBeVisible();
   await page.keyboard.press("Escape");
 
@@ -19908,162 +19656,22 @@ test("Home achievements preview the latest unlock and nearest measurable goal", 
   expect(achievementsToggleId).toBeTruthy();
   await page.locator(`label[for="${achievementsToggleId}"]`).last().click();
   await expect(achievementsToggle).not.toBeChecked();
-  await expect(bookmarks.getByRole("button", { name: "Achievements", exact: true })).toHaveCount(0);
-  await expect(achievementsWidget).toHaveCount(0);
-  await clickTopbarPanel(page, "settings");
-  await bookmarks.getByRole("button", { name: "Widgets", exact: true }).click();
-  const widgetManager = page.getByRole("dialog", { name: "Home Widgets" });
-  await expect(widgetManager.getByText("Achievements", { exact: true })).toHaveCount(0);
+  // Turning the setting off also drops the desk's Achievements icon and the start menu's tile, so the
+  // entry never leads to a surface that no longer exists.
   await page.keyboard.press("Escape");
+  await expect(page.locator('[data-home-desktop-icon="achievements"]')).toHaveCount(0);
+  await clickTopbarPanel(page, "settings");
+  await startButton.click();
+  await expect(pinned.getByRole("button", { name: "Achievements", exact: true })).toHaveCount(0);
 });
 
-test("mobile Achievements stays compact and preserves the gap before Discovery Desk", async ({ page }, testInfo) => {
-  test.skip(!testInfo.project.name.includes("mobile"), "Mobile-only compact widget proof.");
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.addInitScript(() => {
-    const order = [
-      "professor",
-      "whats-new",
-      "recent",
-      "learn",
-      "community",
-      "character",
-      "clock",
-      "achievements",
-      "discovery",
-    ];
-    localStorage.setItem("marinara:home:widget-visibility:v2", JSON.stringify(order));
-    localStorage.setItem("marinara:home:widget-order:v1", JSON.stringify(order));
-    localStorage.setItem("marinara:home:widget-layout:v2", JSON.stringify({ 1: order }));
-  });
+// The compact Achievements preview and its grid gap retired with the widget grid; the achievements window is covered by "Home achievements preview the latest unlock and nearest measurable goal".
 
-  await page.goto("/");
-  await expect(page.getByRole("heading", { name: "What shall we cook tonight?" })).toBeVisible({ timeout: 30_000 });
-  const achievements = page.locator('[data-home-widget-id="achievements"]');
-  const discovery = page.locator('[data-home-widget-id="discovery"]');
-  const achievementsSurface = achievements.locator(":scope > section");
-  const discoverySurface = discovery.locator(":scope > section");
-  const launcher = achievements.getByRole("button", { name: "Open Achievements" });
-  const closest = achievements.locator('[data-achievement-highlight="closest"]');
-  await expect(achievements).toBeVisible();
-  await expect(discovery).toBeVisible();
-
-  const layout = await page.locator('[data-component="HomeBrowserHub.Feed"]').evaluate((feed) => {
-    const bounds = (selector: string) => {
-      const element = document.querySelector<HTMLElement>(selector);
-      if (!element) throw new Error(`Missing ${selector}`);
-      const rect = element.getBoundingClientRect();
-      return { top: rect.top, bottom: rect.bottom, height: rect.height };
-    };
-    return {
-      rowGap: Number.parseFloat(getComputedStyle(feed).rowGap),
-      achievements: bounds('[data-home-widget-id="achievements"]'),
-      achievementsSurface: bounds('[data-home-widget-id="achievements"] > section'),
-      launcher: bounds('[data-home-widget-id="achievements"] button[aria-label="Open Achievements"]'),
-      closest: bounds('[data-home-widget-id="achievements"] [data-achievement-highlight="closest"]'),
-      discoverySurface: bounds('[data-home-widget-id="discovery"] > section'),
-    };
-  });
-  expect(layout.achievementsSurface.bottom).toBeLessThanOrEqual(layout.achievements.bottom + 1);
-  expect(layout.launcher.bottom).toBeLessThanOrEqual(layout.achievementsSurface.bottom + 1);
-  expect(layout.closest.bottom).toBeLessThanOrEqual(layout.achievementsSurface.bottom + 1);
-  expect(layout.discoverySurface.top - layout.achievementsSurface.bottom).toBeGreaterThanOrEqual(layout.rowGap - 1);
-  await expect(achievementsSurface).toHaveClass(/min-h-0/u);
-  await expect(discoverySurface).toBeVisible();
-  await expect(launcher).toBeVisible();
-  await expect(closest).toBeVisible();
-});
-
-test("Character of the Day stays vertically centered inside its mobile widget", async ({ page }, testInfo) => {
-  test.skip(!testInfo.project.name.includes("mobile"), "Mobile-only character widget composition.");
-
-  const characterName = `Mobile Character of the Day ${Date.now()}`;
-  const characterResponse = await page.request.post("/api/characters", {
-    data: {
-      data: {
-        name: characterName,
-        summary: "A concise saved summary for the daily encounter.",
-        description:
-          "A deliberately long character summary that verifies the mobile card keeps its portrait and copy comfortably inside the widget.",
-      },
-    },
-  });
-  expect(characterResponse.ok()).toBeTruthy();
-  const character = (await characterResponse.json()) as { id: string };
-
-  try {
-    await page.addInitScript(() => {
-      localStorage.setItem("marinara:home:widget-visibility:v2", JSON.stringify(["character"]));
-      localStorage.removeItem("marinara:home:widget-layout:v2");
-      localStorage.removeItem("marinara:home:widget-order:v1");
-      // The floating Professor Mari assistant popup overlaps the widget's
-      // action row on the iPhone-profile viewport and intercepts the "View
-      // character" click. It is unrelated to the layout under test.
-    });
-    await seedUIState(page, { professorMariNavigationEnabled: false }, "merge");
-    await page.goto("/");
-
-    const characterWidget = page.locator('[data-home-widget-id="character"]');
-    await expect(characterWidget).toBeVisible({ timeout: 30_000 });
-    await expect(
-      characterWidget.getByText("A concise saved summary for the daily encounter.", { exact: true }),
-    ).toBeVisible();
-    await expect(characterWidget.getByRole("button", { name: "Start a chat", exact: true })).toBeVisible();
-    await expect(characterWidget.getByRole("button", { name: "View character", exact: true })).toBeVisible();
-    await characterWidget.getByRole("button", { name: "Start a chat", exact: true }).click();
-    const chatModeDialog = page.getByRole("dialog", { name: "Choose a chat mode" });
-    await expect(chatModeDialog).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(chatModeDialog).toBeHidden();
-    const characterLayout = await characterWidget.evaluate((element) => {
-      const content = element.querySelector<HTMLElement>('[data-component="HomeBrowserHub.CharacterOfDayContent"]');
-      const avatar = element.querySelector<HTMLElement>('[data-component="HomeBrowserHub.CharacterOfDayAvatar"]');
-      const details = element.querySelector<HTMLElement>('[data-component="HomeBrowserHub.CharacterOfDayDetails"]');
-      if (!content || !avatar || !details) return null;
-      const contentBounds = content.getBoundingClientRect();
-      const avatarBounds = avatar.getBoundingClientRect();
-      const detailsBounds = details.getBoundingClientRect();
-      return {
-        avatarCenterOffset: Math.abs(
-          avatarBounds.top + avatarBounds.height / 2 - (contentBounds.top + contentBounds.height / 2),
-        ),
-        avatarBottomOverflow: avatarBounds.bottom - contentBounds.bottom,
-        detailsBottomOverflow: detailsBounds.bottom - contentBounds.bottom,
-        widgetOverflow: element.scrollHeight - element.clientHeight,
-      };
-    });
-    expect(characterLayout).not.toBeNull();
-    expect(characterLayout!.avatarCenterOffset).toBeLessThanOrEqual(1);
-    expect(characterLayout!.avatarBottomOverflow).toBeLessThanOrEqual(1);
-    expect(characterLayout!.detailsBottomOverflow).toBeLessThanOrEqual(1);
-    expect(characterLayout!.widgetOverflow).toBeLessThanOrEqual(1);
-    await characterWidget.getByRole("button", { name: "View character", exact: true }).click();
-    await expect(page.getByRole("textbox", { name: "Character name" })).toHaveValue(characterName);
-  } finally {
-    await page.request.delete(`/api/characters/${character.id}`).catch(() => undefined);
-  }
-});
+// The Character of the Day card retired with the widget grid; the desk's Character icon opens the character detail surface instead.
 
 test("home browser hub scales cleanly and opens FAQ as a bookmark window", async ({ page }, testInfo) => {
   const errors = collectUnexpectedErrors(page);
   const mobile = testInfo.project.name.includes("mobile");
-  await page.addInitScript(() => {
-    if (localStorage.getItem("marinara:home:widget-visibility:v2") !== null) return;
-    localStorage.setItem(
-      "marinara:home:widget-visibility:v2",
-      JSON.stringify([
-        "professor",
-        "whats-new",
-        "recent",
-        "learn",
-        "community",
-        "discovery",
-        "character",
-        "clock",
-        "achievements",
-      ]),
-    );
-  });
   await page.goto("/");
 
   const home = page.locator('[data-component="HomeBrowserHub"]');
@@ -20072,33 +19680,19 @@ test("home browser hub scales cleanly and opens FAQ as a bookmark window", async
   await expect(content).toBeVisible({ timeout: 30_000 });
   await expect(content).toHaveCSS("overflow-y", "auto");
   expect(await content.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBeTruthy();
-  await expect(page.getByRole("heading", { name: "Recent chats" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: `What's new in v${APP_VERSION}` })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Something new for your engine" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Character of the Day", exact: true })).toBeVisible();
-  await expect(
-    page.getByText(
-      "Feeling a little lost? It's not a skill issue yet, I am here to help! Ask me about the app, your setup, or what to do next. I can also create characters, lorebooks, agents, and extensions for you!",
-      { exact: true },
-    ),
-  ).toBeVisible();
-  await expect(page.locator('[data-component="HomeBrowserHub.AnimatedLogo"]')).toHaveAttribute(
-    "src",
-    "/logo-splash.gif",
-  );
-  await expect(page.locator('[data-component="HomeBrowserHub.AnimatedLogo"]')).toBeVisible();
-  expect(
-    await page.locator('[data-component="HomeBrowserHub.AnimatedLogo"]').evaluate((image) => {
-      const element = image as HTMLImageElement;
-      return element.complete && element.naturalWidth > 0 && element.naturalHeight > 0;
-    }),
-  ).toBe(true);
+  // The retired widget cards (and the splash logo they carried) are gone: the desk shows the wordmark
+  // and its icon field, where the chat-mode entries live now.
   await expect(page.locator(".mari-home-hero img")).toHaveAttribute("src", "/logo.png");
-  await expect(page.locator('.mari-home-hero [data-chat-mode-icon="conversation"]')).toHaveClass(
-    /lucide-message-square/,
+  await expect(page.locator('[data-component="HomeDesktopIcons"]')).toBeVisible();
+  await expect(
+    page.locator('[data-home-desktop-icon="conversation"] [data-chat-mode-icon="conversation"]'),
+  ).toHaveClass(/lucide-message-square/);
+  await expect(page.locator('[data-home-desktop-icon="roleplay"] [data-chat-mode-icon="roleplay"]')).toHaveClass(
+    /lucide-theater/,
   );
-  await expect(page.locator('.mari-home-hero [data-chat-mode-icon="roleplay"]')).toHaveClass(/lucide-theater/);
-  await expect(page.locator('.mari-home-hero [data-chat-mode-icon="game"]')).toHaveClass(/lucide-gamepad-2/);
+  await expect(page.locator('[data-home-desktop-icon="game"] [data-chat-mode-icon="game"]')).toHaveClass(
+    /lucide-gamepad-2/,
+  );
 
   await expect(page.locator('[data-component="HomeFaq.Compact"]')).toHaveCount(0);
   await expect(page.locator('[data-component="HomeFaq.MobileLauncher"]')).toHaveCount(0);
@@ -20110,146 +19704,16 @@ test("home browser hub scales cleanly and opens FAQ as a bookmark window", async
   await page.keyboard.press("Escape");
   await expect(faqWindow).toBeHidden();
 
-  await openHomeBookmark(page, "Widgets");
-  const widgetManager = page.getByRole("dialog", { name: "Home Widgets" });
-  await expect(widgetManager).toBeVisible();
-  await expect(widgetManager.getByRole("switch")).toHaveCount(10);
-  await activateControl(widgetManager.getByRole("switch", { name: "Hide Your shelf — Achievements" }), testInfo);
-  await expect(page.locator('[data-home-widget-id="achievements"]')).toHaveCount(0);
-  await expect
-    .poll(() =>
-      page.evaluate(() => {
-        const visible = JSON.parse(localStorage.getItem("marinara:home:widget-visibility:v2") ?? "[]") as string[];
-        return visible.includes("achievements");
-      }),
-    )
-    .toBe(false);
-
-  await page.reload();
-  await expect(page.getByRole("heading", { name: "What shall we cook tonight?" })).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('[data-home-widget-id="achievements"]')).toHaveCount(0);
-  await openHomeBookmark(page, "Achievements");
-  const achievementsWindow = page.getByRole("dialog", { name: "Achievements", exact: true });
-  await expect(achievementsWindow).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(achievementsWindow).toBeHidden();
-  await openHomeBookmark(page, "Widgets");
-  await activateControl(widgetManager.getByRole("switch", { name: "Show Your shelf — Achievements" }), testInfo);
-  const restoredAchievements = page.locator('[data-home-widget-id="achievements"]');
-  await expect(restoredAchievements).toBeVisible();
-  await expect
-    .poll(() =>
-      page.evaluate(() => {
-        const visible = JSON.parse(localStorage.getItem("marinara:home:widget-visibility:v2") ?? "[]") as string[];
-        return visible.includes("achievements");
-      }),
-    )
-    .toBe(true);
-  expect(await restoredAchievements.evaluate((element) => Number((element as HTMLElement).style.order))).toBe(8);
-
-  const baselineCompactHeight = await page
-    .locator('[data-home-widget-id="professor"]')
-    .evaluate((element) => element.getBoundingClientRect().height);
-  for (const widget of [
-    "Continue chatting — Recent chats",
-    "From the kitchen — What's New",
-    "Discovery desk — Something new for your engine",
-  ]) {
-    await activateControl(widgetManager.getByRole("switch", { name: `Hide ${widget}` }), testInfo);
-  }
-  await expect(page.locator("[data-home-widget-id]")).toHaveCount(6);
-  await expectHomeWidgetHeightsMatch(page, baselineCompactHeight);
-
-  await activateControl(widgetManager.getByRole("switch", { name: "Hide Your shelf — Achievements" }), testInfo);
-  await expect(page.locator("[data-home-widget-id]")).toHaveCount(5);
-  await expectHomeWidgetHeightsMatch(page, baselineCompactHeight);
-
-  await activateControl(widgetManager.getByRole("switch", { name: "Hide Your guide — Professor Mari" }), testInfo);
-  await expect(page.locator("[data-home-widget-id]")).toHaveCount(4);
-  await expectHomeWidgetHeightsMatch(page, baselineCompactHeight);
-
-  await activateControl(
-    widgetManager.getByRole("switch", { name: "Hide Daily encounter — Character of the Day" }),
-    testInfo,
-  );
-  await expect(page.locator("[data-home-widget-id]")).toHaveCount(3);
-  await expectHomeWidgetHeightsMatch(page, baselineCompactHeight);
-
-  await activateControl(widgetManager.getByRole("switch", { name: "Hide Community — Around the table" }), testInfo);
-  await expect(page.locator("[data-home-widget-id]")).toHaveCount(2);
-  await expectHomeWidgetHeightsMatch(page, baselineCompactHeight);
-
-  await activateControl(widgetManager.getByRole("switch", { name: "Hide Clock & calendar — Right now" }), testInfo);
-  await expect(page.locator("[data-home-widget-id]")).toHaveCount(1);
-  await expectHomeWidgetHeightsMatch(page, baselineCompactHeight);
-
-  for (const widget of [
-    "Continue chatting — Recent chats",
-    "From the kitchen — What's New",
-    "Discovery desk — Something new for your engine",
-    "Your shelf — Achievements",
-    "Your guide — Professor Mari",
-    "Daily encounter — Character of the Day",
-    "Community — Around the table",
-    "Clock & calendar — Right now",
-  ]) {
-    await activateControl(widgetManager.getByRole("switch", { name: `Show ${widget}` }), testInfo);
-  }
-  await expect(page.locator("[data-home-widget-id]")).toHaveCount(9);
-  await page.keyboard.press("Escape");
-  await expect(widgetManager).toBeHidden();
+  // The widget manager, its per-widget visibility cascade, and the widget height-matching contract all
+  // retired with the widget grid. The achievements entry keeps its own coverage above, and the desk's
+  // scale contract lives in e2e/home-desktop-icons-fit.e2e.ts.
 
   await page.setViewportSize({ width: mobile ? 390 : 1024, height: mobile ? 650 : 700 });
   expect(await content.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBeTruthy();
   await expect(home).toBeVisible();
-  for (const widgetId of ["learn", "community"]) {
-    const widget = page.locator(`[data-home-widget-id="${widgetId}"]`);
-    const lastShortcut = widget.locator(".mari-home-widget-shortcut").last();
-    await expect
-      .poll(async () => {
-        const [widgetBounds, shortcutBounds] = await Promise.all([widget.boundingBox(), lastShortcut.boundingBox()]);
-        if (!widgetBounds || !shortcutBounds) return Number.POSITIVE_INFINITY;
-        return shortcutBounds.y + shortcutBounds.height - (widgetBounds.y + widgetBounds.height);
-      })
-      .toBeLessThanOrEqual(1);
-  }
-
-  if (mobile) {
-    const professorWidget = page.locator('[data-home-widget-id="professor"]');
-    const professorDescription = professorWidget.locator("[data-home-professor-description]");
-    const professorAction = professorWidget.locator("[data-home-professor-action]");
-    const [widgetBounds, descriptionBounds, actionBounds, descriptionFontSize] = await Promise.all([
-      professorWidget.boundingBox(),
-      professorDescription.boundingBox(),
-      professorAction.boundingBox(),
-      professorDescription.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
-    ]);
-    expect(widgetBounds).not.toBeNull();
-    expect(descriptionBounds).not.toBeNull();
-    expect(actionBounds).not.toBeNull();
-    expect(descriptionFontSize).toBeLessThan(12);
-    expect(descriptionBounds!.y + descriptionBounds!.height).toBeLessThanOrEqual(
-      widgetBounds!.y + widgetBounds!.height + 1,
-    );
-    expect(actionBounds!.y + actionBounds!.height).toBeLessThanOrEqual(widgetBounds!.y + widgetBounds!.height + 1);
-  }
-
+  // The per-widget shortcut fit and the Professor Mari card geometry retired with the widget grid.
+  // What follows keeps the floating navigator's own behaviour contract at each viewport.
   if (!mobile) {
-    const professorWidget = page.locator(".mari-home-widget--professor");
-    const professorDesk = page.locator('.mari-home-widget--professor [data-part="desk"]');
-    const professorLaptop = page.locator('.mari-home-widget--professor [data-part="laptop"]');
-    const professorSceneFit = await Promise.all([
-      professorWidget.boundingBox(),
-      professorDesk.boundingBox(),
-      professorLaptop.boundingBox(),
-    ]);
-    expect(professorSceneFit[0]).not.toBeNull();
-    expect(professorSceneFit[1]).not.toBeNull();
-    expect(professorSceneFit[2]).not.toBeNull();
-    const widgetBottom = professorSceneFit[0]!.y + professorSceneFit[0]!.height;
-    expect(professorSceneFit[1]!.y + professorSceneFit[1]!.height).toBeLessThanOrEqual(widgetBottom);
-    expect(professorSceneFit[2]!.y + professorSceneFit[2]!.height).toBeLessThanOrEqual(widgetBottom);
-
     await page.setViewportSize({ width: 2560, height: 1440 });
     await page.evaluate(async () => {
       const module = (await import("/src/stores/ui.store.ts" as string)) as PageUiStoreModule;
@@ -20257,7 +19721,7 @@ test("home browser hub scales cleanly and opens FAQ as a bookmark window", async
     });
     await expect(page.locator('aside[aria-label="Professor Mari assistant"]')).toBeHidden();
     await page.reload();
-    await expect(page.getByRole("heading", { name: "What shall we cook tonight?" })).toBeVisible();
+    await expect(page.locator('[data-component="HomeDesktopIcons"]')).toBeVisible();
     await page.waitForTimeout(1_300);
     await expect(page.locator('aside[aria-label="Professor Mari assistant"]')).toBeHidden();
     await page.evaluate(async () => {
@@ -20278,111 +19742,37 @@ test("home browser hub scales cleanly and opens FAQ as a bookmark window", async
     const navigationToggle = page.getByRole("checkbox", { name: "Professor Mari navigation" });
     await expect(suggestionsToggle).toBeVisible();
     await expect(navigationToggle).toBeChecked();
-    const [suggestionsBounds, navigationBounds, settingsSearchBounds, addressRowBounds] = await Promise.all([
+    const [suggestionsBounds, navigationBounds, settingsSearchBounds] = await Promise.all([
       suggestionsToggle.boundingBox(),
       navigationToggle.boundingBox(),
       page.locator(".mari-settings-search-header").boundingBox(),
-      page.locator('[data-component="HomeBrowserHub.AddressRow"]').boundingBox(),
     ]);
     expect(suggestionsBounds).not.toBeNull();
     expect(navigationBounds).not.toBeNull();
     expect(settingsSearchBounds).not.toBeNull();
-    expect(addressRowBounds).not.toBeNull();
     expect(navigationBounds!.y).toBeGreaterThan(suggestionsBounds!.y);
-    expect(
-      Math.abs(
-        settingsSearchBounds!.y + settingsSearchBounds!.height - (addressRowBounds!.y + addressRowBounds!.height / 2),
-      ),
-    ).toBeLessThanOrEqual(0.5);
+    // address bar hidden by the Win11 Home redesign: the settings search header no longer aligns to a
+    // Home address row, so only the surviving geometry contract above is asserted.
     await clickTopbarPanel(page, "settings");
-    const feed = page.locator('[data-component="HomeBrowserHub.Feed"]');
-    await expect(feed).toBeVisible();
-    // The settings panel just closed, which resizes the hub content and
-    // reflows the widget grid over a few frames — one-shot measurements can
-    // sample different frames of that transition (CI saw a ~77px spread,
-    // #5642). The retried unit below is what rides out the reflow; the
-    // column-count assertion only pins that the grid is in its 4-column
-    // regime at this viewport before geometry is compared.
-    await expect(feed).toHaveAttribute("data-home-grid-columns", "4");
+    // Closing the settings panel resizes the hub content; the retried unit below rides out that reflow.
+    // The retired widget grid's column regime, equal-card widths/heights, and empty slots live in
+    // e2e/home-desktop-icons-fit.e2e.ts now.
     await expect(async () => {
-      const widthUsage = await feed.evaluate((element) => {
-        const contentElement = element.closest('[data-component="HomeBrowserHub.Content"]');
-        return contentElement
-          ? element.getBoundingClientRect().width / contentElement.getBoundingClientRect().width
-          : 0;
-      });
-      expect(widthUsage).toBeGreaterThan(0.94);
       expect(await content.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBeTruthy();
-      const partialWidgetWidths = await Promise.all(
-        ["professor", "whats-new", "learn", "community", "clock", "achievements"].map((id) =>
-          page.locator(`[data-home-widget-id="${id}"]`).evaluate((element) => element.getBoundingClientRect().width),
-        ),
-      );
-      expect(Math.max(...partialWidgetWidths) - Math.min(...partialWidgetWidths)).toBeLessThanOrEqual(2);
-      const partialWidgetHeights = await Promise.all(
-        ["professor", "whats-new", "discovery", "character", "learn", "community", "clock", "achievements"].map((id) =>
-          page.locator(`[data-home-widget-id="${id}"]`).evaluate((element) => element.getBoundingClientRect().height),
-        ),
-      );
-      expect(Math.max(...partialWidgetHeights) - Math.min(...partialWidgetHeights)).toBeLessThanOrEqual(2);
       expect(await content.evaluate((element) => element.scrollHeight <= element.clientHeight + 2)).toBeTruthy();
     }).toPass({ timeout: 10_000 });
-    await expect(feed.locator("[data-home-empty-slot]")).toHaveCount(0);
 
-    await page.getByRole("tab", { name: "Professor", exact: true }).click();
-    await expect(page.locator('[data-component="HomeBrowserHub.Address"]')).toContainText("marinara/professor");
-    await page.getByRole("tab", { name: "Home", exact: true }).click();
-    await expect(feed).toHaveAttribute("data-home-grid-columns", "4");
+    await page.locator('[data-component="HomeBrowserHub.TaskbarProfessor"]').click();
+    // address bar hidden by the Win11 Home redesign; the taskbar marks the active view instead
+    await expect(page.locator('[data-component="HomeBrowserHub.TaskbarProfessor"]')).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await page.locator('[data-component="HomeBrowserHub.TaskbarHome"]').click();
     expect(await content.evaluate((element) => element.scrollHeight <= element.clientHeight + 2)).toBeTruthy();
-    const restoredWidgetWidths = await Promise.all(
-      ["professor", "whats-new", "learn", "community", "clock", "achievements"].map((id) =>
-        page.locator(`[data-home-widget-id="${id}"]`).evaluate((element) => element.getBoundingClientRect().width),
-      ),
-    );
-    expect(Math.max(...restoredWidgetWidths) - Math.min(...restoredWidgetWidths)).toBeLessThanOrEqual(2);
-
-    const achievementsWidget = page.locator(".mari-home-widget--achievements");
-    const achievementsDescription = achievementsWidget.locator("[data-achievement-open-description]");
-    const achievementsSummary = achievementsWidget.getByText(/\d+ of \d+ unlocked/);
-    const achievementsButton = achievementsWidget.getByRole("button", { name: "Open Achievements" });
-    const achievementsActionLabel = achievementsWidget.locator("[data-achievement-open-label]");
-    await expect(achievementsDescription).toHaveText("Gotta catch them all!");
-    await expect(achievementsSummary).toBeVisible();
-    await expect(achievementsButton).toBeVisible();
-    const [descriptionBounds, summaryBounds, actionLabelBounds] = await Promise.all([
-      achievementsDescription.boundingBox(),
-      achievementsSummary.boundingBox(),
-      achievementsActionLabel.boundingBox(),
-    ]);
-    expect(descriptionBounds).not.toBeNull();
-    expect(summaryBounds).not.toBeNull();
-    expect(actionLabelBounds).not.toBeNull();
-    expect(descriptionBounds!.y - (actionLabelBounds!.y + actionLabelBounds!.height)).toBeLessThanOrEqual(8);
-    expect(summaryBounds!.y - (descriptionBounds!.y + descriptionBounds!.height)).toBeLessThanOrEqual(8);
-    const decorativeArtSizes = await Promise.all(
-      ["story-comet.png", "kitchen-orbit.png", "achievement-trophy.png"].map((asset) =>
-        page.locator(`img[src="/home/${asset}"]`).evaluate((element) => {
-          const bounds = element.getBoundingClientRect();
-          return { width: bounds.width, height: bounds.height };
-        }),
-      ),
-    );
-    expect(
-      Math.max(...decorativeArtSizes.map(({ width }) => width)) -
-        Math.min(...decorativeArtSizes.map(({ width }) => width)),
-    ).toBeLessThanOrEqual(2);
-    expect(
-      Math.max(...decorativeArtSizes.map(({ height }) => height)) -
-        Math.min(...decorativeArtSizes.map(({ height }) => height)),
-    ).toBeLessThanOrEqual(2);
-  } else {
-    const feed = page.locator('[data-component="HomeBrowserHub.Feed"]');
-    await expect(feed).toHaveAttribute("data-home-grid-columns", "1");
+    // The achievements preview alignment, the decorative card art sizing, the mobile single-column grid
+    // and the widget drag handles all retired with the widget grid.
   }
-
-  const dragHandles = page.getByRole("button", { name: /Drag .* to rearrange/ });
-  await expect(dragHandles).toHaveCount(9);
-  if (mobile) await expect(dragHandles.first()).toHaveCSS("opacity", "1");
 
   expect(errors).toEqual([]);
 });
@@ -20395,7 +19785,7 @@ test("Professor Mari navigation can be repositioned within Home on desktop", asy
     sessionStorage.setItem("marinara:e2e:professor-position-cleared", "true");
   });
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "What shall we cook tonight?" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-component="HomeDesktopIcons"]')).toBeVisible({ timeout: 30_000 });
   await page.evaluate(async () => {
     const module = (await import("/src/stores/ui.store.ts" as string)) as PageUiStoreModule;
     module.useUIStore.getState().setHasCompletedOnboarding(true);
@@ -20592,48 +19982,7 @@ test("Professor Mari navigation can be repositioned within Home on desktop", asy
     .toBeLessThanOrEqual(contentBounds!.y + contentBounds!.height);
 });
 
-test("Home widgets lift and brighten on fine-pointer hover", async ({ page }, testInfo) => {
-  test.skip(!testInfo.project.name.includes("desktop"), "Hover feedback is intentionally desktop-only.");
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.addInitScript(() => {
-    localStorage.setItem("marinara:home:widget-visibility:v2", JSON.stringify(["professor"]));
-    localStorage.removeItem("marinara:home:widget-layout:v2");
-  });
-  await page.goto("/");
-
-  const widget = page.locator('[data-home-widget-id="professor"]');
-  const surface = widget.locator(":scope > :not([data-home-drag-handle])");
-  await expect(surface).toBeVisible({ timeout: 30_000 });
-  const [widgetBefore, surfaceBefore] = await Promise.all([widget.boundingBox(), surface.boundingBox()]);
-  expect(widgetBefore).not.toBeNull();
-  expect(surfaceBefore).not.toBeNull();
-
-  await surface.hover();
-  await expect
-    .poll(() =>
-      surface.evaluate((element) => {
-        const transform = new DOMMatrixReadOnly(getComputedStyle(element).transform);
-        return { scale: transform.a, filter: getComputedStyle(element).filter };
-      }),
-    )
-    .toMatchObject({ scale: 1.015 });
-  const hoveredStyle = await surface.evaluate((element) => getComputedStyle(element).filter);
-  expect(hoveredStyle).not.toBe("none");
-
-  const [widgetAfter, surfaceAfter] = await Promise.all([widget.boundingBox(), surface.boundingBox()]);
-  expect(widgetAfter).not.toBeNull();
-  expect(surfaceAfter).not.toBeNull();
-  expect(Math.abs(widgetAfter!.width - widgetBefore!.width)).toBeLessThanOrEqual(0.5);
-  expect(Math.abs(widgetAfter!.height - widgetBefore!.height)).toBeLessThanOrEqual(0.5);
-  expect(surfaceAfter!.width).toBeGreaterThan(surfaceBefore!.width);
-  expect(surfaceAfter!.height).toBeGreaterThan(surfaceBefore!.height);
-
-  await page.evaluate(() => document.documentElement.classList.add("mari-home-widget-drag-active"));
-  await expect
-    .poll(() => surface.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a))
-    .toBe(1);
-  await expect(surface).toHaveCSS("filter", "none");
-});
+// The widget hover lift/glow retired with the grid; desktop icon hover and selection feedback is covered by e2e/home-desktop-icons-fit.e2e.ts.
 
 test("Home lifecycle stays bounded across repeated tab and chat navigation", async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.includes("desktop"), "Chromium lifecycle counters are sampled on desktop.");
@@ -20730,20 +20079,6 @@ test("Home lifecycle stays bounded across repeated tab and chat navigation", asy
       },
       configurable: true,
     });
-    localStorage.setItem(
-      "marinara:home:widget-visibility:v2",
-      JSON.stringify([
-        "professor",
-        "whats-new",
-        "recent",
-        "discovery",
-        "character",
-        "learn",
-        "community",
-        "clock",
-        "achievements",
-      ]),
-    );
   });
   const auditChatResponse = await page.request.post("/api/chats", {
     data: { name: "Home lifecycle audit", mode: "conversation", characterIds: [] },
@@ -20808,9 +20143,13 @@ test("Home lifecycle stays bounded across repeated tab and chat navigation", asy
 
     const cycleInternalTabs = async (count: number) => {
       for (let index = 0; index < count; index += 1) {
-        await page.getByRole("tab", { name: "Professor", exact: true }).click();
-        await expect(page.locator('[data-component="HomeBrowserHub.Address"]')).toContainText("marinara/professor");
-        await page.getByRole("tab", { name: "Home", exact: true }).click();
+        await page.locator('[data-component="HomeBrowserHub.TaskbarProfessor"]').click();
+        // address bar hidden by the Win11 Home redesign; the taskbar marks the active view instead
+        await expect(page.locator('[data-component="HomeBrowserHub.TaskbarProfessor"]')).toHaveAttribute(
+          "aria-current",
+          "page",
+        );
+        await page.locator('[data-component="HomeBrowserHub.TaskbarHome"]').click();
         await expect(page.locator('[data-component="HomeBrowserHub.HomePage"]')).toBeVisible();
       }
     };
@@ -20837,8 +20176,12 @@ test("Home lifecycle stays bounded across repeated tab and chat navigation", asy
     await page.waitForTimeout(1_750);
     const baseline = await collect();
 
-    await page.getByRole("tab", { name: "Professor", exact: true }).click();
-    await expect(page.locator('[data-component="HomeBrowserHub.Address"]')).toContainText("marinara/professor");
+    await page.locator('[data-component="HomeBrowserHub.TaskbarProfessor"]').click();
+    // address bar hidden by the Win11 Home redesign; the taskbar marks the active view instead
+    await expect(page.locator('[data-component="HomeBrowserHub.TaskbarProfessor"]')).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
     const professorTabIntervals = await page.evaluate(
       () =>
         (
@@ -20848,7 +20191,7 @@ test("Home lifecycle stays bounded across repeated tab and chat navigation", asy
         ).__homeLifecycleAudit.snapshot().intervals,
     );
     expect(professorTabIntervals).toBeLessThanOrEqual(baseline.lifecycle.intervals);
-    await page.getByRole("tab", { name: "Home", exact: true }).click();
+    await page.locator('[data-component="HomeBrowserHub.TaskbarHome"]').click();
     await expect(page.locator('[data-component="HomeBrowserHub.HomePage"]')).toBeVisible();
 
     await cycleInternalTabs(10);
@@ -20878,111 +20221,7 @@ test("Home lifecycle stays bounded across repeated tab and chat navigation", asy
   }
 });
 
-test("Home widget order can be dragged and persists across reloads", async ({ page }, testInfo) => {
-  test.skip(!testInfo.project.name.includes("desktop"), "Desktop native dragging complements the touch-pointer path.");
-  const errors = collectUnexpectedErrors(page);
-  await page.setViewportSize({ width: 2560, height: 1440 });
-  await page.addInitScript(() => {
-    if (localStorage.getItem("marinara:home:widget-visibility:v2") !== null) return;
-    localStorage.setItem(
-      "marinara:home:widget-visibility:v2",
-      JSON.stringify([
-        "professor",
-        "whats-new",
-        "recent",
-        "learn",
-        "community",
-        "discovery",
-        "character",
-        "clock",
-        "achievements",
-      ]),
-    );
-  });
-  await page.goto("/");
-  await expect(page.locator('[data-component="HomeBrowserHub.Feed"]')).toBeVisible();
-  await page.getByRole("navigation", { name: "Home bookmarks" }).getByRole("button", { name: "Widgets" }).click();
-  const widgetManager = page.getByRole("dialog", { name: "Home Widgets" });
-  await widgetManager.getByRole("switch", { name: "Hide Clock & calendar — Right now" }).click();
-  await page.keyboard.press("Escape");
-  await expect(page.locator('[data-home-widget-id="clock"]')).toHaveCount(0);
-  await expect(page.locator("[data-home-empty-slot]")).toHaveCount(1);
-  await expect
-    .poll(() =>
-      page
-        .locator('[data-home-widget-id="achievements"]')
-        .evaluate((element) => element.getAnimations().filter((animation) => animation.playState === "running").length),
-    )
-    .toBe(0);
-
-  const achievementsHandle = page.getByRole("button", { name: "Drag Achievements to rearrange" });
-  await achievementsHandle.scrollIntoViewIfNeeded();
-  await achievementsHandle.hover();
-  const professorWidget = page.locator('[data-home-widget-id="professor"]');
-  const [sourceBounds, targetBounds] = await Promise.all([
-    achievementsHandle.boundingBox(),
-    professorWidget.boundingBox(),
-  ]);
-  expect(sourceBounds).not.toBeNull();
-  expect(targetBounds).not.toBeNull();
-  expect(
-    await page.evaluate(
-      ({ x, y }) => document.elementFromPoint(x, y)?.closest("[data-home-drag-handle]")?.getAttribute("aria-label"),
-      { x: sourceBounds!.x + sourceBounds!.width / 2, y: sourceBounds!.y + sourceBounds!.height / 2 },
-    ),
-  ).toBe("Drag Achievements to rearrange");
-  await page.mouse.move(sourceBounds!.x + sourceBounds!.width / 2, sourceBounds!.y + sourceBounds!.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(targetBounds!.x + targetBounds!.width / 2, targetBounds!.y + targetBounds!.height / 2, {
-    steps: 12,
-  });
-  await expect(page.locator(".mari-home-widget-drag-preview")).toBeVisible();
-  await expect(page.locator(".mari-home-widget--dragging")).toHaveCount(1);
-  await page.mouse.up();
-  await expect(page.locator(".mari-home-widget-drag-preview")).toHaveCount(0);
-  await expect
-    .poll(() =>
-      page.evaluate(() => {
-        const order = JSON.parse(localStorage.getItem("marinara:home:widget-order:v1") ?? "[]") as string[];
-        return order.indexOf("achievements") < order.indexOf("professor");
-      }),
-    )
-    .toBe(true);
-
-  const learnHandle = page.getByRole("button", { name: "Drag Learn the engine to rearrange" });
-  const lastEmptySlot = page.locator("[data-home-empty-slot]").last();
-  const [learnBounds, emptyBounds] = await Promise.all([learnHandle.boundingBox(), lastEmptySlot.boundingBox()]);
-  expect(learnBounds).not.toBeNull();
-  expect(emptyBounds).not.toBeNull();
-  await page.mouse.move(learnBounds!.x + learnBounds!.width / 2, learnBounds!.y + learnBounds!.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(emptyBounds!.x + emptyBounds!.width / 2, emptyBounds!.y + emptyBounds!.height / 2, {
-    steps: 12,
-  });
-  await page.mouse.up();
-  await expect
-    .poll(() =>
-      page.evaluate(() => {
-        const layouts = JSON.parse(localStorage.getItem("marinara:home:widget-layout:v2") ?? "{}") as Record<
-          string,
-          Array<string | null>
-        >;
-        return layouts["4"]?.indexOf("learn");
-      }),
-    )
-    .toBe(8);
-
-  await page.reload();
-  await expect(page.locator('[data-component="HomeBrowserHub.Feed"]')).toBeVisible();
-  const persistedVisualOrder = await page.evaluate(() => ({
-    achievements: Number(
-      document.querySelector<HTMLElement>('[data-home-widget-id="achievements"]')?.style.order ?? "-1",
-    ),
-    professor: Number(document.querySelector<HTMLElement>('[data-home-widget-id="professor"]')?.style.order ?? "-1"),
-  }));
-  expect(persistedVisualOrder.achievements).toBeLessThan(persistedVisualOrder.professor);
-  expect(errors).toEqual([]);
-});
+// The widget drag-order contract retired with the grid; desktop icon drag persistence is covered by e2e/home-desktop-icons-fit.e2e.ts.
 
 test("chat mode tabs and new-chat actions stay reachable", { tag: "@smoke" }, async ({ page }) => {
   const errors = collectUnexpectedErrors(page);
@@ -23149,18 +22388,18 @@ test("mobile topbar remains reachable while sidebars switch", async ({ page }, t
 
   const musicDjWidget = page.locator('[data-component="SpotifyMiniPlayer.Mobile"]');
   await expect(musicDjWidget).toBeVisible();
-  // #5743: at phone widths the bookmarks affordance is the compact tab-strip
-  // trigger, so that is what the Music DJ widget must not cover.
-  const bookmarksBounds = await page.getByRole("button", { name: "Open bookmarks", exact: true }).boundingBox();
+  // The Win11 Home redesign replaced the compact bookmarks trigger with the taskbar, so the Home chrome
+  // entry the Music DJ widget must not cover is the taskbar's start button.
+  const chromeEntryBounds = await page.locator('[data-component="HomeBrowserHub.TaskbarStart"]').boundingBox();
   const initialMusicDjBounds = await musicDjWidget.boundingBox();
-  expect(bookmarksBounds).not.toBeNull();
+  expect(chromeEntryBounds).not.toBeNull();
   expect(initialMusicDjBounds).not.toBeNull();
-  const musicDjOverlapsBookmarks =
-    initialMusicDjBounds!.x < bookmarksBounds!.x + bookmarksBounds!.width &&
-    initialMusicDjBounds!.x + initialMusicDjBounds!.width > bookmarksBounds!.x &&
-    initialMusicDjBounds!.y < bookmarksBounds!.y + bookmarksBounds!.height &&
-    initialMusicDjBounds!.y + initialMusicDjBounds!.height > bookmarksBounds!.y;
-  expect(musicDjOverlapsBookmarks).toBe(false);
+  const musicDjOverlapsChromeEntry =
+    initialMusicDjBounds!.x < chromeEntryBounds!.x + chromeEntryBounds!.width &&
+    initialMusicDjBounds!.x + initialMusicDjBounds!.width > chromeEntryBounds!.x &&
+    initialMusicDjBounds!.y < chromeEntryBounds!.y + chromeEntryBounds!.height &&
+    initialMusicDjBounds!.y + initialMusicDjBounds!.height > chromeEntryBounds!.y;
+  expect(musicDjOverlapsChromeEntry).toBe(false);
   const initialMusicDjPosition = await page.evaluate(async () => {
     const { useUIStore } = (await import("/src/stores/ui.store.ts" as string)) as PageUiStoreModule;
     return useUIStore.getState().spotifyMobileWidgetPosition;

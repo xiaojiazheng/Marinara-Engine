@@ -65,7 +65,7 @@ async function mountWizard(page: Page, testInfo: TestInfo, options: WizardMountO
   });
   await page.addInitScript((value) => localStorage.setItem("marinara:whats-new:seen-version", value), version);
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "What shall we cook tonight?", exact: true })).toBeVisible({
+  await expect(page.locator('[data-component="HomeDesktopIcons"]')).toBeVisible({
     timeout: 40_000,
   });
   await prepareViteFixtureDependencies(page);

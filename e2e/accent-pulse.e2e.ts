@@ -346,13 +346,22 @@ for (const theme of ["dark", "light"] as const) {
         "border-top-color",
         await renderedColor(`color-mix(in oklab, ${border} 75%, transparent)`),
       );
-      const bookmark = page.locator('[data-component="HomeBrowserHub.MobileBookmarksTrigger"]');
+      // The Win11 Home redesign removed the mobile bookmarks trigger. The Home chrome entry that opens a
+      // shell panel is now the taskbar's start button (same aria-expanded contract), and the accent still
+      // reaches the Home shell through the pinned tiles' shared plate tint.
+      const chromeEntry = page.locator('[data-component="HomeBrowserHub.TaskbarStart"]');
       if (info.project.name.includes("mobile")) {
-        await expect(bookmark).toHaveCSS("color", await renderedColor(color));
-        await bookmark.tap();
-        await expect(bookmark).toHaveAttribute("aria-expanded", "true");
-        await expect(bookmark).toHaveCSS("color", await renderedColor(color));
-        await bookmark.tap();
+        await expect(chromeEntry).toHaveAttribute("aria-expanded", "false");
+        await chromeEntry.tap();
+        await expect(chromeEntry).toHaveAttribute("aria-expanded", "true");
+        await expect(
+          page
+            .locator('[data-component="HomeBrowserHub.StartMenuPinned"]')
+            .getByRole("button", { name: /Character Library/ })
+            .locator('[style*="--start-menu-tile-tone"]'),
+        ).toHaveCSS("color", await renderedColor(color));
+        await chromeEntry.tap();
+        await expect(chromeEntry).toHaveAttribute("aria-expanded", "false");
       }
       await clickTopbarPanel(page, "settings");
       await page.getByRole("tab", { name: "Appearance", exact: true }).click();

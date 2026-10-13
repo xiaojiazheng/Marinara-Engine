@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Plus } from "lucide-react";
 import { useTranslation as useUiTranslation } from "react-i18next";
 import { useApplyChatPreset, useChatPresets } from "../../hooks/use-chat-presets";
@@ -17,9 +17,21 @@ type HomeNewChatLauncherProps = {
   className?: string;
   children?: ReactNode;
   ariaLabel?: string;
+  /**
+   * Bump this number to run the launcher from the outside, for hosts whose own activation gesture
+   * cannot reach the button (the desktop's chat-mode icons, whose right-click Open is a menu item).
+   * The value it mounts with is ignored, so only later bumps fire.
+   */
+  activationSignal?: number;
 };
 
-export function HomeNewChatLauncher({ mode, className, children, ariaLabel }: HomeNewChatLauncherProps = {}) {
+export function HomeNewChatLauncher({
+  mode,
+  className,
+  children,
+  ariaLabel,
+  activationSignal,
+}: HomeNewChatLauncherProps = {}) {
   const { t: localizeUi } = useUiTranslation();
   const [selectorOpen, setSelectorOpen] = useState(false);
   const { data: connections } = useConnections();
@@ -78,6 +90,14 @@ export function HomeNewChatLauncher({ mode, className, children, ariaLabel }: Ho
       },
     );
   };
+
+  const lastActivationSignalRef = useRef(activationSignal);
+  useEffect(() => {
+    if (activationSignal === undefined || activationSignal === lastActivationSignalRef.current) return;
+    lastActivationSignalRef.current = activationSignal;
+    if (mode) selectMode(mode);
+    else setSelectorOpen(true);
+  }, [activationSignal, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>

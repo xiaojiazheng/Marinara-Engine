@@ -6,6 +6,12 @@ This file is the release-notes source of truth for Marinara Engine. Reuse these 
 
 - Simplified Chinese UI and documentation are bundled with the app, so switching language and repairing Chinese packs works offline without downloading from GitHub.
 
+- Contributor docs now state that this fork maintains English and Simplified Chinese only: the bundled Simplified Chinese packs are kept in step with `docs/` and UI copy changes, while the `docs-i18n` branch and its community languages are no longer maintained here.
+
+- Home now looks and works like a Windows 11 desktop. A centred taskbar holds the **Start** button, a **Search** box that asks Professor Mari to find a feature, the **Home** and **Professor Mari** tabs, the **Character Library** and the three chat-mode shortcuts, with the **Achievements** bell and clock at its right end. **Start** opens a menu with your pinned entries — new chats, the character library, **FAQ**, **Achievements**, **Documentation**, **Tutorial**, **Discord** and **Support** — above a **Recommended** list of your latest chats, with the app version and **Credits** along the bottom. A floating Professor Mari helper sits over the wallpaper to point you to a feature. Clicking the clock opens a calendar, and the volume icon opens quick settings. On narrow screens the taskbar hides its middle entries and the desktop still starts a new chat.
+
+- Home's desktop is now a Windows 11 icon desk. Icons line up along the left and open on double-click: **Conversation**, **Roleplay** and **Game** start a chat, **Recent Chats**, **What's New**, **Learn the Engine**, **Community**, the **Clock** and **Achievements** open their own windows, and **Character Library**, **Professor Mari**, **Discovery** and **Character of the Day** open the matching Marinara surface. Drag an icon to move it and the arrangement is remembered; right-click the desktop for **View** (large, medium or small icons), **Sort by → Name**, **Refresh** and **Personalize**, or right-click an icon for **Open** and **Refresh**. The old widget grid and its manager are gone: your desk always starts with the same built-in icons, and the retired widget preferences are cleaned up on first launch. The package URL bar switch moved to **Settings → Appearance → App Style**.
+
 - Added a custom-branch container build and a deployment guide for preserving existing data, credentials, and rollback backups on a personal fork.
 
 ## [2.5.0]

@@ -17,7 +17,7 @@ export type ProfessorMariNavigationTarget =
     }
   | {
       kind: "window";
-      window: "discord" | "support" | "documentation" | "faq" | "widgets" | "tutorial" | "credits";
+      window: "discord" | "support" | "documentation" | "faq" | "tutorial" | "credits";
     }
   | { kind: "resource"; resource: ProfessorMariNavigationResourceKind; id: string }
   | { kind: "package"; packageId: string };
@@ -148,11 +148,6 @@ const RULES: readonly NavigationRule[] = [
     target: { kind: "window", window: "faq" },
     priority: 92,
     patterns: [/\b(?:faq|frequently asked questions?|common questions?)\b/],
-  },
-  {
-    target: { kind: "window", window: "widgets" },
-    priority: 92,
-    patterns: [/\b(?:widgets?|home widgets?|widget manager|home tiles?|customi[sz]e home)\b/],
   },
   {
     target: { kind: "window", window: "tutorial" },

@@ -218,7 +218,7 @@ test("Combat AI Classic items spend only after the accepted action executes", as
     });
     await page.addInitScript((value) => localStorage.setItem("marinara:whats-new:seen-version", value), version);
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "What shall we cook tonight?", exact: true })).toBeVisible({
+    await expect(page.locator('[data-component="HomeDesktopIcons"]')).toBeVisible({
       timeout: 40000,
     });
     await prepareViteFixtureDependencies(page);

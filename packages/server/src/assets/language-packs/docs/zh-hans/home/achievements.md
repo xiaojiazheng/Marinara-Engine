@@ -12,21 +12,20 @@
 
 ## 打开 Achievements 面板
 
-**Achievements**(成就) 按钮在主页上。没有打开任何聊天时看到的界面就是主页。按钮在 Professor Mari 聊天框的正下方，图标是一个奖杯。
+**Achievements**(成就) 入口在主页上。没有打开任何聊天时看到的界面就是主页。它出现在三处：桌面上的小组件、**Start**(开始) 菜单里的入口，以及任务栏右端的通知铃铛。图标是一个奖杯。
 
-按钮标签下方会实时显示进度，比如 **12 of 23 unlocked**。还在加载时，这里显示的是 **Checking the collection...**。
+标签下方，小组件会实时显示进度，比如 **12 of 23 unlocked**。还在加载时，这里显示的是 **Checking the collection...**。
 
 打开面板的步骤：
 
 1. 回到主页。
-2. 找到 Professor Mari 聊天框下方的 **Achievements** 按钮。
-3. 点击。
+2. 点击桌面上的 **Achievements** 小组件，或者打开 **Start** 菜单选择 **Achievements**。
 
 **Achievements** 窗口会打开。顶部是一行汇总文字，比如 **12 of 23 achievements unlocked in this profile.**，下面是成就卡片组成的网格。
 
 每张卡片包含徽章图标、标题、分类标签和一句简短说明。未解锁的卡片标题显示为 **?????**，图标是一把锁，解锁之前看不到具体内容。拿到之后，卡片上会出现 **unlocked** 标签。带目标数量的卡片还会多一行 **Progress**(进度) 和一条进度条。
 
-只有 **Achievements** 设置处于开启状态，按钮和面板才会出现，详见下面的设置一节。应用里没有第二个入口能看到成就。
+只有 **Achievements** 设置处于开启状态，小组件、它在 **Start** 菜单里的入口和通知铃铛才会出现，详见下面的设置一节。它们打开的是同一个窗口。
 
 ## 23 项成就
 
@@ -38,9 +37,9 @@
 |---|---|---|
 | **Diligent Student** | Milestone | 完成或跳过首次使用教程。 |
 | **Hello World** | Milestone | 在主页给 Professor Mari 发出第一条消息。 |
-| **One Of Us** | Community | 点击主页页脚的 **Discord** 链接。 |
-| **Based Backer** | Community | 点击主页页脚的 **Support** 链接（会跳转到 Ko-fi）。 |
-| **Backseat Appreciator** | Community | 点击主页页脚的 **Credits** 按钮。 |
+| **One Of Us** | Community | 点击 **Start** 菜单里的 **Discord** 链接。 |
+| **Based Backer** | Community | 点击 **Start** 菜单里的 **Support**(支持) 链接（会跳转到 Ko-fi）。 |
+| **Backseat Appreciator** | Community | 点击 **Start** 菜单里的 **Credits**(致谢) 按钮。 |
 | **Who Needs IRL Friends** | Creation | 创建 Conversation 模式的聊天（5、25、100）。 |
 | **They Feel Real To Me** | Creation | 创建 Roleplay 聊天（5、25、100）。 |
 | **I Have No Other Hobbies** | Creation | 创建 Game Mode 的聊天（5、25、100）。 |
@@ -68,18 +67,18 @@
 
 整个功能可以用一个开关关掉。打开 **Settings**(设置)，切到 **General**(常规) 选项卡，找到 **App Behavior**(应用行为) 部分。开关的名字是 **Achievements**，默认开启。
 
-帮助文字写的是：“Shows the Home achievements button and unlock notifications. Tracking stays silent in the current profile when this is off.”
+帮助文字写的是：“Shows the Home achievements widget, its Start menu entry and tray bell, and unlock notifications. Tracking stays silent in the current profile when this is off.”
 
 这个开关的效果如下：
 
-- 开启：主页显示 **Achievements** 按钮和窗口，每次解锁都会弹出提示。
-- 关闭：按钮隐藏，弹出提示也不再出现。应用仍会在后台默默记录解锁情况。
+- 开启：主页的 **Achievements** 小组件、它在 **Start** 菜单里的入口和任务栏上的通知铃铛都会出现，每次解锁都会弹出提示。
+- 关闭：这些入口都会隐藏，弹出提示也不再出现。应用仍会在后台默默记录解锁情况。
 
 因为关闭期间统计照常进行，进度不会丢。以后重新打开，这段时间里赚到的成就已经都在了。
 
 ## 解锁是怎么判定的
 
-Marinara 会拿分级成就和当前的实时计数做比对。触发比对的时机有两个：一是发生了被统计的操作，比如创建聊天或者点击页脚链接；二是打开 Achievements 面板的时候。
+Marinara 会拿分级成就和当前的实时计数做比对。触发比对的时机有两个：一是发生了被统计的操作，比如创建聊天或者点击社区链接；二是打开 Achievements 面板的时候。
 
 如果某个操作触发了解锁，而且设置是开启的，屏幕上会弹出一条小提示，标题是 **Achievement unlocked**，正文写明是哪一枚徽章，比如 **Hoarder II** 或者 **One Of Us**。
 

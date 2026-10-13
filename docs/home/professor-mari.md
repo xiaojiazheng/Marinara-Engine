@@ -167,7 +167,7 @@ On a phone or a narrow screen, she becomes a small round avatar you can drag aro
 
 ## Her FAQ is separate from the chat
 
-Next to her chat card, the Home screen shows an **FAQ** panel. This is a fixed, written list of questions and answers. It is not the AI chat.
+The Home screen also has an **FAQ** panel. Open **Start** on the taskbar and choose **FAQ**. It is a fixed, written list of questions and answers. It is not the AI chat.
 
 Type in the **Search FAQ** box to filter the questions. Each question has a colored category tag, such as **Setup**, **Connections**, or **Game Mode**. Tap a question to read its answer.
 

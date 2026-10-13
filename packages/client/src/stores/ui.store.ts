@@ -625,8 +625,6 @@ interface UIState {
   /** Transient: the initial cross-device settings fetch has settled. */
   settingsSyncReady: boolean;
   showHomeBrowserAddressBar: boolean;
-  showHomeBrowserDesktopBookmarksOnOtherTabs: boolean;
-  showHomeBrowserMobileBookmarksOnOtherTabs: boolean;
   sidebarOpen: boolean;
   sidebarWidth: number;
   rightPanelOpen: boolean;
@@ -1074,8 +1072,6 @@ interface UIState {
 
   // Actions
   setShowHomeBrowserAddressBar: (visible: boolean) => void;
-  setShowHomeBrowserDesktopBookmarksOnOtherTabs: (visible: boolean) => void;
-  setShowHomeBrowserMobileBookmarksOnOtherTabs: (visible: boolean) => void;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
   setSidebarWidth: (width: number) => void;
@@ -1412,8 +1408,6 @@ function normalizePersistedMainSurface(persisted: Record<string, unknown>) {
 export function pickSyncedSettings(state: UIState) {
   return {
     showHomeBrowserAddressBar: state.showHomeBrowserAddressBar,
-    showHomeBrowserDesktopBookmarksOnOtherTabs: state.showHomeBrowserDesktopBookmarksOnOtherTabs,
-    showHomeBrowserMobileBookmarksOnOtherTabs: state.showHomeBrowserMobileBookmarksOnOtherTabs,
     sidebarOpen: state.sidebarOpen,
     sidebarWidth: state.sidebarWidth,
     rightPanelWidth: state.rightPanelWidth,
@@ -1590,8 +1584,6 @@ export function pickSyncedSettings(state: UIState) {
 export function pickPersistedUIState(state: UIState) {
   return {
     showHomeBrowserAddressBar: state.showHomeBrowserAddressBar,
-    showHomeBrowserDesktopBookmarksOnOtherTabs: state.showHomeBrowserDesktopBookmarksOnOtherTabs,
-    showHomeBrowserMobileBookmarksOnOtherTabs: state.showHomeBrowserMobileBookmarksOnOtherTabs,
     sidebarOpen: state.sidebarOpen,
     sidebarWidth: state.sidebarWidth,
     rightPanelOpen: state.rightPanelOpen,
@@ -1831,8 +1823,6 @@ export const useUIStore = create<UIState>()(
       return {
         settingsSyncReady: false,
         showHomeBrowserAddressBar: true,
-        showHomeBrowserDesktopBookmarksOnOtherTabs: true,
-        showHomeBrowserMobileBookmarksOnOtherTabs: true,
         sidebarOpen: true,
         sidebarWidth: 320,
         rightPanelOpen: false,
@@ -2836,10 +2826,6 @@ export const useUIStore = create<UIState>()(
         setConvertLatexSymbols: (v) => set({ convertLatexSymbols: v }),
         setTrimIncompleteModelOutput: (v) => set({ trimIncompleteModelOutput: v }),
         setShowHomeBrowserAddressBar: (visible) => set({ showHomeBrowserAddressBar: visible }),
-        setShowHomeBrowserDesktopBookmarksOnOtherTabs: (visible) =>
-          set({ showHomeBrowserDesktopBookmarksOnOtherTabs: visible }),
-        setShowHomeBrowserMobileBookmarksOnOtherTabs: (visible) =>
-          set({ showHomeBrowserMobileBookmarksOnOtherTabs: visible }),
         setContinueAddsNewline: (v) => set({ continueAddsNewline: v }),
         setSpeechToTextEnabled: (v) => set({ speechToTextEnabled: v }),
         setTTSLineVolume: (v) => set({ ttsLineVolume: Math.max(0, Math.min(100, Math.round(v))) }),
@@ -3203,12 +3189,6 @@ export const useUIStore = create<UIState>()(
         }
         if (version <= 97) {
           if (persisted.showHomeBrowserAddressBar === undefined) persisted.showHomeBrowserAddressBar = true;
-          if (persisted.showHomeBrowserDesktopBookmarksOnOtherTabs === undefined) {
-            persisted.showHomeBrowserDesktopBookmarksOnOtherTabs = true;
-          }
-          if (persisted.showHomeBrowserMobileBookmarksOnOtherTabs === undefined) {
-            persisted.showHomeBrowserMobileBookmarksOnOtherTabs = true;
-          }
         }
         if (version <= 96 && persisted.showCharactersInPersonaPickers === undefined) {
           persisted.showCharactersInPersonaPickers = false;

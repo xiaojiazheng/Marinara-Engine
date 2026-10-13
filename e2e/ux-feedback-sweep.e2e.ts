@@ -95,18 +95,20 @@ test("UX sweep: narrow desktop windows use the overlay shell before sidebar topb
   await expect(page.locator('[data-component="RightPanelDesktop"]')).toBeVisible();
 });
 
-test("UX sweep: achievement highlights stay inside the widget with padding", async ({ page }, testInfo) => {
-  await page.addInitScript(() =>
-    localStorage.setItem("marinara:home:widget-visibility:v2", JSON.stringify(["achievements"])),
-  );
+test("UX sweep: achievement highlights stay inside their window with padding", async ({ page }, testInfo) => {
   await page.goto("/");
-  const widget = page.locator('[data-home-widget-id="achievements"]');
-  await expect(widget.getByRole("button", { name: "Open Achievements" })).toBeVisible();
+  // The retired Home widget card hosted this preview; the desktop's Achievements icon now opens the
+  // same achievement surface, so the padding guarantee is measured on that window instead.
+  const icon = page.locator('[data-home-desktop-icon="achievements"]');
+  await expect(icon).toBeVisible({ timeout: 30_000 });
+  await icon.locator("button").dblclick();
+  const window = page.locator('[data-component="Modal"] .mari-modal-panel').last();
+  await expect(window.locator("[data-achievement-highlight]").first()).toBeVisible({ timeout: 30_000 });
   for (const width of testInfo.project.name.includes("mobile") ? [320, 390] : [1440, 1100]) {
     await page.setViewportSize({ width, height: 844 });
     await expect
       .poll(async () =>
-        widget.evaluate((el) => {
+        window.evaluate((el) => {
           const outer = el.getBoundingClientRect();
           const highlights = Array.from(el.querySelectorAll("[data-achievement-highlight]"));
           return (
@@ -119,7 +121,7 @@ test("UX sweep: achievement highlights stay inside the widget with padding", asy
         }),
       )
       .toBe(true);
-    await widget.screenshot({ path: testInfo.outputPath(`achievements-${width}.png`) });
+    await window.screenshot({ path: testInfo.outputPath(`achievements-${width}.png`) });
   }
 });
 
@@ -437,7 +439,7 @@ test("UX sweep: Background library mobile toolbar, accent marker and settled mod
   }
 });
 
-test("UX sweep: home library cards fit equally and widgets open their destinations without hijacking drag handles", async ({
+test("UX sweep: the home character library deep link opens and scrolls its target card into view", async ({
   page,
   request,
 }, testInfo) => {
@@ -460,66 +462,17 @@ test("UX sweep: home library cards fit equally and widgets open their destinatio
   );
   try {
     await page.goto("/");
-    await expect(page.locator('[data-home-widget-id="character-library"]')).toHaveCount(0);
-    const bookmarks = page.getByRole("button", { name: "Open bookmarks", exact: true });
-    if (testInfo.project.name.includes("mobile")) await bookmarks.click();
-    await page.getByRole("button", { name: "Widgets", exact: true }).click();
-    const libraryOption = page.getByRole("switch", { name: /Show Character Library/ });
-    await libraryOption.click();
-    await page.keyboard.press("Escape");
-    await expect(page.getByRole("dialog", { name: "Home Widgets" })).toBeHidden();
-    const widget = page.locator('[data-home-widget-id="character-library"]');
-    await expect(widget).toBeVisible();
-    await expect(widget.locator("[data-card-library-card]")).toHaveCount(4);
-    await expect(widget.getByRole("button", { name: /Browse full library|Chat with/ })).toHaveCount(0);
-    await expect(widget.locator(".mari-home-widget__drag-handle")).toBeVisible();
-    const initialOrder = await widget.getAttribute("style");
-    await widget.locator(".mari-home-widget__drag-handle").press("ArrowLeft");
-    await expect(widget).not.toHaveAttribute("style", initialOrder!);
-    await widget.locator(".mari-home-widget__drag-handle").press("ArrowRight");
-    await widget.locator(".mari-home-widget__drag-handle").click();
-    await expect(widget.locator(".mari-home-widget__drag-handle")).toBeFocused();
-    await expect(page.locator('[data-component="CharacterLibraryView"]')).toHaveCount(0);
-    await widget.scrollIntoViewIfNeeded();
-    const recent = page.locator('[data-home-widget-id="recent"]');
-    expect(Math.abs((await widget.boundingBox())!.height - (await recent.boundingBox())!.height)).toBeLessThan(2);
-    expect(Math.abs((await widget.boundingBox())!.width - (await recent.boundingBox())!.width)).toBeLessThan(2);
-    const layout = await widget.locator("[data-home-library-grid]").evaluate((grid) => {
-      const bounds = grid.getBoundingClientRect();
-      return {
-        overflow: grid.scrollHeight - grid.clientHeight,
-        cards: Array.from(grid.querySelectorAll("[data-card-library-card]"), (card) => {
-          const box = card.getBoundingClientRect();
-          return {
-            width: box.width,
-            height: box.height,
-            fits: box.bottom <= bounds.bottom + 1 && box.right <= bounds.right + 1,
-          };
-        }),
-      };
-    });
-    expect(layout.overflow).toBeLessThanOrEqual(1);
-    expect(layout.cards.every((card) => card.fits)).toBe(true);
-    expect(
-      Math.max(...layout.cards.map((card) => card.height)) - Math.min(...layout.cards.map((card) => card.height)),
-    ).toBeLessThan(1);
-    expect(
-      Math.max(...layout.cards.map((card) => card.width)) - Math.min(...layout.cards.map((card) => card.width)),
-    ).toBeLessThan(1);
-    await page.screenshot({ path: testInfo.outputPath("character-library-widget.png") });
-    const ids = await widget
-      .locator("[data-home-library-character]")
-      .evaluateAll((rows) => rows.map((row) => row.getAttribute("data-home-library-character")));
-    await page.reload();
-    await expect(widget).toBeVisible();
-    await expect
-      .poll(() =>
-        widget
-          .locator("[data-home-library-character]")
-          .evaluateAll((rows) => rows.map((row) => row.getAttribute("data-home-library-character"))),
-      )
-      .toEqual(ids);
-    const selectedId = ids[0]!;
+    // The retired Home library widget card was this test's entry point; the desktop's Character Library
+    // icon now owns it. The card-fit, equal-size and drag-handle assertions went with the card: there is
+    // no compact card grid left to measure, and desktop icons drag as whole tiles instead of handles.
+    const libraryIcon = page.locator('[data-home-desktop-icon="character-library"]');
+    await expect(libraryIcon).toBeVisible({ timeout: 30_000 });
+    await libraryIcon.locator("button").dblclick();
+    const library = page.locator('[data-component="CharacterLibraryView"]');
+    await expect(library).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("character-library-window.png") });
+
+    const selectedId = characters[0]!.id;
     // Keep the selected character out of the first library page to prove a
     // shortcut reaches it without downloading every intervening page.
     await page.route("**/api/characters/catalog?**", async (route) => {
@@ -531,8 +484,15 @@ test("UX sweep: home library cards fit equally and widgets open their destinatio
         json: { ...data, items: data.items.filter((card: { id: string }) => card.id !== selectedId), hasMore: true },
       });
     });
-    await widget.locator(`[data-card-library-card="${selectedId}"]`).click();
-    const library = page.locator('[data-component="CharacterLibraryView"]');
+    await page.evaluate(async () => {
+      const { useUIStore } = await import("/src/stores/ui.store.ts" as string);
+      useUIStore.getState().closeCharacterLibrary();
+    });
+    await expect(library).toBeHidden();
+    await page.evaluate(async (id) => {
+      const { useUIStore } = await import("/src/stores/ui.store.ts" as string);
+      useUIStore.getState().openCharacterLibrary(id!);
+    }, selectedId);
     await expect(library).toBeVisible();
     await expect(library.locator(`[data-card-library-card="${selectedId}"]`)).toBeInViewport();
     await expect
@@ -575,41 +535,20 @@ test("UX sweep: home library cards fit equally and widgets open their destinatio
       const { useUIStore } = await import("/src/stores/ui.store.ts" as string);
       useUIStore.getState().closeCharacterLibrary();
     });
-    await expect(widget).toBeVisible();
-    await widget.scrollIntoViewIfNeeded();
-    const libraryOpen = widget.getByRole("button", { name: "Open Character Library", exact: true });
-    if (testInfo.project.name.includes("mobile")) await libraryOpen.tap({ position: { x: 24, y: 48 } });
-    else await libraryOpen.click({ position: { x: 24, y: 48 } });
+    await expect(library).toBeHidden();
+    // The retired library card also carried "Open Character Library" and "Open Chats tab" overlay
+    // buttons. Their destinations now belong to the desktop icons: the library icon opens the library,
+    // and the recent-chats icon opens a window that lists the same feed rows.
+    await libraryIcon.locator("button").dblclick();
     await expect(library).toBeVisible();
     await page.evaluate(async () => {
       const { useUIStore } = await import("/src/stores/ui.store.ts" as string);
       useUIStore.getState().closeCharacterLibrary();
     });
-    await recent.scrollIntoViewIfNeeded();
-    const recentOpen = recent.getByRole("button", { name: "Open Chats tab", exact: true });
-    if (testInfo.project.name.includes("mobile")) await recentOpen.tap({ position: { x: 24, y: 48 } });
-    else await recentOpen.click({ position: { x: 24, y: 48 } });
-    await expect
-      .poll(() =>
-        page.evaluate(async () => {
-          const { useUIStore } = await import("/src/stores/ui.store.ts" as string);
-          return useUIStore.getState().sidebarOpen;
-        }),
-      )
-      .toBe(true);
-    await page.evaluate(async () => {
-      const { useUIStore } = await import("/src/stores/ui.store.ts" as string);
-      useUIStore.getState().setSidebarOpen(false);
-    });
-    await recent.getByRole("button", { name: "Open Chats tab", exact: true }).press("Enter");
-    await expect
-      .poll(() =>
-        page.evaluate(async () => {
-          const { useUIStore } = await import("/src/stores/ui.store.ts" as string);
-          return useUIStore.getState().sidebarOpen;
-        }),
-      )
-      .toBe(true);
+    await expect(library).toBeHidden();
+    const recentIcon = page.locator('[data-home-desktop-icon="recent"]');
+    await recentIcon.locator("button").dblclick();
+    await expect(page.locator('[data-component="Modal"] [data-recent-chat-index]').first()).toBeVisible();
   } finally {
     for (const character of characters) await request.delete(`/api/characters/${character.id}`);
   }

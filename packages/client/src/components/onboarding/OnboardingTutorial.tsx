@@ -162,7 +162,7 @@ const STEPS: TourStep[] = [
   },
   {
     target: "home-documentation",
-    highlightTargets: ["home-tutorial", "home-faq", "home-widgets"],
+    highlightTargets: ["home-tutorial", "home-faq"],
     titleKey: "onboarding.homeTools.title",
     bodyKey: "onboarding.homeTools.body",
     side: "bottom",

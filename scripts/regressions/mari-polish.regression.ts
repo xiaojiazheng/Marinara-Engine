@@ -133,27 +133,10 @@ assert.match(
 );
 
 // ── #5743: mobile bookmarks collapse to a compact tab-strip button ──────────
-const browserHub = readSource("packages/client/src/components/chat/HomeBrowserHub.tsx");
-const browserHubFlat = flatten(browserHub);
-assert.match(browserHub, /mobileBookmarksTriggerRef/u);
-assert.ok(
-  browserHubFlat.includes('aria-label={t("home.browser.bookmarksCompact")}'),
-  "the compact trigger is labeled for assistive tech",
-);
-// Desktop never shows the compact button; mobile never renders the full bar.
-assert.match(browserHub, /focus-visible:ring-\[var\(--marinara-app-accent-solid\)\] sm:hidden/u);
-assert.ok(
-  browserHubFlat.includes(
-    'className="hidden min-h-8 items-center border-t border-[var(--border)]/45 px-2 sm:flex sm:min-h-9 sm:px-3"',
-  ),
-  "the full bookmarks bar is desktop-only - no empty row remains at phone widths",
-);
-// The per-surface visibility settings still gate both surfaces - no new toggle.
-assert.ok(browserHubFlat.includes('activeTab !== "home" && !showHomeBrowserMobileBookmarksOnOtherTabs && "hidden"'));
-assert.ok(
-  browserHubFlat.includes('mobileBookmarksOpen && (activeTab === "home" || showHomeBrowserMobileBookmarksOnOtherTabs)'),
-);
-assert.ok("home.browser.bookmarksCompact" in enJson);
+// bookmark bar removed by the Win11 Home redesign.
+// This removal is intentional, not a migration: the mobile compact trigger, the tab-strip entry, and
+// the per-surface bookmark visibility settings did not come back. Those entries now live in the Start
+// menu, so the guards below were retired with the surface they pinned instead of being re-pointed.
 
 // #5820: the Accept action for held edits must never be captioned as a mere
 // suggestion. Users read "Suggestions only. Pick one, or type your own." and

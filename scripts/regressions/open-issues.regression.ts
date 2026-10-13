@@ -787,10 +787,10 @@ assert.deepEqual(resolveProfessorMariNavigation("image generation settings"), {
   tab: "generations",
 });
 assert.deepEqual(resolveProfessorMariNavigation("open Discord"), { kind: "window", window: "discord" });
-assert.deepEqual(resolveProfessorMariNavigation("customize my home widgets"), {
-  kind: "window",
-  window: "widgets",
-});
+// The widget manager window retired with the Home widget grid: "customize my home" now lands on the
+// desk itself, and a bare "widget manager" question resolves to nothing instead of a removed window.
+assert.deepEqual(resolveProfessorMariNavigation("customize my home widgets"), { kind: "home" });
+assert.equal(resolveProfessorMariNavigation("widget manager"), null);
 const professorMariNamedResources = [
   { kind: "character" as const, id: "character-maukie", name: "Maukie" },
   { kind: "persona" as const, id: "persona-echo", name: "Echo" },
@@ -6267,11 +6267,12 @@ const homeBrowserHubSource = readFileSync(
   new URL("../../packages/client/src/components/chat/HomeBrowserHub.tsx", import.meta.url),
   "utf8",
 );
-assert.match(
-  homeBrowserHubSource,
-  /<MessageCircle size="0\.8rem" className="mari-rgb-static-icon text-current" \/>/u,
-  "The Your Guide action icon must inherit the same color as its label",
+// The Win11 Home redesign moved the floating navigator out of HomeBrowserHub; its source pins follow it.
+const floatingProfessorMariSource = readFileSync(
+  new URL("../../packages/client/src/components/home/FloatingProfessorMari.tsx", import.meta.url),
+  "utf8",
 );
+// The Home widget grid retired with the desktop-icon redesign; its card source pin (#7032) went with it.
 const globalStylesSource = readFileSync(
   new URL("../../packages/client/src/styles/globals.css", import.meta.url),
   "utf8",
@@ -6292,7 +6293,11 @@ assert.equal(
   "Home effect pausing must keep one central visibility listener",
 );
 assert.match(appSource, /dispatchEvent\(new CustomEvent\("marinara:effects-paused"/u);
-assert.match(homeBrowserHubSource, /window\.removeEventListener\(MARINARA_EFFECTS_PAUSED_EVENT, sync\)/u);
+assert.match(
+  floatingProfessorMariSource,
+  /window\.removeEventListener\(MARINARA_EFFECTS_PAUSED_EVENT, sync\)/u,
+  "The effects-paused subscription teardown follows the navigator that owns it",
+);
 assert.match(
   globalStylesSource,
   /data-marinara-effects-paused="true"[^}]+mari-home-professor-popup__sprite[\s\S]+animation-play-state: paused !important;/u,
@@ -6585,7 +6590,10 @@ assert.match(recentChatsSource, /data-narrow-desktop-limit="4"/u);
 assert.match(recentChatsSource, /md:auto-rows-fr md:grid-rows-none/u);
 assert.match(recentChatsSource, /index === 3 && "hidden md:block"/u);
 assert.match(recentChatsSource, /index >= 4 && "hidden"/u);
-assert.match(globalStyles, /@container \(min-width: 36rem\)[\s\S]*data-component="RecentChats"/u);
+// The Home widget grid's container query retired with the card that hosted it. RecentChats now governs
+// its own narrow-desktop card count (pinned above) inside the window the desk's Recent Chats icon opens,
+// so no stylesheet rule targets it.
+assert.doesNotMatch(globalStyles, /data-component="RecentChats"/u);
 for (const editorSource of [characterEditorSource, personaEditorSource]) {
   assert.match(editorSource, /grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4/u);
   assert.match(editorSource, /onClick=\{\(\) => void handleDelete\(lightbox\)\}/u);
@@ -7693,8 +7701,6 @@ assert.match(
 const projectionState = {
   ...useUIStore.getState(),
   showHomeBrowserAddressBar: false,
-  showHomeBrowserDesktopBookmarksOnOtherTabs: false,
-  showHomeBrowserMobileBookmarksOnOtherTabs: false,
   enterToSendGame: false,
   enterToSendProfessorMari: false,
   chatHelpSeenModes: ["game"] as ChatMode[],
@@ -7703,16 +7709,6 @@ assert.equal(
   pickSyncedSettings(projectionState).showHomeBrowserAddressBar,
   false,
   "Home URL bar visibility must be saved per installation",
-);
-assert.equal(
-  pickSyncedSettings(projectionState).showHomeBrowserDesktopBookmarksOnOtherTabs,
-  false,
-  "Home desktop bookmark visibility must be saved per installation",
-);
-assert.equal(
-  pickSyncedSettings(projectionState).showHomeBrowserMobileBookmarksOnOtherTabs,
-  false,
-  "Home mobile bookmark visibility must be saved per installation",
 );
 assert.equal(
   pickSyncedSettings(projectionState).enterToSendGame,

@@ -208,14 +208,14 @@ Yes. Add an image generation connection, for example **Pollinations** (needs no 
 
 Every install ships with the full set of guides. You can read them without leaving the app:
 
-- On the Home screen, click the **Documentation** button in the footer, next to **Replay Tutorial**.
+- On the Home screen, click **Start** on the taskbar and choose **Documentation**. **Tutorial** sits next to it in the same menu.
 - In the Home FAQ, open the documentation question and click **Open Documentation**.
 
 Both buttons open the same in-app viewer. It lists every guide and renders it inside Marinara.
 
 ## Where do I get help or report a bug?
 
-Start with [Troubleshooting](TROUBLESHOOTING.md), which is organized by symptom. On the Home screen footer, the **Discord** button opens the community chat and the **Support** button opens the project's support page. For bugs and feature requests, use the project's GitHub page.
+Start with [Troubleshooting](TROUBLESHOOTING.md), which is organized by symptom. In the Home screen's **Start** menu, **Discord** opens the community chat and **Support** opens the project's support page. For bugs and feature requests, use the project's GitHub page.
 
 ## Related guides
 

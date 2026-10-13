@@ -15,7 +15,6 @@ test("library portraits keep their proportions in compact and full layouts", asy
   });
   await page.addInitScript(
     (version: string) => {
-      localStorage.setItem("marinara:home:widget-visibility:v2", JSON.stringify(["character-library", "recent"]));
       localStorage.setItem("marinara:whats-new:seen-version", version);
     },
     JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version,
@@ -47,70 +46,61 @@ test("library portraits keep their proportions in compact and full layouts", asy
     expect(chatResponse.ok(), await chatResponse.text()).toBeTruthy();
     chatId = ((await chatResponse.json()) as { id: string }).id;
     await page.goto("/");
-    for (const layout of ["compact", "full"]) {
-      if (layout === "full") {
-        await clickTopbarPanel(page, "characters");
-        await page.getByRole("button", { name: "Open Library", exact: true }).click();
-      }
-      const card = page.locator(`[data-card-library-card="${character.id}"]`).filter({ visible: true }).first();
-      const portrait = card.locator("img");
-      await expect(portrait).toBeVisible();
-      await card.scrollIntoViewIfNeeded();
-      await expect.poll(() => portrait.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(240);
-      const geometry = await portrait.evaluate((img: HTMLImageElement) => {
-        const bounds = img.getBoundingClientRect();
-        return {
-          fit: getComputedStyle(img).objectFit,
-          renderedRatio: bounds.width / bounds.height,
-          sourceRatio: img.naturalWidth / img.naturalHeight,
-        };
-      });
-      expect(
-        geometry.fit !== "fill" || Math.abs(geometry.renderedRatio - geometry.sourceRatio) < 0.01,
-        `${layout} portrait must use proportional fitting or an undistorted image box: ${JSON.stringify(geometry)}`,
-      ).toBe(true);
-      if (!testInfo.project.name.includes("mobile")) {
-        const before = await portrait.boundingBox();
-        await card.hover();
-        await card.evaluate((element) =>
-          Promise.allSettled(
-            element
-              .getAnimations({ subtree: true })
-              .filter((animation) => animation instanceof CSSTransition)
-              .map((animation) => animation.finished),
-          ),
-        );
-        expect(await portrait.boundingBox(), "hover must not rescale or move the portrait").toEqual(before);
-      }
-      for (const theme of ["light", "dark"] as const) {
-        await page.evaluate(async (theme) => {
-          const { useUIStore } = await import("/src/stores/ui.store.ts" as string);
-          useUIStore.getState().setTheme(theme);
-        }, theme);
-        await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-        if (layout === "compact") {
-          const surface = page.locator('[data-home-widget-id="character-library"] > :not([data-home-drag-handle])');
-          await expect(surface).toHaveCSS("filter", "none");
-          await expect(surface).toHaveCSS("transform", "none");
-        }
-        await page.screenshot({ path: testInfo.outputPath(`${layout}-${theme}.png`), animations: "disabled" });
-      }
-      if (layout === "compact") {
-        const recent = page.locator("[data-recent-chat-index]").filter({ hasText: "Portrait rendering" });
-        await expect(recent).toBeVisible();
-        await recent.scrollIntoViewIfNeeded();
-        const recentPortrait = recent.locator("img");
-        const before = await recentPortrait.boundingBox();
-        if (!testInfo.project.name.includes("mobile")) {
-          await recent.hover();
-          await expect(recent).toHaveCSS("translate", "none");
-          await expect(page.locator('[data-home-widget-id="recent"] > :not([data-home-drag-handle])')).toHaveCSS(
-            "filter",
-            "none",
-          );
-          expect(await recentPortrait.boundingBox()).toEqual(before);
-        }
-      }
+    // The "compact" host was the retired Home library widget card. Only the full library surface is left
+    // to measure, plus the recent-chats feed rows in the window the desktop's Recent Chats icon opens.
+    await clickTopbarPanel(page, "characters");
+    await page.getByRole("button", { name: "Open Library", exact: true }).click();
+    const card = page.locator(`[data-card-library-card="${character.id}"]`).filter({ visible: true }).first();
+    const portrait = card.locator("img");
+    await expect(portrait).toBeVisible();
+    await card.scrollIntoViewIfNeeded();
+    await expect.poll(() => portrait.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(240);
+    const geometry = await portrait.evaluate((img: HTMLImageElement) => {
+      const bounds = img.getBoundingClientRect();
+      return {
+        fit: getComputedStyle(img).objectFit,
+        renderedRatio: bounds.width / bounds.height,
+        sourceRatio: img.naturalWidth / img.naturalHeight,
+      };
+    });
+    expect(
+      geometry.fit !== "fill" || Math.abs(geometry.renderedRatio - geometry.sourceRatio) < 0.01,
+      `library portrait must use proportional fitting or an undistorted image box: ${JSON.stringify(geometry)}`,
+    ).toBe(true);
+    if (!testInfo.project.name.includes("mobile")) {
+      const before = await portrait.boundingBox();
+      await card.hover();
+      await card.evaluate((element) =>
+        Promise.allSettled(
+          element
+            .getAnimations({ subtree: true })
+            .filter((animation) => animation instanceof CSSTransition)
+            .map((animation) => animation.finished),
+        ),
+      );
+      expect(await portrait.boundingBox(), "hover must not rescale or move the portrait").toEqual(before);
+    }
+    for (const theme of ["light", "dark"] as const) {
+      await page.evaluate(async (theme) => {
+        const { useUIStore } = await import("/src/stores/ui.store.ts" as string);
+        useUIStore.getState().setTheme(theme);
+      }, theme);
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      await page.screenshot({ path: testInfo.outputPath(`library-${theme}.png`), animations: "disabled" });
+    }
+
+    const recentIcon = page.locator('[data-home-desktop-icon="recent"]');
+    await expect(recentIcon).toBeVisible({ timeout: 30_000 });
+    await recentIcon.locator("button").dblclick();
+    const recent = page.locator("[data-recent-chat-index]").filter({ hasText: "Portrait rendering" });
+    await expect(recent).toBeVisible();
+    await recent.scrollIntoViewIfNeeded();
+    const recentPortrait = recent.locator("img");
+    const beforeRecentHover = await recentPortrait.boundingBox();
+    if (!testInfo.project.name.includes("mobile")) {
+      await recent.hover();
+      await expect(recent).toHaveCSS("translate", "none");
+      expect(await recentPortrait.boundingBox()).toEqual(beforeRecentHover);
     }
   } finally {
     if (chatId) await request.delete(`/api/chats/${chatId}`);

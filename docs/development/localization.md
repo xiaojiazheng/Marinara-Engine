@@ -6,6 +6,10 @@ content, identifiers, protocol values, file paths, and persisted machine values 
 English is the canonical locale and the runtime fallback. A missing community translation therefore displays the
 English text instead of a translation key or an empty control.
 
+**Fork policy: this fork maintains English and Simplified Chinese only.** Simplified Chinese ships in-tree as a
+bundled pack and is kept in step with UI copy changes; the downloadable community packs on the `docs-i18n` branch
+are no longer maintained here. The community-pack workflow below describes the upstream project.
+
 Users select their interface language in **Settings > General > App Behavior > Language**. The selection changes
 Marinara's controls and guidance, not model prompts, authored content, or chat messages. Selecting a non-English
 language downloads its pack if needed; **Refresh language pack** fetches updated translations. Downloaded packs

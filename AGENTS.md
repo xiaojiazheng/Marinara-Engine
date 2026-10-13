@@ -72,7 +72,7 @@ References: [OpenAI agent instructions](https://learn.chatgpt.com/docs/agent-con
 - Agent-specific coordination rule: when starting work on an issue, tag or identify the GitHub user or agent owning that issue/PR on the single issue so ownership is visible before implementation proceeds.
 - When preparing a PR, make the why explicit in the description so reviewers can see the user problem or rationale, not just the file changes.
 - Check `README.md`, `android/README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `docs/CONFIGURATION.md`, `docs/TROUBLESHOOTING.md`, and `docs/FAQ.md` together when install, update, or release behavior changes.
-- When a change adds, renames, or edits user-facing docs under `docs/`, also update every translated language pack on the `docs-i18n` branch to match — or open a `[docs-i18n] <paths>` follow-up issue. Renames/deletions must be mirrored there or the translation is silently orphaned. See `CONTRIBUTING.md § Translated documentation`.
+- This fork maintains English and Simplified Chinese only; Simplified Chinese ships in-tree as the bundled language-pack snapshot under `packages/server/src/assets/language-packs/`. When a change adds, renames, or edits user-facing docs under `docs/` (or changes canonical UI copy), update the bundled Simplified Chinese snapshot in the same change — or open a follow-up issue titled `[zh-hans] <affected paths>` so the snapshot can catch up. The `docs-i18n` branch and its community languages are no longer maintained here. See `CONTRIBUTING.md § Translated documentation`.
 
 ## AI-Generated Pull Request
 

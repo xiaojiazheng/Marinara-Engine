@@ -200,14 +200,14 @@ Professor Mari 也能修改 Marinara 的普通源码文件。依赖文件、启�
 
 每一份安装包都带着全套指南，不用离开应用就能读：
 
-- 在主页底部点 **Documentation**(文档) 按钮，就在 **Replay Tutorial**(重看教程) 旁边。
+- 在主页点击任务栏上的 **Start**(开始)，选 **Documentation**(文档)；**Tutorial**(教程) 就在同一个菜单里。
 - 在主页的常见问题里，展开关于文档的那一条，点 **Open Documentation**(打开文档)。
 
 两个按钮打开的是同一个应用内阅读器。它会列出全部指南，并直接在 Marinara 里渲染出来。
 
 ## 去哪里求助或者报 Bug？
 
-先看 [Marinara Engine 故障排查](TROUBLESHOOTING.md)，那篇是按症状分类整理的。主页底部的 **Discord** 按钮通向社区聊天，**Support**(支持) 按钮通向项目的支持页面。报 Bug 和提功能需求请到项目的 GitHub 页面。
+先看 [Marinara Engine 故障排查](TROUBLESHOOTING.md)，那篇是按症状分类整理的。在主页的 **Start** 菜单里，**Discord** 通向社区聊天，**Support**(支持) 通向项目的支持页面。报 Bug 和提功能需求请到项目的 GitHub 页面。
 
 ## 相关指南
 

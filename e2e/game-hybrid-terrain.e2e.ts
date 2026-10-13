@@ -159,7 +159,7 @@ async function mountBattle(
     theme: testInfo.project.name === "desktop-chromium" ? "light" : "dark",
   });
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "What shall we cook tonight?", exact: true })).toBeVisible({
+  await expect(page.locator('[data-component="HomeDesktopIcons"]')).toBeVisible({
     timeout: 40_000,
   });
   await prepareViteFixtureDependencies(page);

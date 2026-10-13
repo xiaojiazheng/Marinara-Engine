@@ -7,26 +7,29 @@ function part(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTyp
   return parts.find((item) => item.type === type)?.value ?? "";
 }
 
-export function HomeClockCalendar() {
-  const { i18n, t } = useTranslation();
-  const timeZone = useUIStore((state) => state.conversationTimeZone);
-  const [now, setNow] = useState(() => new Date());
-  const locale = i18n.resolvedLanguage || i18n.language || "en";
-  const formatters = useMemo(
-    () => ({
-      time: new Intl.DateTimeFormat(locale, {
-        hour: "numeric",
-        minute: "2-digit",
-        second: "2-digit",
-        timeZone,
-      }),
-      weekday: new Intl.DateTimeFormat(locale, { weekday: "long", timeZone }),
-      month: new Intl.DateTimeFormat(locale, { month: "short", timeZone }),
-      day: new Intl.DateTimeFormat(locale, { day: "numeric", timeZone }),
-      date: new Intl.DateTimeFormat(locale, { dateStyle: "long", timeZone }),
+/** Formatters shared by the widget shell (spoken labels) and the calendar body (visible time). */
+function buildCalendarFormatters(locale: string, timeZone: string) {
+  return {
+    time: new Intl.DateTimeFormat(locale, {
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZone,
     }),
-    [locale, timeZone],
-  );
+    weekday: new Intl.DateTimeFormat(locale, { weekday: "long", timeZone }),
+    month: new Intl.DateTimeFormat(locale, { month: "short", timeZone }),
+    day: new Intl.DateTimeFormat(locale, { day: "numeric", timeZone }),
+    date: new Intl.DateTimeFormat(locale, { dateStyle: "long", timeZone }),
+  };
+}
+
+/**
+ * The single live clock shared by the clock widget and the taskbar clock flyout. It ticks every
+ * second while the document is visible and re-syncs on tab return; consumers pick their own
+ * resolution (the taskbar shows HH:MM, the calendar body shows seconds).
+ */
+export function useHomeCalendarClock() {
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     let timer: number | null = null;
@@ -48,13 +51,76 @@ export function HomeClockCalendar() {
     };
   }, []);
 
+  return now;
+}
+
+/**
+ * The live time and date block of the clock widget. It is extracted so the taskbar clock flyout can
+ * reuse it without the widget shell, and reads no widget context: `now` is injected by the caller
+ * (`useHomeCalendarClock`) and the active timezone comes from the UI store, exactly as before.
+ */
+export function HomeCalendarBody({ now }: { now: Date }) {
+  const { i18n } = useTranslation();
+  const timeZone = useUIStore((state) => state.conversationTimeZone);
+  const locale = i18n.resolvedLanguage || i18n.language || "en";
+  const formatters = useMemo(() => buildCalendarFormatters(locale, timeZone), [locale, timeZone]);
+
   const timeParts = formatters.time.formatToParts(now);
   const hour = part(timeParts, "hour");
   const minute = part(timeParts, "minute");
   const second = part(timeParts, "second");
   const dayPeriod = part(timeParts, "dayPeriod");
-  const spokenTime = formatters.time.format(now);
   const spokenDate = formatters.date.format(now);
+
+  return (
+    <div className="relative z-[1] mt-2 flex min-h-0 flex-1 items-center justify-between gap-3">
+      <div className="min-w-0">
+        <time dateTime={now.toISOString()} className="flex items-baseline tabular-nums" data-clock-time>
+          <span className="text-[clamp(2rem,3.3vw,3.3rem)] font-black leading-none tracking-[-0.07em] text-[var(--foreground)]">
+            {hour}:{minute}
+          </span>
+          <span className="ml-1 text-[0.68rem] font-bold text-[oklch(0.79_0.16_205)]" data-clock-seconds>
+            :{second}
+          </span>
+          {dayPeriod ? (
+            <span className="ml-1 text-[0.56rem] font-black uppercase tracking-[0.08em] text-[var(--muted-foreground)]">
+              {dayPeriod}
+            </span>
+          ) : null}
+        </time>
+        <p className="mt-1 truncate text-xs font-semibold capitalize text-[var(--muted-foreground)]">
+          {formatters.weekday.format(now)}
+        </p>
+      </div>
+
+      <time
+        dateTime={now.toISOString()}
+        aria-label={spokenDate}
+        className="flex w-[4.4rem] shrink-0 flex-col overflow-hidden rounded-2xl border border-[color-mix(in_srgb,oklch(0.79_0.16_205)_46%,var(--border))] bg-[var(--card)] text-center shadow-[0_12px_26px_-20px_oklch(0.79_0.16_205/0.9)]"
+        data-calendar-date
+      >
+        <span
+          className="bg-[color-mix(in_srgb,oklch(0.79_0.16_205)_20%,var(--card))] px-2 py-1 text-[0.58rem] font-black uppercase tracking-[0.16em] text-[oklch(0.79_0.16_205)]"
+          data-calendar-accent
+        >
+          {formatters.month.format(now)}
+        </span>
+        <span className="py-1.5 text-[1.65rem] font-black leading-none tabular-nums text-[var(--foreground)]">
+          {formatters.day.format(now)}
+        </span>
+      </time>
+    </div>
+  );
+}
+
+export function HomeClockCalendar() {
+  const { i18n, t } = useTranslation();
+  const timeZone = useUIStore((state) => state.conversationTimeZone);
+  const now = useHomeCalendarClock();
+  const locale = i18n.resolvedLanguage || i18n.language || "en";
+  const spokenFormatters = useMemo(() => buildCalendarFormatters(locale, timeZone), [locale, timeZone]);
+  const spokenTime = spokenFormatters.time.format(now);
+  const spokenDate = spokenFormatters.date.format(now);
 
   return (
     <section
@@ -90,43 +156,7 @@ export function HomeClockCalendar() {
         </span>
       </header>
 
-      <div className="relative z-[1] mt-2 flex min-h-0 flex-1 items-center justify-between gap-3">
-        <div className="min-w-0">
-          <time dateTime={now.toISOString()} className="flex items-baseline tabular-nums" data-clock-time>
-            <span className="text-[clamp(2rem,3.3vw,3.3rem)] font-black leading-none tracking-[-0.07em] text-[var(--foreground)]">
-              {hour}:{minute}
-            </span>
-            <span className="ml-1 text-[0.68rem] font-bold text-[oklch(0.79_0.16_205)]" data-clock-seconds>
-              :{second}
-            </span>
-            {dayPeriod ? (
-              <span className="ml-1 text-[0.56rem] font-black uppercase tracking-[0.08em] text-[var(--muted-foreground)]">
-                {dayPeriod}
-              </span>
-            ) : null}
-          </time>
-          <p className="mt-1 truncate text-xs font-semibold capitalize text-[var(--muted-foreground)]">
-            {formatters.weekday.format(now)}
-          </p>
-        </div>
-
-        <time
-          dateTime={now.toISOString()}
-          aria-label={spokenDate}
-          className="flex w-[4.4rem] shrink-0 flex-col overflow-hidden rounded-2xl border border-[color-mix(in_srgb,oklch(0.79_0.16_205)_46%,var(--border))] bg-[var(--card)] text-center shadow-[0_12px_26px_-20px_oklch(0.79_0.16_205/0.9)]"
-          data-calendar-date
-        >
-          <span
-            className="bg-[color-mix(in_srgb,oklch(0.79_0.16_205)_20%,var(--card))] px-2 py-1 text-[0.58rem] font-black uppercase tracking-[0.16em] text-[oklch(0.79_0.16_205)]"
-            data-calendar-accent
-          >
-            {formatters.month.format(now)}
-          </span>
-          <span className="py-1.5 text-[1.65rem] font-black leading-none tabular-nums text-[var(--foreground)]">
-            {formatters.day.format(now)}
-          </span>
-        </time>
-      </div>
+      <HomeCalendarBody now={now} />
 
       <footer className="relative z-[1] mt-2 flex min-w-0 items-center gap-1.5 border-t border-[var(--border)]/55 pt-2 text-[0.58rem] font-semibold text-[var(--muted-foreground)]">
         <MapPin size="0.72rem" className="shrink-0 text-[oklch(0.79_0.16_205)]" aria-hidden="true" />

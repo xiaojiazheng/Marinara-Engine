@@ -12,21 +12,20 @@ Your progress is saved locally, inside the profile you are using. A different pr
 
 ## Opening the Achievements panel
 
-The **Achievements** button lives on the Home screen. The Home screen is what you see when no chat is open. The button sits just under the Professor Mari chat box, and it shows a trophy icon.
+The **Achievements** entry lives on the Home screen. The Home screen is what you see when no chat is open. It appears as a widget on the desktop, as an entry in the **Start** menu, and as a notification bell at the right end of the taskbar. It shows a trophy icon.
 
-Under the label, the button shows a live count, like **12 of 23 unlocked**. While it is still loading, it reads **Checking the collection...** instead.
+Under the label, the widget shows a live count, like **12 of 23 unlocked**. While it is still loading, it reads **Checking the collection...** instead.
 
 To open the panel, follow these steps:
 
 1. Go to the Home screen.
-2. Find the **Achievements** button under the Professor Mari chat box.
-3. Click it.
+2. Click the **Achievements** widget on the desktop, or open the **Start** menu and choose **Achievements**.
 
 You should see the **Achievements** window open. At the top it shows a summary line, such as **12 of 23 achievements unlocked in this profile.** Below that is a grid of achievement cards.
 
 Each card shows a badge icon, a title, a category label, and a short description. If a card is locked, the title reads **?????** and the icon is a lock. You cannot read what it is until you unlock it. Once you earn a card, it shows an **unlocked** tag. Cards with a target also show a **Progress** row and a progress bar.
 
-The button and the panel only appear when the **Achievements** setting is turned on. See the setting section below. There is no other menu or page that shows achievements.
+The widget, its **Start** menu entry and the notification bell only appear when the **Achievements** setting is turned on. See the setting section below. All of them open the same window.
 
 ## The 23 achievements
 
@@ -38,9 +37,9 @@ Some achievements are single unlocks. The **Creation** and **Collection** ones a
 |---|---|---|
 | **Diligent Student** | Milestone | Finish or skip the first-time tutorial. |
 | **Hello World** | Milestone | Send your first message to Professor Mari from the Home screen. |
-| **One Of Us** | Community | Click the **Discord** link in the Home screen footer. |
-| **Based Backer** | Community | Click the **Support** link (it opens Ko-fi) in the Home screen footer. |
-| **Backseat Appreciator** | Community | Click the **Credits** button in the Home screen footer. |
+| **One Of Us** | Community | Click the **Discord** link in the **Start** menu. |
+| **Based Backer** | Community | Click the **Support** link (it opens Ko-fi) in the **Start** menu. |
+| **Backseat Appreciator** | Community | Click the **Credits** button in the **Start** menu. |
 | **Who Needs IRL Friends** | Creation | Create Conversation mode chats (5, 25, 100). |
 | **They Feel Real To Me** | Creation | Create Roleplay chats (5, 25, 100). |
 | **I Have No Other Hobbies** | Creation | Create Game mode chats (5, 25, 100). |
@@ -68,18 +67,18 @@ The count at the top of the window includes the achievements of the agents you h
 
 You can turn the whole feature on or off with one toggle. Open **Settings**, go to the **General** tab, and find the **App Behavior** section. The toggle is labeled **Achievements**, and it is on by default.
 
-The help text reads: "Shows the Home achievements button and unlock notifications. Tracking stays silent in the current profile when this is off."
+The help text reads: "Shows the Home achievements widget, its Start menu entry and tray bell, and unlock notifications. Tracking stays silent in the current profile when this is off."
 
 Here is what the toggle does:
 
-- On: the Home screen **Achievements** button and window appear, and you get a pop-up notice when something unlocks.
-- Off: the button is hidden and the pop-up notices stop. The app still records your unlocks quietly in the background.
+- On: the Home **Achievements** widget, its **Start** menu entry and the taskbar notification bell appear, and you get a pop-up notice when something unlocks.
+- Off: those entries are hidden and the pop-up notices stop. The app still records your unlocks quietly in the background.
 
 Because tracking continues while the setting is off, your progress is not lost. If you turn the setting back on later, everything you earned in the meantime is already there.
 
 ## How unlocking works
 
-Marinara checks the ranked achievements against your current live counts. This check runs when a tracked action happens, such as creating a chat or clicking a footer link. It also runs when you open the Achievements panel.
+Marinara checks the ranked achievements against your current live counts. This check runs when a tracked action happens, such as creating a chat or using a community link. It also runs when you open the Achievements panel.
 
 When an action triggers an unlock and the setting is on, a small pop-up notice appears. Its title is **Achievement unlocked**, and it names the badge, for example **Hoarder II** or **One Of Us**.
 

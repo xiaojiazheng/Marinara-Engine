@@ -68,7 +68,8 @@ for (const theme of ["dark", "light"] as const) {
         });
       }, version);
       await page.goto("/");
-      await page.getByRole("tab", { name: "Professor", exact: true }).click();
+      // The Win11 Home redesign moved view switching to the taskbar: the desktop renders no tab strip.
+      await page.locator('[data-component="HomeBrowserHub.TaskbarProfessor"]').click();
       const pane = page.locator('[data-component="HomeProfessorMariChat.Window"]');
       const block = pane.locator("pre.mari-md-codeblock").filter({ hasText: marker });
       await expect(block).toBeVisible();

@@ -8,13 +8,15 @@ Marinara Engine 是一个本地应用，用来和 AI 角色聊天、玩角色扮
 
 ## 主页一览
 
-没有打开任何聊天时，看到的就是主页。从上到下依次是这些部分：
+没有打开任何聊天时，看到的就是主页。它的布局像一个 Windows 11 桌面：底部是任务栏，任务栏上方会展开 **Start**(开始) 菜单。
 
-- 应用图标、**Marinara Engine** 字样，下面是版本号。
-- 一排最近聊天：最多 3 条，显示成小方块，点一下就能重新打开。一条都没有时，这一排会显示“No chats yet”。
-- **Ask Professor Mari**(问问 Professor Mari) 卡片：一个聊天框，内置助手会在这里讲解应用、帮忙完成配置。旁边的 **FAQ**(常见问题) 收录了常见问题和解答。
-- **Achievements**(成就) 按钮，只有开启了成就设置才会出现。
-- 底栏，包含这几个按钮：**Discord**、**Support**(支持)、**Credits**(致谢)、**Documentation**(文档) 和 **Replay Tutorial**(重看教程)。
+- **桌面**：壁纸上有应用图标、**Marinara Engine** 字样，下面是版本号。图标沿桌面左侧排列，和全新安装的 Windows 11 一个样子。双击图标即可打开：**Conversation**、**Roleplay** 和 **Game** 会新建一个对应模式的聊天，**Recent Chats**(最近聊天)、**What's New**(更新内容)、**Learn the Engine**(了解引擎)、**Community**(社区)、**Clock**(时钟) 和 **Achievements**(成就) 会打开各自的窗口，**Character Library**(角色库)、**Professor Mari**、**Discovery**(发现) 和 **Character of the Day**(当日角色) 则打开应用里对应的界面。拖动图标可以把它换到别的位置。在桌面空白处点右键，可以调整图标大小、按名称排序、刷新桌面，或打开 **Personalize**(个性化)；在图标上点右键则只有 **Open**(打开) 和 **Refresh**(刷新)。
+- **Professor Mari 助手**：桌面上浮着一个小小的 Professor Mari。点一下她，就能问某个功能在哪儿，她会指给你，需要时也可以打开她自己的聊天。参见 [Professor Mari，你的应用内助手](professor-mari.md)。
+- **任务栏**：位于屏幕底部居中的一条栏。上面有 **Start** 按钮、一个 **Search**(搜索) 框（让 Professor Mari 帮你找东西）、**Home** 和 **Professor Mari** 两个选项卡、**Character Library**(角色库) 快捷入口，以及三种聊天模式快捷入口。右端是 **Achievements**(成就) 铃铛（只有开启成就设置时才出现）和时钟。在任务栏上点右键，可以打开 **Taskbar settings**(任务栏设置)。
+- **Start 菜单**：点击 **Start** 打开。**Pinned**(固定) 区域放着主要入口：新建对话、角色扮演和游戏三个快捷入口、角色库、**Discord**、**Support**(支持)、**Documentation**(文档)、**Tutorial**(教程)、**FAQ**(常见问题) 和 **Achievements**(成就，只有开启成就设置时才出现)。下面的 **Recommended**(推荐) 区域列出你最近的聊天，点一下就能重新打开。底部横栏显示应用版本号和 **Credits**(致谢) 按钮。
+- **时钟和快速设置**：点击任务栏右端的时钟打开日历，点旁边的音量图标打开快速设置。快速设置里的滑杆和开关只是装饰性的，不会改变应用的真实设置。
+
+在窄屏上，任务栏会隐藏三个聊天模式快捷入口和托盘里的音量按钮；角色库保留，桌面上的图标依然可以新建聊天。
 
 第一次打开 Marinara 时会有一段简短的引导，指出主要按钮和几种聊天模式。完整流程见[首次使用的引导教程](tutorial.md)。
 
@@ -41,10 +43,10 @@ Marinara 有三种聊天模式，新建聊天时选择其中一种。
 
 不用离开应用就有好几种求助途径：
 
-- 在主页问 **Professor Mari**，配置问题和操作方法都能答。
-- 看主页上的 **FAQ**，常见问题在那里有速查答案。
-- 用主页底栏的 **Documentation** 按钮打开应用内指南。
-- 点击底栏的 **Discord** 进入社区，或者点击 **Support** 支持这个项目。
+- 问 **Professor Mari**：点主页桌面上的悬浮助手，或者任务栏上她的选项卡，配置问题和操作方法都能答。
+- 打开 **Start** 菜单，选 **FAQ**(常见问题)，常见问题在那里有速查答案。
+- 用 **Start** 菜单里的 **Documentation**(文档) 打开应用内指南。
+- 在 **Start** 菜单里选 **Discord** 进入社区，或者选 **Support**(支持) 支持这个项目。
 
 如果哪里坏了、用不了，参见 [Marinara Engine 故障排查](../TROUBLESHOOTING.md)。
 

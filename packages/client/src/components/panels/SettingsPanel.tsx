@@ -1045,6 +1045,14 @@ const SETTINGS_SEARCHABLE_CONTROLS: readonly SettingsSearchableControlMeta[] = [
     kind: "Toggle",
   },
   {
+    id: "home-browser-address-bar",
+    sectionId: "app-style",
+    label: "Package tab URL bar",
+    description: "Show the URL bar above capability package tabs on Home.",
+    aliases: ["home", "address", "url", "browser", "package", "tab", "chrome"],
+    kind: "Toggle",
+  },
+  {
     id: "app-background-color",
     sectionId: "app-style",
     label: "Background Color",
@@ -4844,6 +4852,8 @@ function AppearanceSettings({ group = "app" }: { group?: AppearanceGroup }) {
   const setCustomCursorEnabled = useUIStore((s) => s.setCustomCursorEnabled);
   const reduceAmbientEffects = useUIStore((s) => s.reduceAmbientEffects);
   const setReduceAmbientEffects = useUIStore((s) => s.setReduceAmbientEffects);
+  const showHomeBrowserAddressBar = useUIStore((s) => s.showHomeBrowserAddressBar);
+  const setShowHomeBrowserAddressBar = useUIStore((s) => s.setShowHomeBrowserAddressBar);
   const defaultAppBackgroundColor = getDefaultAppBackgroundColor(theme);
   const displayedAppBackgroundColor =
     appBackgroundColor.trim().toLowerCase() === defaultAppBackgroundColor.toLowerCase() ? "" : appBackgroundColor;
@@ -5328,6 +5338,14 @@ function AppearanceSettings({ group = "app" }: { group?: AppearanceGroup }) {
                 checked={reduceAmbientEffects}
                 onChange={setReduceAmbientEffects}
                 help={localizeUi("settings.controls.reduceAmbientEffects.help")}
+              />
+
+              <ToggleSetting
+                anchorId={getSettingsControlAnchorId("home-browser-address-bar")}
+                label={localizeUi("settings.controls.homeAddressBar.label")}
+                checked={showHomeBrowserAddressBar}
+                onChange={setShowHomeBrowserAddressBar}
+                help={localizeUi("settings.controls.homeAddressBar.help")}
               />
 
               <SearchableSettingTarget controlId="app-background-color">

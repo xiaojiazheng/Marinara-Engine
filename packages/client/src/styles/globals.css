@@ -55,6 +55,10 @@
    19.  SillyTavern Visual Theme .......... (separate file import)
    20.  Accessibility — Reduced Motion .... prefers-reduced-motion
    21.  Performance — GPU Hints ........... will-change compositing
+   22.  Display Size Scaling ............... root font-size scaling
+   23.  Game Mode .......................... game session, combat UI
+   24.  Home Shell — Windows 11 Taskbar ... taskbar acrylic + pinned entries
+   25.  Home Shell — Windows 11 Desktop ... desktop icon field feedback
 
    QUICK CUSTOMIZATION GUIDE
    ─────────────────────────
@@ -164,6 +168,10 @@
   --color-glow-primary: var(--glow-primary);
   --color-glow-accent: var(--glow-accent);
 
+  /* Home shell (Windows 11 desktop) acrylic surfaces. */
+  --color-marinara-acrylic: var(--marinara-home-acrylic-surface);
+  --color-marinara-taskbar: var(--marinara-taskbar-surface);
+
   --radius-sm: calc(var(--radius) - 0.25rem);
   --radius-md: calc(var(--radius) - 0.125rem);
   --radius-lg: var(--radius);
@@ -210,6 +218,20 @@
   --sidebar-accent-foreground: var(--primary);
   --glow-primary: color-mix(in srgb, var(--primary) 15%, transparent);
   --glow-accent: color-mix(in srgb, var(--primary) 12%, transparent);
+
+  /* Home shell (Windows 11 desktop): acrylic surfaces for the taskbar, start menu, and popovers. */
+  --marinara-home-acrylic-surface: color-mix(in srgb, var(--card) 70%, transparent);
+  --marinara-home-acrylic-surface-strong: color-mix(in srgb, var(--card) 82%, transparent);
+  --marinara-home-acrylic-border: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --marinara-home-acrylic-shadow: 0 18px 48px -28px rgb(0 0 0 / 0.72);
+  --marinara-taskbar-height: 3rem;
+  --marinara-taskbar-surface: var(--marinara-home-acrylic-surface);
+  --marinara-taskbar-border: var(--marinara-home-acrylic-border);
+  --marinara-taskbar-divider: color-mix(in srgb, var(--foreground) 16%, transparent);
+  --marinara-taskbar-hover: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --marinara-taskbar-active: color-mix(in srgb, var(--marinara-app-accent-solid) 22%, transparent);
+  --marinara-taskbar-indicator: var(--marinara-app-accent-solid);
+  --marinara-taskbar-ring: var(--marinara-app-accent-solid);
 
   /* Theme hooks for shared chat, roleplay, and game chrome. */
   --marinara-topbar-surface: color-mix(in srgb, var(--card) 80%, transparent);
@@ -487,6 +509,14 @@
   --marinara-music-player-action-bg: color-mix(in srgb, var(--foreground) 88%, var(--primary) 12%);
   --marinara-music-player-action-text: var(--background);
   --marinara-music-player-progress-bg: color-mix(in srgb, var(--foreground) 16%, transparent);
+  /* Home shell acrylic reads stronger on light wallpapers, and its shadow is softer than black. */
+  --marinara-home-acrylic-surface: color-mix(in srgb, var(--card) 78%, transparent);
+  --marinara-home-acrylic-surface-strong: color-mix(in srgb, var(--card) 88%, transparent);
+  --marinara-home-acrylic-border: color-mix(in srgb, var(--foreground) 12%, transparent);
+  --marinara-home-acrylic-shadow: 0 18px 44px -30px rgb(26 16 37 / 0.32);
+  --marinara-taskbar-divider: color-mix(in srgb, var(--foreground) 14%, transparent);
+  --marinara-taskbar-hover: color-mix(in srgb, var(--foreground) 8%, transparent);
+  --marinara-taskbar-active: color-mix(in srgb, var(--primary) 16%, transparent);
   --tracker-card-neutral-surface-top: color-mix(in srgb, var(--card) 84%, var(--accent) 16%);
   --tracker-card-neutral-surface-bottom: color-mix(in srgb, var(--secondary) 86%, var(--primary) 14%);
   --tracker-card-neutral-material: color-mix(in srgb, var(--secondary) 88%, var(--primary) 12%);
@@ -3653,301 +3683,6 @@ body {
   background-color: color-mix(in srgb, var(--marinara-topbar-surface) 90%, black 10%);
 }
 
-.mari-home-feed-shell {
-  width: 100%;
-  container-type: inline-size;
-}
-
-.mari-home-feed-grid {
-  display: grid;
-  gap: clamp(0.65rem, 0.8vw, 0.95rem);
-  grid-auto-flow: dense;
-  grid-auto-rows: var(--home-grid-row-height, 13rem);
-  align-items: stretch;
-}
-
-.mari-home-widget,
-.mari-home-widget > :not(.mari-home-widget__drag-handle) {
-  min-width: 0;
-  height: 100%;
-}
-
-.mari-home-widget {
-  --mari-home-widget-hover-transform: translate3d(0, -0.18rem, 0) scale(1.015);
-  --mari-home-widget-hover-filter: brightness(1.055) saturate(1.045);
-  --mari-home-widget-hover-glow: 0 0.7rem 1.8rem
-    color-mix(in srgb, var(--home-module-accent, var(--marinara-app-accent-solid)) 22%, transparent);
-  grid-column: span 1;
-  grid-row: span 1;
-
-  isolation: isolate;
-  container-type: inline-size;
-}
-
-/* The hover glow is a box-shadow behind the card that fades in with opacity. As a filter
-   drop-shadow() its color-mix() accent resolved to an oklab() color, which Chromium's compositor
-   leaves out while it runs the filter transition, so the whole shadow and its edges popped in
-   only after the card had finished lifting (#7032). */
-.mari-home-widget::before {
-  content: "";
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: 1rem;
-  box-shadow: var(--mari-home-widget-hover-glow);
-  opacity: 0;
-}
-
-.mari-home-widget[data-home-widget-kind="package"] {
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 1rem;
-  background: var(--card);
-}
-
-.mari-home-professor-widget .mari-professor-pixel-scene [data-part="sprite"] {
-  width: 68%;
-}
-
-/* Mari stands about 1.04 scene-widths tall. Rather than crop her head, she may rise past the
-   card's top border (#7032): the height cap lets her pass the art column's top by at most
-   1.125rem, so she clears the card's padding by under 0.5rem and stays inside the 0.65rem
-   minimum grid gap instead of covering a neighbour. */
-.mari-home-professor-widget [data-home-professor-art] {
-  container-type: size;
-}
-
-.mari-home-professor-widget [data-home-professor-scene] {
-  width: min(100%, 11rem, calc((100cqh + 1.125rem) / 1.04));
-}
-
-.mari-home-widget--achievements header > div > p:last-child {
-  font-size: 0.6875rem;
-  line-height: 1.375;
-}
-
-.mari-home-professor-widget .mari-professor-pixel-scene [data-part="laptop"] {
-  width: 76%;
-}
-
-@container (max-width: 19rem) {
-  .mari-home-professor-widget {
-    grid-template-columns: minmax(0, 1fr) minmax(4.5rem, 34%);
-    /* The card's padding; its text column reaches into it by the same amount. */
-    --mari-home-professor-pad: 0.65rem;
-  }
-
-  .mari-home-professor-widget [data-home-professor-description] {
-    -webkit-line-clamp: 5;
-  }
-
-  .mari-home-professor-widget [data-home-professor-action] svg {
-    display: none;
-  }
-
-  .mari-home-widget--learn .mari-home-widget-shortcut,
-  .mari-home-widget--community .mari-home-widget-shortcut {
-    min-height: 2rem;
-    gap: 0.45rem;
-    padding-inline: 0.25rem;
-  }
-
-  .mari-home-widget--learn .mari-home-widget-shortcut__icon,
-  .mari-home-widget--community .mari-home-widget-shortcut__icon {
-    width: 1.35rem;
-    height: 1.35rem;
-  }
-
-  .mari-home-widget--learn .mari-home-widget-shortcut__title,
-  .mari-home-widget--community .mari-home-widget-shortcut__title {
-    font-size: 0.6875rem;
-  }
-
-  .mari-home-widget--learn .mari-home-widget-shortcut__description,
-  .mari-home-widget--community .mari-home-widget-shortcut__description {
-    font-size: 0.5625rem;
-  }
-
-  .mari-home-widget--learn .mari-home-widget-shortcut-list,
-  .mari-home-widget--community .mari-home-widget-shortcut-list {
-    gap: 0.125rem;
-  }
-}
-
-@media (max-height: 52rem) {
-  .mari-home-widget--learn .mari-home-widget-shortcut,
-  .mari-home-widget--community .mari-home-widget-shortcut {
-    min-height: 2rem;
-    gap: 0.45rem;
-    padding-inline: 0.25rem;
-  }
-
-  .mari-home-widget--learn .mari-home-widget-shortcut__icon,
-  .mari-home-widget--community .mari-home-widget-shortcut__icon {
-    width: 1.35rem;
-    height: 1.35rem;
-  }
-
-  .mari-home-widget--learn .mari-home-widget-shortcut__title,
-  .mari-home-widget--community .mari-home-widget-shortcut__title {
-    font-size: 0.6875rem;
-  }
-
-  .mari-home-widget--learn .mari-home-widget-shortcut__description,
-  .mari-home-widget--community .mari-home-widget-shortcut__description {
-    font-size: 0.5625rem;
-  }
-
-  .mari-home-widget--learn .mari-home-widget-shortcut-list,
-  .mari-home-widget--community .mari-home-widget-shortcut-list {
-    gap: 0.125rem;
-  }
-}
-
-[data-theme="light"] .mari-home-widget {
-  --mari-home-widget-hover-filter: brightness(1.012) saturate(1.035);
-  --mari-home-widget-hover-glow: 0 0.7rem 1.8rem
-    color-mix(in srgb, var(--home-module-accent, var(--marinara-app-accent-solid)) 16%, transparent);
-}
-
-/* Image grids use their cards' hover feedback without resampling or filtering the artwork. */
-.mari-home-widget:is(.mari-home-widget--recent, .mari-home-widget--character-library) {
-  --mari-home-widget-hover-transform: none;
-  --mari-home-widget-hover-filter: none;
-  --mari-home-widget-hover-glow: none;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .mari-home-widget::before,
-  .mari-home-widget > :not(.mari-home-widget__drag-handle) {
-    transform-origin: center;
-    transition:
-      transform 190ms cubic-bezier(0.16, 1, 0.3, 1),
-      filter 190ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .mari-home-widget::before {
-    transition-property: transform, opacity;
-  }
-
-  html:not(.mari-home-widget-drag-active) .mari-home-widget:not(.mari-home-widget--dragging):hover {
-    z-index: 6;
-  }
-
-  html:not(.mari-home-widget-drag-active) .mari-home-widget:not(.mari-home-widget--dragging):hover::before {
-    opacity: 1;
-  }
-
-  html:not(.mari-home-widget-drag-active) .mari-home-widget:not(.mari-home-widget--dragging):hover::before,
-  html:not(.mari-home-widget-drag-active)
-    .mari-home-widget:not(.mari-home-widget--dragging):hover
-    > :not(.mari-home-widget__drag-handle) {
-    filter: var(--mari-home-widget-hover-filter);
-    transform: var(--mari-home-widget-hover-transform);
-  }
-}
-
-.mari-home-feed-grid[data-home-grid-columns="1"] :is(.mari-home-widget--recent, .mari-home-widget--character-library) {
-  grid-column: span 1;
-  grid-row: span 2;
-}
-
-.mari-home-feed-grid .mari-home-widget[data-home-widget-size="large"] {
-  grid-column: span 2;
-  grid-row: span 2;
-}
-
-.mari-home-feed-grid[data-home-grid-columns="1"] .mari-home-widget[data-home-widget-size="large"] {
-  grid-column: span 1;
-  grid-row: span 2;
-}
-
-.mari-home-feed-grid:not([data-home-grid-columns="1"])
-  :is(.mari-home-widget--recent, .mari-home-widget--character-library) {
-  grid-column: span 2;
-  grid-row: span 2;
-}
-
-@media (min-width: 48rem) {
-  @container (min-width: 36rem) {
-    .mari-home-widget--recent [data-component="RecentChats"] {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .mari-home-widget--recent [data-recent-chat-index="4"],
-    .mari-home-widget--recent [data-recent-chat-index="5"] {
-      display: block;
-    }
-  }
-}
-
-.mari-home-empty-slot {
-  pointer-events: none;
-  min-width: 0;
-  min-height: 0;
-  height: 100%;
-  border: 1px dashed transparent;
-  border-radius: 1rem;
-  transition:
-    border-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
-    background-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-html.mari-home-widget-drag-active .mari-home-empty-slot {
-  pointer-events: auto;
-  border-color: color-mix(in srgb, var(--marinara-app-accent-solid) 46%, var(--border));
-  background-color: color-mix(in srgb, var(--marinara-app-accent-solid) 5%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--marinara-app-accent-solid) 8%, transparent);
-}
-
-.mari-home-widget--dragging > :not(.mari-home-widget__drag-handle) {
-  opacity: 0.12;
-  filter: saturate(0.55);
-  transition:
-    opacity 140ms ease,
-    filter 140ms ease;
-}
-
-.mari-home-widget--dragging::after {
-  content: "";
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  z-index: 15;
-  border: 2px dashed color-mix(in srgb, var(--marinara-app-accent-solid) 78%, white 8%);
-  border-radius: 1rem;
-  background: color-mix(in srgb, var(--marinara-app-accent-solid) 8%, transparent);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--marinara-app-accent-solid) 18%, transparent),
-    0 0 1.35rem -0.75rem var(--marinara-app-accent-solid);
-}
-
-.mari-home-widget-drag-preview {
-  pointer-events: none;
-  position: fixed;
-  inset: 0 auto auto 0;
-  z-index: 9999;
-  overflow: visible;
-  opacity: 0.96;
-  filter: drop-shadow(0 1.25rem 1.25rem rgb(0 0 0 / 0.34));
-  transform-origin: center;
-  will-change: transform, opacity;
-}
-
-.mari-home-widget-drag-preview > * {
-  min-width: 0;
-  width: 100%;
-  height: 100%;
-}
-
-html.mari-home-widget-drag-active,
-html.mari-home-widget-drag-active * {
-  cursor: grabbing !important;
-  user-select: none !important;
-}
-
 .mari-home-browser-star {
   position: absolute;
   display: block;
@@ -4110,10 +3845,6 @@ html.mari-home-professor-drag-active * {
   animation: mari-home-professor-shrug 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.mari-home-discovery-card {
-  animation: mari-home-discovery-swap 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
 @keyframes mari-home-browser-twinkle {
   0%,
   100% {
@@ -4243,30 +3974,7 @@ html.mari-home-professor-drag-active * {
   }
 }
 
-@keyframes mari-home-discovery-swap {
-  from {
-    opacity: 0;
-    transform: translate3d(0.35rem, 0, 0);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  /* :root keeps this ahead of the light-theme glow. */
-  :root .mari-home-widget {
-    --mari-home-widget-hover-filter: none;
-    --mari-home-widget-hover-glow: none;
-    --mari-home-widget-hover-transform: none;
-  }
-
-  .mari-home-widget::before,
-  .mari-home-widget > :not(.mari-home-widget__drag-handle) {
-    transition: none;
-  }
-
   .mari-home-browser-star {
     animation: none;
     opacity: 0.24;
@@ -4282,8 +3990,7 @@ html.mari-home-professor-drag-active * {
   .mari-home-professor-popup__drag-frame,
   .mari-home-professor-popup__idle-stage,
   .mari-home-professor-popup__blink,
-  .mari-home-professor-popup__state-image,
-  .mari-home-discovery-card {
+  .mari-home-professor-popup__state-image {
     animation: none;
   }
 
@@ -4298,17 +4005,15 @@ html[data-marinara-effects-paused="true"] .mari-home-browser-star {
   opacity: 0.18;
 }
 
-html[data-marinara-reduced-effects="true"] .mari-home-widget,
-html[data-marinara-effects-paused="true"] .mari-home-widget {
-  --mari-home-widget-hover-filter: none;
-  --mari-home-widget-hover-glow: none;
-  --mari-home-widget-hover-transform: none;
+/* Taskbar entry feedback is decorative; keep it still while ambient effects are off or paused. */
+html[data-marinara-reduced-effects="true"] .mari-win11-taskbar__icon,
+html[data-marinara-effects-paused="true"] .mari-win11-taskbar__icon {
+  animation: none;
 }
 
-html[data-marinara-reduced-effects="true"] .mari-home-widget::before,
-html[data-marinara-effects-paused="true"] .mari-home-widget::before,
-html[data-marinara-reduced-effects="true"] .mari-home-widget > :not(.mari-home-widget__drag-handle),
-html[data-marinara-effects-paused="true"] .mari-home-widget > :not(.mari-home-widget__drag-handle) {
+/* Desktop icon hover/selection feedback follows the same switch as the rest of the shell chrome. */
+html[data-marinara-reduced-effects="true"] .mari-home-desktop-icon,
+html[data-marinara-effects-paused="true"] .mari-home-desktop-icon {
   transition: none;
 }
 
@@ -8601,4 +8306,133 @@ html[data-marinara-reduced-effects="true"] .mari-window {
     min-height: 12rem;
     overflow-y: visible;
   }
+}
+
+/* ─────────────────────────────────────────────
+   24. HOME SHELL — WINDOWS 11 TASKBAR
+   The desktop taskbar (48px, acrylic) and its pinned-entry feedback.
+   Surfaces read from the --marinara-home-acrylic-* / --marinara-taskbar-* tokens in §2/§3.
+   ───────────────────────────────────────────── */
+.mari-win11-taskbar {
+  background-color: var(--marinara-taskbar-surface);
+  border-top: 1px solid var(--marinara-taskbar-border);
+  box-shadow: var(--marinara-home-acrylic-shadow);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  backdrop-filter: blur(20px) saturate(1.3);
+}
+
+.mari-win11-taskbar__group {
+  background-color: var(--marinara-home-acrylic-surface-strong);
+  border: 1px solid var(--marinara-home-acrylic-border);
+}
+
+/* Reserved right-hand slot: the system tray mounts back-to-back with the entry group. */
+.mari-win11-taskbar__tray {
+  background-color: var(--marinara-home-acrylic-surface-strong);
+  border: 1px solid var(--marinara-home-acrylic-border);
+}
+
+.mari-win11-taskbar__button {
+  transition: background-color 140ms ease;
+}
+
+.mari-win11-taskbar__button:hover {
+  background-color: var(--marinara-taskbar-hover);
+}
+
+.mari-win11-taskbar__button--active {
+  background-color: var(--marinara-taskbar-active);
+}
+
+/* Windows 11 marks an open app with a short rounded underline under its icon. */
+.mari-win11-taskbar__button--active::after {
+  content: "";
+  position: absolute;
+  bottom: 0.15rem;
+  left: 50%;
+  width: 1rem;
+  height: 0.1875rem;
+  border-radius: 999px;
+  background-color: var(--marinara-taskbar-indicator);
+  transform: translateX(-50%);
+}
+
+.mari-win11-taskbar__search {
+  background-color: var(--marinara-home-acrylic-surface-strong);
+  border: 1px solid var(--marinara-home-acrylic-border);
+}
+
+.mari-win11-taskbar__divider {
+  background-color: var(--marinara-taskbar-divider);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mari-win11-taskbar__button:hover .mari-win11-taskbar__icon {
+    animation: mari-taskbar-bounce 420ms cubic-bezier(0.3, 1.4, 0.5, 1);
+  }
+}
+
+@keyframes mari-taskbar-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  45% {
+    transform: translateY(-0.15rem) scale(1.08);
+  }
+}
+
+/* Narrow phones keep the magnifier only, so the pinned entries stay on one row. */
+@media (max-width: 32rem) {
+  .mari-win11-taskbar__search {
+    justify-content: center;
+    padding-inline: 0;
+    width: 2.5rem;
+  }
+
+  .mari-win11-taskbar__search-label {
+    display: none;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   25. HOME SHELL — WINDOWS 11 DESKTOP
+   The desk's icon field. Cell geometry is computed by the icons hook and passed in as custom
+   properties, so only the selection and hover feedback lives here.
+   ───────────────────────────────────────────── */
+.mari-home-desktop-grid {
+  align-content: start;
+  min-width: 0;
+}
+
+.mari-home-desktop-icon {
+  min-width: 0;
+  min-height: 0;
+  border-radius: 0.5rem;
+  touch-action: none;
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mari-home-desktop-icon:hover {
+    background-color: var(--marinara-taskbar-hover);
+  }
+}
+
+/* Windows 11 marks the selected desktop icon with a filled plate, not only a focus ring. */
+.mari-home-desktop-icon[data-home-desktop-icon-selected="true"] {
+  background-color: var(--marinara-taskbar-active);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--marinara-app-accent-solid) 38%, transparent);
+}
+
+.mari-home-desktop-icon--dragging {
+  opacity: 0.5;
+}
+
+html.mari-home-desktop-drag-active,
+html.mari-home-desktop-drag-active * {
+  cursor: grabbing !important;
+  user-select: none !important;
 }

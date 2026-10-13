@@ -1,6 +1,5 @@
 {
   "language": "zh-hans",
-  "sourceCommit": "b3ee44672fffbb04e652ddcb791637262ac69f9e",
   "files": [
     {
       "path": "CONFIGURATION.md",
@@ -9,8 +8,8 @@
     },
     {
       "path": "FAQ.md",
-      "sha256": "78f10f137478a9c225d824ce52bceb77c495a56fce9d2f05c23a5aea9b9a8f52",
-      "bytes": 21856
+      "sha256": "a5b1477b8a04912aa26b752934a9f6b6e632e7f7715673e458d6a8f623af3c93",
+      "bytes": 21890
     },
     {
       "path": "INSTALLATION.md",
@@ -474,23 +473,23 @@
     },
     {
       "path": "home/achievements.md",
-      "sha256": "ba64344bef989512cce4315f959133d8ae2cb06534be39afe959a4ef30fbb16e",
-      "bytes": 6666
+      "sha256": "5f4727cd6fad4a1f087568b65fd61a8e41d32a9d44c1858b23f00dd01a3cdf97",
+      "bytes": 6964
     },
     {
       "path": "home/professor-mari.md",
-      "sha256": "0f601492fc1282827506ecdde8db6a03925782554c6981b23d8578c79ecbe842",
-      "bytes": 26075
+      "sha256": "b2b64f398cabb6e1f8a47cdc5c793bb1dfe69e3098386b19f782ab35573c19c6",
+      "bytes": 26131
     },
     {
       "path": "home/tutorial.md",
-      "sha256": "422ac4a853e4d0315b476b01227a67522d875a3ad04649a865040ac4aff0298a",
-      "bytes": 4383
+      "sha256": "0c42304d2c39141a6c48e4daee7fb374b7d493510391a1d4277c58ef1ecb2cf1",
+      "bytes": 4384
     },
     {
       "path": "home/welcome.md",
-      "sha256": "0a328706624a45e767abdbb065fd064e4dce3232882cc1439d9559333f749bc5",
-      "bytes": 4834
+      "sha256": "e2726f3133b85e56d08ef38a871fbb7434f76c7400bcecde5587df4966dc81fb",
+      "bytes": 6859
     },
     {
       "path": "installation/android-termux.md",

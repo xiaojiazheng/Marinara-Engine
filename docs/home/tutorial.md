@@ -38,7 +38,7 @@ You do not have to finish the whole tour. Every card has a skip button. On the f
 
 Clicking **Skip** or **Skip Tutorial** ends the tour right away. Clicking **Get Started** on the last card also ends it. Both actions mark the tour as done, so it will not start on its own again. Finishing or skipping the tour can also unlock an achievement.
 
-You can watch the tour again any time. Open the Home screen, then look in the footer for the **Replay Tutorial** button. Click it, and the guided tour starts over from the first step. This is handy if you skipped it early and want the full walk-through later.
+You can watch the tour again any time. Open the Home screen, click **Start** on the taskbar, then choose **Tutorial**. The guided tour starts over from the first step. This is handy if you skipped it early and want the full walk-through later.
 
 ## Mobile differences
 
