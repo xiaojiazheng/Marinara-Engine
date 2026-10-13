@@ -81,3 +81,7 @@ deployment/marinara.env
 deployment/.env
 deployment/backups/
 deployment/*.tar.gz
+
+# CodeBuddy local state; only the skills symlink entry is tracked
+/.codebuddy/*
+!/.codebuddy/skills
