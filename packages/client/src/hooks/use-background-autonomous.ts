@@ -13,7 +13,7 @@ import { api, ApiError } from "../lib/api-client";
 import { shouldSuppressAutonomousMessages, toAutonomousPresenceStatus } from "../lib/user-status";
 import { useChatStore } from "../stores/chat.store";
 import { useUIStore } from "../stores/ui.store";
-import { showLocalMessageNotification, showNativeMessageNotification } from "../lib/local-notifications";
+import { showLocalMessageNotification } from "../lib/local-notifications";
 import { playConfiguredNotificationPing } from "../lib/notification-sound";
 import { captureChatMetadataVersion, chatKeys, guardServerChatSnapshot } from "./use-chats";
 import { characterKeys } from "./use-characters";
@@ -327,11 +327,6 @@ export function useBackgroundAutonomousPolling() {
 
                 void showLocalMessageNotification({
                   enabled: useUIStore.getState().conversationBrowserNotifications,
-                  characterName: charName,
-                  tag: `marinara-chat-${chat.id}`,
-                });
-                showNativeMessageNotification({
-                  enabled: useUIStore.getState().conversationMobileNotifications,
                   characterName: charName,
                   tag: `marinara-chat-${chat.id}`,
                 });

@@ -15,7 +15,7 @@
 
 ## 多人连接或回合问题
 
-- **控件不可用：**确认正确 Engine 的 `.env` 中有 `MULTIPLAYER_ENABLED=true`，重启该 Engine，再单独启用 Settings。保存的开关不能覆盖缺失或无效的环境标志。Android 原生封装被刻意禁止加入。
+- **控件不可用：**确认正确 Engine 的 `.env` 中有 `MULTIPLAYER_ENABLED=true`，重启该 Engine，再单独启用 Settings。保存的开关不能覆盖缺失或无效的环境标志。
 - **房主不可用：**使用独立且可达的 HTTPS 房间端口、有效的证书链/主机名，以及匹配的邀请指纹。不要通过关闭 TLS 验证、将 `null` 加入可信来源、公开普通 Engine API 或打开房主提供的客户端来绕过错误。
 - **等待批准：**房主必须在 Players 中批准申请。批准前没有聊天记录。邀请过期或被撤销时，请索取新邀请。
 - **已断线：**让访客自己的 Engine 保持运行。明确开启的会话仍有效时，客户端会重连到同一个已固定的房主；未发送草稿保留在当前视图。重启会使凭据失效，需要重新加入。网络故障时仍可使用 Stop/Leave。
@@ -27,38 +27,11 @@
 
 ## 安装和启动问题
 
-### Termux：构建客户端时 JavaScript 堆内存不足
-
-如果 Vite 报 `Reached heap limit` 或 `JavaScript heap out of memory` 后退出，说明客户端构建耗尽了 Node.js 堆内存，与缺少原生 Rollup 二进制文件不同。更新后重新运行 `start-termux.sh`：客户端构建（包括应用内更新）现在使用独立的 1536 MiB 堆上限，不超过已知设备 RAM 的一半，但不会低于构建所需的 1280 MiB。RAM 上限按 128 MiB 向下取整。服务器继续使用按配置文件大小确定的较小上限。`NODE_OPTIONS` 中明确设置的上限对两个进程都优先，因此请检查是否残留旧的 1024 MiB 设置：客户端已经无法在 1024 MiB 内完成构建。
-
-重试前关闭其他应用。RAM 低于约 3 GB 的手机仍可能耗尽内存，或被 Android 终止进程；报告时保留完整启动输出。不要为了修复构建而删除聊天或配置文件。
-
-### Termux：缺少多人模式访客文件
-
-如果重新构建后，启动时仍提示缺少 `packages/client/dist/multiplayer/guest.js`，请更新 Engine 并重新运行 `./start-termux.sh`。启动脚本现在会执行完整的低内存客户端构建，包括启动时检查的访客文件。修复这个构建错误不需要启用多人模式。
-
-### Termux：打开 Engine 时服务器停止，或 Sharp 无法加载
-
-Sharp 是 Engine 用来处理缩略图和立绘的图像库。在 Android 上，它通过 WebAssembly 备用实现运行。从 2.4.6 就地更新时，这个备用实现可能有一部分没有装上，服务器随后会在浏览器第一次打开 Engine 时停止运行。
-
-请更新 Engine，让启动脚本重新安装依赖。更新会补装缺失的部分，之后的更新中 Engine 也会保留它。如果还没来得及更新，服务器就在你打开 Engine 时一再停止，可以在 Termux 里手动修复安装：
-
-```bash
-cd ~/Marinara-Engine
-rm -f node_modules/.modules.yaml
-SHARP_IGNORE_GLOBAL_LIBVIPS=1 pnpm --config.trustPolicy=off --config.confirmModulesPurge=false install --frozen-lockfile --prefer-offline
-./start-termux.sh
-```
-
-这会清除 pnpm 过时的安装记录，并重新安装依赖。聊天和设置都不会受影响。
-
-如果 Sharp 仍然无法加载，Engine 现在会关闭图像处理并继续运行：已经生成的缩略图照常显示，新的缩略图改为显示原尺寸图片，立绘生成和内置的背景移除不可用。不要换成不相关的 Sharp 版本。报告问题时，请保留完整的错误输出。
-
 ### 更新后页面空白，或 JavaScript 被当作 HTML 返回
 
 带有 `text/html` MIME 类型的“Failed to load module script”等错误，可能表示浏览器请求了已安装构建中缺失的 JavaScript 文件。上次会话的退出警告并不能定位这个问题，删除写入租约（writer lease）或用户数据也无法修复这些文件。
 
-停止正在运行的服务器，再运行 `start.bat`、`start.sh` 或 `start-termux.sh`。启动脚本会检查 Vite 构建清单，包括按需加载的 JavaScript 分块，并在启动前重新构建不完整的客户端文件。在加入这项检查之前生成的构建会重建一次，以生成清单。如果重建失败，请保留终端错误供求助时使用。手动安装时，在再次启动前先从仓库根目录运行 `pnpm build`。
+停止正在运行的服务器，再运行 `start.bat` 或 `start.sh`。启动脚本会检查 Vite 构建清单，包括按需加载的 JavaScript 分块，并在启动前重新构建不完整的客户端文件。在加入这项检查之前生成的构建会重建一次，以生成清单。如果重建失败，请保留终端错误供求助时使用。手动安装时，在再次启动前先从仓库根目录运行 `pnpm build`。
 
 如果检查通过但页面仍然空白，请强制刷新或尝试无痕窗口。报告出错文件的完整 URL、HTTP 状态、Content-Type 和响应第一行，并附上启动脚本的输出。缺失的文件现在会返回 HTTP 404，而不是应用的 HTML 页面。
 
@@ -303,7 +276,7 @@ Music DJ 智能体的 Spotify 模式走的是 OAuth。OAuth 是一种登录交�
 
 ### 执行 Restart Server 后服务器没有恢复
 
-请使用 `start.bat`、`start-local.bat`、`start.sh`、`start-termux.sh` 或 `pnpm start` 启动 Marinara。这些方式会让服务器保持受启动器管理，并等旧进程退出后再启动替代进程。从应用内重启时，会在 4 秒后关闭仍未结束的连接；如果关闭过程仍卡住，则在 8 秒后强制退出。强制关闭可能中断待完成的写入，并会在诊断中标记为强制关闭。直接使用 `node` 启动的进程和开发模式下监视文件的进程不会自动替换：请在终端中停止后重新启动。Docker 继续使用容器的重启策略。 在Windows上，在启动器控制台中按Ctrl+C，等待**Shutdown complete**(关闭完成)后再关闭窗口。直接关闭或强制终止终端可能打断尚未完成的保存操作。
+请使用 `start.bat`、`start-local.bat`、`start.sh` 或 `pnpm start` 启动 Marinara。这些方式会让服务器保持受启动器管理，并等旧进程退出后再启动替代进程。从应用内重启时，会在 4 秒后关闭仍未结束的连接；如果关闭过程仍卡住，则在 8 秒后强制退出。强制关闭可能中断待完成的写入，并会在诊断中标记为强制关闭。直接使用 `node` 启动的进程和开发模式下监视文件的进程不会自动替换：请在终端中停止后重新启动。Docker 继续使用容器的重启策略。 在Windows上，在启动器控制台中按Ctrl+C，等待**Shutdown complete**(关闭完成)后再关闭窗口。直接关闭或强制终止终端可能打断尚未完成的保存操作。
 
 旧服务器仍在运行时，不要使用同一个数据目录启动另一台服务器。如果旧版本遗留了运行中的进程，请先停止该进程；不要删除运行中服务器的写入租约。
 
@@ -311,7 +284,7 @@ Music DJ 智能体的 Spotify 模式走的是 OAuth。OAuth 是一种登录交�
 
 Marinara 只允许一个正在运行的服务器写入本地数据目录。如果启动时针对该目录显示 **Another Marinara Engine process ... may be using**，请关闭另一个 Marinara 进程后重新启动。
 
-发生崩溃或移动 Docker 数据卷后，启动时可能改为显示 **The storage writer lease ... is incomplete or invalid**，或者指向此主机上已不存在的进程。请先确认使用该数据目录的所有 Marinara 进程和容器均已停止。然后只删除错误中指定的 `.writer-lease` 目录，再重启 Marinara。不要删除其外层的 `storage` 目录或任何表文件。在数据目录位于本地磁盘的 Linux、Android 和容器主机上，Marinara 会自行回收因进程崩溃或被强制终止而遗留的租约，即使重启后也不例外；网络存储或共享存储上，手动步骤仍是后备方案。
+发生崩溃或移动 Docker 数据卷后，启动时可能改为显示 **The storage writer lease ... is incomplete or invalid**，或者指向此主机上已不存在的进程。请先确认使用该数据目录的所有 Marinara 进程和容器均已停止。然后只删除错误中指定的 `.writer-lease` 目录，再重启 Marinara。不要删除其外层的 `storage` 目录或任何表文件。在数据目录位于本地磁盘的 Linux 和容器主机上，Marinara 会自行回收因进程崩溃或被强制终止而遗留的租约，即使重启后也不例外；网络存储或共享存储上，手动步骤仍是后备方案。
 
 ### 更新之后数据像是丢了
 
@@ -349,81 +322,7 @@ Docker 和 Podman 将数据保存在 `marinara-data` 卷中，因此请在一次
 
 环回会话不用管理员密钥就能做备份。但从其他设备、网络地址或 Docker 访问时，备份和档案导出需要额外授权。在服务器上设置 `ADMIN_SECRET`，并把同一个值保存到 **Settings** > **Advanced** > **Admin Access**。如果希望环回访问也必须提供密钥，设置 `MARINARA_REQUIRE_ADMIN_SECRET_ON_LOOPBACK=true`。
 
-## Android 和 Docker
-
-### Android 应用卡在 Connecting 或 Waiting for Server
-
-Android 应用只是套在 Termux 外面的一层轻壳。Termux 是 Android 上的 Linux 终端应用，真正的 Marinara 服务器跑在它里面。
-
-1. 点击 **Install / Start Marinara**。
-2. 如果 Android 要求安装 Termux，同意这些提示。
-3. 如果 Android 要求在 Termux 里执行命令，授予权限。
-4. 等启动脚本跑完并把服务器拉起来，再回到应用。
-
-正常的 APK 流程绝不会要求你粘贴 Marinara 密钥。应用会生成私密 localhost 凭据，把它传给 Termux 并自动登录。Android 的应用安装和 Termux 权限对话框仍然是必需的系统提示。不要把 `null`、`http://null` 或 APK 密钥添加到 `CSRF_TRUSTED_ORIGINS`；这些都不是正确或必要的 Android 设置步骤。
-
-另外确认应用和 Termux 用的是同一个端口。默认是 `7860`。如果打包应用时改了端口，Termux 的 `.env` 里也要设置成一样的 `PORT`。
-
-### Android localhost 打开登录页面或返回 401/503
-
-由 APK 管理的 Termux 安装会用每次安装独有的私密密钥保护 localhost。Android 应用会自动认证，设置过程中不应显示这个登录页面。如果它出现在 Marinara Engine 应用内，请安装[最新 APK](https://github.com/Pasta-Devs/Marinara-Engine/releases/latest/download/marinara-engine-android.apk)，再次点击 **Install / Start Marinara**，Termux 完成后返回应用。
-
-提到来源 `null` 的错误表示，旧版 APK 和服务器组合让 Android WebView 的不透明来源在私密握手前进入了通用 CSRF 检查。编辑 `.env` 无法修复：字面值 `null` 会被有意忽略，而全局信任不透明来源会削弱所有不安全的 API 路由。请更新 APK 和 Engine；当前 Android 登录路由会验证自己的单次证明或每次安装的密钥，其他地方仍会拒绝 `null`。
-
-要在同一部手机的浏览器中打开应用，在 Android 启动界面选择 **Open in browser**(在浏览器中打开)，然后点击 **Retry connection**(重试连接)。当前版本的 APK 和 Engine 会自动完成认证，不需要输入密钥。服务器重启或会话过期后，也通过这个操作重新打开。应用内可以通过 **Settings > General > App Behavior > Open Android launcher (app or browser)**(设置 → 常规 → 应用行为 → 打开 Android 启动界面(应用或浏览器)) 返回启动界面。
-
-旧版 APK 仍可在 `/android-login` 使用 `cat ~/.marinara-engine/android-secret` 显示的值。浏览器链接会在一分钟后过期，而且只能用一次。链接过期后，应从启动界面重新打开浏览器，不要复用历史记录中的链接。
-
-本地 `mari` CLI 会自动读取同一个文件。401 表示粘贴的密钥或认证质询遭到拒绝；请重新加载 `/android-login` 并粘贴当前值。503 表示服务器收到的已配置密钥格式错误。请通过 `./start-termux.sh` 重新启动。如果启动脚本报告密钥文件无效或为空，请回到 Android 应用并点击 **Install / Start Marinara**，让 APK 重新生成。不要把这个密钥放进截图或问题报告。
-
-### Android 更新停在 exit status 134
-
-exit status 134 通常表示构建过程中 Android 内存不够了。用最新的启动脚本重新更新：
-
-```bash
-./start-termux.sh
-```
-
-还是停下来的话，关掉其他 Android 应用，重新打开 Termux，再运行一次这条命令。
-
-### Marinara 运行时 Termux 关闭或重启
-
-服务器运行期间，启动脚本会申请 Android 唤醒锁，并把每次服务器会话保存到 `~/.marinara-engine/logs/`。意外重启后，请在报告中附上最新的 `server-*.log` 文件。如果文件结尾没有 Marinara 或 Node 错误，最可能是 Android 或手机厂商在服务器进程之外终止了 Termux。
-
-请在 Android 设置中允许 Termux 在后台运行，并取消其电池优化。`termux-wake-lock` 和 `termux-wake-unlock` 命令随每一个标准 Termux 安装一起提供（来自核心的 `termux-tools` 软件包），不需要任何附加组件。这些设置无法阻止所有厂商特有的进程终止，但能消除常见的闲置暂停原因，同时持久日志会保留应用层故障的证据。
-
-### Marinara 停止响应，把 Termux 切到前台才恢复
-
-如果聊天一直卡在“正在打开聊天...”，随后应用报出 **Server unreachable**，Support Diagnostics(支持诊断信息) 复制出来的内容在服务器相关字段上显示 **Unreachable (request timed out)**，而且一打开 Termux 一切立刻恢复——那么宿主进程是被**冻结**了，不是崩溃了。Android 的缓存应用冻结器（以及厂商的同类机制，在某些手机上尤其激进）会挂起整个 Termux 进程：手机仍然会接受连接，但被冻结的服务器永远不会回应它。单靠唤醒锁并不能让进程免于被冻结，而且会话日志在被冻结的那段时间里只会留下一段时间戳空档，而不是一条报错。
-
-想减少这种情况：在 Android 设置中取消 Termux 的电池优化并允许后台活动，如果手机支持，就在最近任务界面里锁定 Termux，并让 Termux 的通知一直显示。如果还是会被冻结，可靠的办法是在使用 Marinara 期间让 Termux 保持在前台（或者让屏幕保持常亮）。
-
-### Android 更新时安装依赖把存储空间占满
-
-构建好的 Marinara 应用并没有好几个 GB，Noodle 也不会自己下载 AI 模型。更新期间临时占用大，通常来自 pnpm 的依赖存储和虚拟存储，尤其是连着更新了好几个版本，或者曾经中断过一次强制重装之后。
-
-当前的启动脚本会清理旧版本遗留的包，并且同一次更新不会重复重建依赖存储。如果旧的启动脚本已经把设备塞满了，先更新启动脚本并回收无引用的缓存，再重试：
-
-```bash
-cd Marinara-Engine
-git pull --ff-only
-pnpm store prune
-./start-termux.sh
-```
-
-不要删 `data`、`storage` 或 `marinara-engine.db`，这些位置可能存着聊天和设置。如果命令仍然中断，把从 `Installing dependencies` 开始的那些行抓下来，连同手机的剩余空间和内存数据一起写进反馈。
-
-### 在 Android 上切换 Stable 和 Staging 时应用内更新失败
-
-切换通道（Stable ↔ Staging）会触发近乎完整的依赖重装，在 Termux 较慢的存储上，耗时会远超一次普通更新。现在应用内更新器在 Android 上给每一步都留了更多时间，所以以前那种只报一句 `Update failed: Command failed: corepack pnpm ... install` 就中断的通道切换，应该能顺利完成。
-
-如果更新仍然失败，报错现在会写明是哪一步失败，并附上那一步输出的末尾内容。仔细读这条信息：真正的依赖或锁文件错误都写在里面。也可以按报错提示里给出的手动命令，在 Termux 里自己跑一次更新，或者先腾出空间：
-
-```bash
-cd Marinara-Engine
-pnpm store prune
-./start-termux.sh
-```
+## 容器和扩展问题
 
 ### Noodle 显示 `Etc/Unknown`，或日程用错了时区
 
@@ -483,7 +382,7 @@ services:
 
 添加后重新创建容器。服务器进程必须保持为 root，以免 Marinara 入口点通常切换到 `node` 用户时丢弃新增能力。以 root 配合 `SYS_ADMIN` 运行属于大范围提权，禁用 AppArmor 还会进一步削弱外层安全边界。不要只为了消除提示而启用它。当前 Docker 版本通常不需要笼统设置 `seccomp=unconfined`。
 
-服务器扩展只能在 macOS Seatbelt 或 Linux Bubblewrap 下运行。在 Linux 宿主机上安装 `bwrap`，然后重启 Marinara。Windows、Android 和其他不受支持的宿主环境会直接拒绝执行服务器扩展，而不是退回到主服务器进程里跑。浏览器扩展仍然可以使用它们的不透明来源 Worker 沙箱。
+服务器扩展只能在 macOS Seatbelt 或 Linux Bubblewrap 下运行。在 Linux 宿主机上安装 `bwrap`，然后重启 Marinara。Windows 和其他不受支持的宿主环境会直接拒绝执行服务器扩展，而不是退回到主服务器进程里跑。浏览器扩展仍然可以使用它们的不透明来源 Worker 沙箱。
 
 ## 获取更多帮助
 

@@ -1,15 +1,15 @@
 // ──────────────────────────────────────────────
 // Hardware / gesture back → dismiss the topmost overlay
 //
-// The app has no URL router, so nothing ever creates a history entry and the
-// Android WebView's `canGoBack()` is permanently false: every back press falls
-// through to backgrounding the app, even with a panel or editor open.
+// The app has no URL router, so nothing ever creates a history entry and a host
+// app's `canGoBack()` stays permanently false: every back press falls through to
+// backgrounding the app, even with a panel or editor open.
 //
 // This module keeps at most ONE sentinel history entry alive while any
 // dismissable layer is on screen. A back press pops the sentinel, we close the
 // topmost layer, and re-arm if something is still open. Because it is plain
 // history, browser back, installed-PWA back and mouse-button-4 all get the same
-// behaviour without an APK change.
+// behaviour.
 // ──────────────────────────────────────────────
 
 export type BackLayer = {

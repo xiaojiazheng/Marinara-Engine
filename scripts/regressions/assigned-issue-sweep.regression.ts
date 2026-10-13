@@ -10,12 +10,7 @@ import {
   getServerRuntimeBuild,
   isRuntimeBuildCurrent,
 } from "../../packages/client/src/lib/runtime-build.js";
-import {
-  ANDROID_HOST_HEARTBEAT_INTERVAL_MS,
-  createAndroidHostHeartbeat,
-  isLoopbackHostname,
-  shouldRunAndroidHostHeartbeat,
-} from "../../packages/client/src/lib/keep-alive.js";
+import { isLoopbackHostname } from "../../packages/client/src/lib/keep-alive.js";
 import { useAgentStore } from "../../packages/client/src/stores/agent.store.js";
 import { agentResultMatchesVisibleSwipe } from "../../packages/client/src/lib/agent-result-ownership.js";
 import { createAgentEventDispatcher } from "../../packages/server/src/services/generation/agent-event-dispatcher.js";
@@ -215,16 +210,6 @@ assert.equal(
   "an enabled Illustrator carries the explicit dynamic-prompt choice into runtime metadata",
 );
 
-assert.equal(
-  ANDROID_HOST_HEARTBEAT_INTERVAL_MS,
-  10_000,
-  "the Android host heartbeat stays slower than the removed 2-second extension polling",
-);
-assert.equal(
-  shouldRunAndroidHostHeartbeat({ isAndroid: true, isHostDevice: true, pageVisible: true, requestPending: false }),
-  true,
-  "a visible Android client on the host device receives the lightweight heartbeat",
-);
 for (const hostname of [
   "localhost",
   "marinara.localhost",
@@ -248,47 +233,6 @@ for (const hostname of [
 ]) {
   assert.equal(isLoopbackHostname(hostname), false, `${hostname || "an empty hostname"} is not a loopback client`);
 }
-for (const blocked of [
-  { isAndroid: false, isHostDevice: true, pageVisible: true, requestPending: false },
-  { isAndroid: true, isHostDevice: false, pageVisible: true, requestPending: false },
-  { isAndroid: true, isHostDevice: true, pageVisible: false, requestPending: false },
-  { isAndroid: true, isHostDevice: true, pageVisible: true, requestPending: true },
-]) {
-  assert.equal(
-    shouldRunAndroidHostHeartbeat(blocked),
-    false,
-    "non-Android, remote, hidden, and in-flight heartbeat paths remain quiet",
-  );
-}
-
-let heartbeatRequests = 0;
-let releaseHeartbeatRequest: (() => void) | undefined;
-let heartbeatVisible = true;
-const runHeartbeat = createAndroidHostHeartbeat({
-  isAndroid: true,
-  isHostDevice: true,
-  isPageVisible: () => heartbeatVisible,
-  request: () => {
-    heartbeatRequests += 1;
-    return new Promise<void>((resolve) => {
-      releaseHeartbeatRequest = resolve;
-    });
-  },
-});
-runHeartbeat();
-runHeartbeat();
-assert.equal(heartbeatRequests, 1, "an in-flight health request suppresses overlapping heartbeats");
-releaseHeartbeatRequest?.();
-await Promise.resolve();
-await Promise.resolve();
-heartbeatVisible = false;
-runHeartbeat();
-assert.equal(heartbeatRequests, 1, "a hidden page does not send a heartbeat");
-heartbeatVisible = true;
-runHeartbeat();
-assert.equal(heartbeatRequests, 2, "a visible-page resume can send a heartbeat immediately");
-releaseHeartbeatRequest?.();
-
 const clientBuild = formatRuntimeBuild("2.4.2", "aaaaaaaaaaaa");
 assert.equal(clientBuild, "2.4.2+aaaaaaaaaaaa");
 assert.equal(

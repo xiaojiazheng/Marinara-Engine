@@ -1010,7 +1010,7 @@ const loadedUnitsOf = (db: Awaited<ReturnType<typeof createFileNativeDB>>) => db
 // ── #5838: SteamOS platform default ──────────────────────────────────────────
 // A Steam Deck shares 16 GiB with the GPU and the running game, so unbounded
 // load-and-keep gets the server OOM-killed mid session. On SteamOS the cap
-// defaults to 8 engine-side (matching the Termux launcher's export); an
+// defaults to 8 engine-side (matching the launcher's export); an
 // explicit value - including 0 to disable - always wins.
 {
   const { detectSteamOs, getMaxResidentChatUnits, platformDefaultMaxResidentChatUnits } =
@@ -1046,7 +1046,7 @@ const loadedUnitsOf = (db: Awaited<ReturnType<typeof createFileNativeDB>>) => db
 
   // getMaxResidentChatUnits, platform-aware so this block is honest wherever
   // it runs: on an ordinary dev box or CI the platform default is 0; on a
-  // real Steam Deck (or Termux) it is 8, and the assertions then observe the
+  // real Steam Deck it is 8, and the assertions then observe the
   // constrained default through the full production path. The floor of 2 and
   // the explicit-0 opt-out are platform-independent.
   const platformDefault = platformDefaultMaxResidentChatUnits();
@@ -1074,7 +1074,11 @@ const loadedUnitsOf = (db: Awaited<ReturnType<typeof createFileNativeDB>>) => db
     "utf8",
   );
   assert.match(runtimeConfig, /const CONSTRAINED_PLATFORM_DEFAULT_MAX_RESIDENT_CHATS = 8;/u);
-  assert.match(runtimeConfig, /if \(process\.platform === "android"\) return true;/u);
+  assert.doesNotMatch(
+    runtimeConfig,
+    /process\.platform === "android"/u,
+    "The Termux host branch retired with Android support; only SteamOS stays constrained",
+  );
   assert.match(
     runtimeConfig,
     /if \(!raw\) \{\s*lastInvalidMaxResidentChats = null;\s*return platformDefaultMaxResidentChatUnits\(\);\s*\}/u,

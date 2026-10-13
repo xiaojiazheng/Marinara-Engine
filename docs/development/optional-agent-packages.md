@@ -678,7 +678,7 @@ Desktop uses a browse list with an adjacent detail region. Mobile uses one pane 
 
 ## Extraction gate
 
-An extraction is complete only when the base production client and server bundles no longer contain the package implementation, a fresh install cannot activate it without downloading the package, an upgraded install retains it, and package install/update/uninstall passes on desktop, mobile, and Termux-compatible filesystems.
+An extraction is complete only when the base production client and server bundles no longer contain the package implementation, a fresh install cannot activate it without downloading the package, an upgraded install retains it, and package install/update/uninstall passes on desktop and mobile filesystems.
 
 ### Capability API 1.30: wound tracks, spending on a check, and a fight fought on a track
 

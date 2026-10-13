@@ -100,20 +100,14 @@ The local review conserves the shared CodeRabbit quota and complements the GitHu
   - `packages/shared/src/constants/defaults.ts`
   - `win/installer/installer.nsi`
   - `win/installer/install.bat`
-  - `android/app/build.gradle`
-
-Android-specific rule:
-
-- `versionName` matches the app version.
-- `versionCode` increments for every shipped APK.
 
 Storage-format rule (separate from the app version — never touched by `version:sync`):
 
-- Root `storage-format.json` must equal `STORAGE_VERSION` in `packages/server/src/db/file-backed-store.ts`. It changes only when the on-disk storage layout changes; the launcher/updater downgrade guard reads it via `git show` on the update target, so a missed bump silently disables that protection. The launcher-format-guard regression pins the pairing.
+- Root `storage-format.json` must equal `STORAGE_VERSION` in `packages/server/src/db/file-backed-store.ts`. It changes only when the on-disk storage layout changes; the launcher/updater downgrade guard reads it via `git show` on the update target, so a missed bump silently disables that protection.
 
 ## Safe Multi-File Updates
 
-- When changing version numbers, bump root `package.json` first, then run `pnpm version:sync -- --android-version-code <next-code>`.
+- When changing version numbers, bump root `package.json` first, then run `pnpm version:sync`.
 - When changing version numbers or preparing a release, run `pnpm credits:check`; if it fails, run `pnpm credits:sync` and include the Credits modal update.
 - Run `pnpm version:check` before tagging or publishing.
 - Keep `CONTRIBUTING.md` authoritative. Add agent-specific notes here only when they are operationally useful and not already covered there.
@@ -135,10 +129,11 @@ Storage-format rule (separate from the app version — never touched by `version
 
 - **Read `packages/client/.instructions.md` before editing any client code.** It is the authoritative reference for architecture, patterns, conventions, and common-mistake avoidance.
 - Treat localization as part of every client UI change. New or changed user-facing labels, messages, tooltips, placeholders, toasts, confirmations, accessibility text, tutorials, and similar copy must use semantic localization keys and update the canonical English catalog in the same change. Community locale files are intentionally partial: update only translations the contributor can responsibly supply, and let missing keys fall back to English. Never touch every bundled locale merely to copy English or satisfy key parity. Do not translate model prompts or user-authored content. Run `pnpm localization:check` before shipping.
-- Validate with `pnpm check` (TypeScript + ESLint). Use `pnpm regression:prompt` for prompt/lorebook/macro regressions and `pnpm smoke:ui` for the browser shell smoke suite when the change touches those areas.
+- Validate with `pnpm check` (TypeScript + ESLint), then run the targeted verify lane `pnpm verify` (rule 6; the sets live in `scripts/run-targeted-verify.mjs`). Use `pnpm regression:prompt` for prompt/lorebook/macro regressions and `pnpm smoke:ui` for the browser shell smoke suite when the change touches those areas.
 - **Playwright discipline (learned the hard way — every rule below came from a real false-failure or lost run):**
-  1. `pnpm check` does **not** run the source-scanning regressions (`scripts/regressions/*`). After editing any file those guards pin (`ui/Modal.tsx`, `ui/FloatingWindow.tsx`, `globals.css` sections, store persistence, storage format…), run `pnpm regression --filter <file>` — "check is green" proves nothing about them.
+  1. `pnpm check` does **not** run the source-scanning regressions (`scripts/regressions/*`). After editing any file those guards pin (`ui/Modal.tsx`, `ui/FloatingWindow.tsx`, `globals.css` sections, store persistence, storage format…), run `node ./scripts/run-regressions.mjs --filter <file>` — "check is green" proves nothing about them.
   2. When more than one Playwright run can be alive (parallel agents, another worktree, a colleague's shell), every run must override its ports (`PLAYWRIGHT_CLIENT_PORT`/`PLAYWRIGHT_SERVER_PORT`/`PLAYWRIGHT_MOBILE_*`) and use its own `--output` artifacts dir. Vite default ports are identical across worktrees and the shared `test-results`/`.tmp/playwright-data` dirs cause `ECONNREFUSED`/`ENOENT` false failures that look exactly like product bugs.
-  3. Do not write client source files while a Playwright run is in flight. HMR swaps the module the app uses for a `?t=` copy; a spec that dynamically imports a store by canonical URL keeps the stale instance and fails with missing root attributes. Full-suite acceptance runs go last, on a quiet tree.
+  3. Do not write client source files while a Playwright run is in flight. HMR swaps the module the app uses for a `?t=` copy; a spec that dynamically imports a store by canonical URL keeps the stale instance and fails with missing root attributes. Acceptance runs go last, on a quiet tree.
   4. Run one Playwright project pair per run (`PLAYWRIGHT_ONLY_PROJECT=desktop|mobile`). Two simultaneous client+API server pairs on one machine starve the API child processes and kill the run mid-flight.
   5. Before trusting any new e2e failure, reproduce it in isolation (steps above) and check whether a concurrent writer or HMR window explains it. Never "fix" product code to satisfy a failure you have not reproduced on a quiet tree.
+  6. **Never run the full test suite — targeted tests only.** Run only the regressions and specs the change touches (one `--filter`, one spec file, one project pair) plus `pnpm check` for type/build/lint. Full-suite runs take tens of minutes, depend on machine capabilities this environment may not have (openssl, bash, outbound network), and their inter-file coupling produces false reds that cost more than the coverage is worth. Targeted runs plus isolated reproduction are the acceptance standard. A guard that can never pass on the target machine is deleted, not skipped.

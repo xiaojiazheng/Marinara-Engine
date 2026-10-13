@@ -36,7 +36,6 @@ export async function mockUILanguagePacks(page: Page) {
         ...(language === "pl"
           ? {
               "navigation.topbar.settings": "Ustawienia",
-              "settings.application.androidStatusBar.label": "Pokaż pasek stanu Androida",
               "settings.common.search": "Szukaj w ustawieniach",
               "settings.controls.confirmBeforeDelete.label": "Potwierdzaj przed usunięciem",
               "settings.tabs.general.label": "Ogólne",

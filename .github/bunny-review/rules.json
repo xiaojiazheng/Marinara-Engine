@@ -165,7 +165,7 @@
       ],
       "checks": [
         "Durable feature-area additions update the relevant docs or architecture map; a behavior change that makes an existing doc misleading should fix that doc in the same PR.",
-        "Version-bearing files stay in sync. Root package.json is canonical; the per-package package.json files, packages/shared/src/constants/defaults.ts, and the win/android version files must not drift.",
+        "Version-bearing files stay in sync. Root package.json is canonical; the per-package package.json files, packages/shared/src/constants/defaults.ts, and the Windows installer version files must not drift.",
         "Workflow and agent-guidance changes remain concrete, testable, and narrow."
       ]
     }

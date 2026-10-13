@@ -192,11 +192,9 @@ Marinara 会把不带显式 `capabilities` 字段的旧版 `kind: "marinara.exte
 | Linux(没有 `bwrap`)   | ✅ 已沙箱隔离                | ⚠️ 需要明确信任               | ⛔ 已禁用，请安装 `bwrap`             |
 | Docker（默认） | ✅ 已沙箱隔离 | ⚠️ 需要明确信任 | ⛔ 已禁用，受容器权限限制 |
 | Windows                 | ✅ 已沙箱隔离                | ⚠️ 需要明确信任               | ⛔ 已禁用，请改用浏览器扩展           |
-| Android                 | ✅ 已沙箱隔离                | ⚠️ 需要明确信任               | ⛔ 已禁用，请改用浏览器扩展           |
-
 官方 Docker 镜像包含 Bubblewrap，但默认容器采用最小权限，无法创建 Bubblewrap 所需的嵌套命名空间和挂载。Marinara 会在运行时测试沙箱；如果容器不允许使用沙箱，服务器扩展就会保持禁用。有关显式调整 Docker 权限的方法及其安全取舍，请参阅[故障排除](../TROUBLESHOOTING.md#a-server-extension-says-no-supported-sandbox-is-available)。
 
-Windows 和 Android 上没有受支持的操作系统进程沙箱，所以服务器扩展按设计就不可用。请改用浏览器扩展；确实需要服务器扩展的话，把 Marinara 服务器跑在 macOS 或 Linux(装了 `bwrap`) 上。
+Windows 上没有受支持的操作系统进程沙箱，所以服务器扩展按设计就不可用。请改用浏览器扩展；确实需要服务器扩展的话，把 Marinara 服务器跑在 macOS 或 Linux(装了 `bwrap`) 上。
 
 ## 外部扩展
 

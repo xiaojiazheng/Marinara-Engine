@@ -13,11 +13,6 @@ shared:
       - any-glob-to-any-file:
           - packages/shared/**
 
-android:
-  - changed-files:
-      - any-glob-to-any-file:
-          - android/**
-
 windows:
   - changed-files:
       - any-glob-to-any-file:

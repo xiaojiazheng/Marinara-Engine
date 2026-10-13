@@ -44,19 +44,6 @@ Marinara 会加密保存 API 密钥，不以明文形式存放。加密用的密
 
 有些高级配置不用文件，而是通过 `ENCRYPTION_KEY` 环境变量提供密钥。用这个变量的话，要单独把值保管好，这种情况下也就没有 `.encryption-key` 文件需要复制。详情见[服务器配置参考](../CONFIGURATION.md)。
 
-## Android 上的数据在哪里
-
-在 Android 上，服务器的数据文件夹通常位于应用存储空间中，没有 root 权限就访问不到，也就没法直接把文件夹从手机上拷出来。
-
-想在 Android 上取得一份数据副本，用 **Download Backup**(下载备份) 按钮。它在 **Settings** 的 **Advanced**(高级) 选项卡下、**Backup & Export**(备份与导出) 一节里。点它会生成一个包含全部数据的 zip 文件，存在 `.encryption-key` 文件时也会一并打包进去。这是从手机上保存数据最可靠的办法。
-
-同一节还能在数据文件夹内的 `backups/` 里保留 1 到 9999 份轮换的每日、每周或每月自动压缩包。最新的一份叫
-`marinara-automatic-backup.zip`，保留下来的较旧自动压缩包带时间戳。这个上限只对自动备份生效。重要的备份
-还要再复制一份到应用存储空间以外的地方，因为卸载或重置应用会同时清掉实时数据和
-本地的自动备份。
-
-各平台完整的备份与恢复步骤见[备份与恢复 Marinara](backup-and-restore.md)。
-
 ## 相关指南
 
 - [备份与恢复 Marinara](backup-and-restore.md)

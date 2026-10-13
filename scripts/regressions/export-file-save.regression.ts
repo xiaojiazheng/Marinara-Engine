@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { setImmediate as nextTurn } from "node:timers/promises";
 
 // Exports must reach the user on iPhone (#7115): share the file right away, or offer a Save file
-// toast whose tap is a fresh gesture. Desktop and Android keep their existing save paths.
+// toast whose tap is a fresh gesture. Desktop keeps its existing save path.
 const { api } = await import("../../packages/client/src/lib/api-client.js");
 const { downloadJsonFile } = await import("../../packages/client/src/lib/download-json.js");
 const { i18n, translate } = await import("../../packages/client/src/localization/i18n.js");
@@ -17,34 +17,30 @@ i18n.addResourceBundle("en", "translation", english);
 
 type ShareOutcome = "success" | "NotAllowedError" | "AbortError";
 type Scenario = {
-  device: "iphone" | "desktop" | "android";
+  device: "iphone" | "desktop";
   share?: ShareOutcome[];
   /** The desktop save dialog: saves, is cancelled, cannot open, or fails writing the chosen file. */
   picker?: "saves" | "cancel" | "blocked" | "write-fails" | "write-cancel";
-  bridgeFails?: boolean;
 };
 
 const IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148";
 const DESKTOP = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15";
-const ANDROID = "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/140.0 Mobile Safari/537.36";
 
 let shares: File[] = [];
 let anchors: Array<{ download: string; target: string }> = [];
 let pickerNames: string[] = [];
-let bridgeFiles: string[][] = [];
 let revokeDelays: number[] = [];
 
-function install({ device, share, picker, bridgeFails }: Scenario) {
+function install({ device, share, picker }: Scenario) {
   shares = [];
   anchors = [];
   pickerNames = [];
-  bridgeFiles = [];
   revokeDelays = [];
   toast.dismiss();
   const outcomes = [...(share ?? [])];
   const navigatorStub: Record<string, unknown> = {
-    userAgent: device === "iphone" ? IPHONE : device === "android" ? ANDROID : DESKTOP,
-    platform: device === "iphone" ? "iPhone" : device === "android" ? "Linux armv8l" : "MacIntel",
+    userAgent: device === "iphone" ? IPHONE : DESKTOP,
+    platform: device === "iphone" ? "iPhone" : "MacIntel",
     maxTouchPoints: device === "desktop" ? 0 : 5,
   };
   if (share) {
@@ -79,14 +75,6 @@ function install({ device, share, picker, bridgeFails }: Scenario) {
           close: async () => undefined,
         }),
       };
-    };
-  }
-  if (device === "android") {
-    windowStub.MarinaraAndroid = {
-      saveFile: (...args: string[]) => {
-        if (bridgeFails) throw new Error("Bridge probe failed");
-        bridgeFiles.push(args);
-      },
     };
   }
   Object.defineProperty(globalThis, "window", { configurable: true, value: windowStub });
@@ -217,14 +205,6 @@ assert.deepEqual(
 assert.deepEqual(revokeDelays, [60_000], "JSON exports no longer revoke the URL before the download starts");
 assert.equal(await saveToast(), undefined);
 
-// Android shell: the native bridge saves the export.
-install({ device: "android" });
-assert.equal(await exportCharacter(), "saved");
-assert.deepEqual(bridgeFiles, [
-  [Buffer.from('{"name":"Marinara"}').toString("base64"), "application/json", "Marinara.marinara.json"],
-]);
-assert.deepEqual(anchors, []);
-
 // Save dialog: cancelling stays silent; a dialog that cannot open falls back to one download; once a file
 // was chosen, a write failure is reported once and never starts a second download.
 install({ device: "desktop", picker: "cancel" });
@@ -247,11 +227,6 @@ install({ device: "desktop", picker: "write-cancel" });
 assert.equal(await exportCharacter(), "cancelled");
 assert.deepEqual(anchors, []);
 assert.equal(exportErrors().length, 0);
-
-// A save that fails after the download shows exactly one error and reports "failed", so no success follows.
-install({ device: "android", bridgeFails: true });
-assert.equal(await exportCharacter(), "failed");
-assert.equal(exportErrors().length, 1);
 
 // Any failed export (server error, 502 or a dropped connection) shows one plain error and still rejects.
 for (const failure of [

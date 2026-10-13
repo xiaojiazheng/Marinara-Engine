@@ -13,7 +13,7 @@ If you are asking the team for help, turn on **Debug mode** first so the server 
 
 ## Multiplayer connection or turn problems
 
-- **Controls unavailable:** confirm `MULTIPLAYER_ENABLED=true` is in the correct Engine's `.env`, restart that Engine, then enable Settings separately. A saved toggle cannot override a missing/invalid environment flag. The Android native wrapper deliberately cannot join.
+- **Controls unavailable:** confirm `MULTIPLAYER_ENABLED=true` is in the correct Engine's `.env`, restart that Engine, then enable Settings separately. A saved toggle cannot override a missing/invalid environment flag.
 - **Host unavailable:** use a separate reachable HTTPS room port, a valid certificate chain/hostname and the matching invitation fingerprint. Do not disable TLS validation, add `null` to trusted origins, expose the normal Engine API or open a host-supplied client to work around an error.
 - **Awaiting approval:** the host must approve the request in Players. No transcript is available before approval. Ask for a fresh invitation if it expired or was revoked.
 - **Disconnected:** keep the guest's own Engine running. The client reconnects to the same pinned host while the explicit session is alive; unsent drafts stay in the current view. Restart ends credentials and needs a fresh join. Stop/Leave remain available when the network fails.
@@ -25,23 +25,11 @@ When reporting a connection error, include mode, platform, the visible error and
 
 ## Install and launch problems
 
-### Termux: JavaScript heap out of memory while building the client
-
-If Vite stops with `Reached heap limit` or `JavaScript heap out of memory`, the client build ran out of Node.js heap. This is different from a missing native Rollup binary. Update and rerun `start-termux.sh`: client builds, including in-app updates, now run with their own 1536 MiB heap, capped at half of known device RAM but never below the 1280 MiB the build needs. The RAM cap is rounded down in 128 MiB steps. The running server keeps its smaller profile-based limit. An explicit heap limit in `NODE_OPTIONS` takes precedence for both processes, so check for a previously configured 1024 MiB override: the client no longer builds in 1024 MiB.
-
-Close other apps before retrying. Phones with less than about 3 GB of RAM can still run out of memory or be stopped by Android; keep the complete launcher output when reporting that case. Do not delete your chats or profile to repair a build failure.
-
-### Termux: missing multiplayer guest asset or incompatible Sharp
-
-If startup still reports a missing `packages/client/dist/multiplayer/guest.js` after rebuilding, update Engine and rerun `./start-termux.sh`. The launcher now runs the complete low-memory client build, including the guest assets checked at startup. You do not need to enable multiplayer to repair this build error.
-
-If image processing reports that Sharp cannot load on Android, update Engine and let the launcher reinstall dependencies. The matching `@img/sharp-wasm32` fallback is included as a regular dependency so frozen installs and updates retain it. Avoid replacing it with an unrelated Sharp version. Keep the complete error output if the problem persists.
-
 ### Blank page or JavaScript served as HTML after an update
 
 An error such as "Failed to load module script" with a `text/html` MIME type can mean the browser requested a JavaScript file that is missing from the installed build. The previous-session shutdown warning does not identify this problem, and deleting a writer lease or your data will not repair the assets.
 
-Stop the running server, then run `start.bat`, `start.sh` or `start-termux.sh` again. The launcher checks Vite's build inventory, including lazy JavaScript chunks, and rebuilds incomplete client assets before starting. A build made before this check was added is rebuilt once to create its inventory. If rebuilding fails, keep the terminal error for support. For a manual install, run `pnpm build` from the repository root before starting again.
+Stop the running server, then run `start.bat` or `start.sh` again. The launcher checks Vite's build inventory, including lazy JavaScript chunks, and rebuilds incomplete client assets before starting. A build made before this check was added is rebuilt once to create its inventory. If rebuilding fails, keep the terminal error for support. For a manual install, run `pnpm build` from the repository root before starting again.
 
 If the launcher check passes but the page is still blank, hard-refresh or try a private browser window. Report the failing asset's full URL, HTTP status, Content-Type and first response line, together with the launcher output. Missing assets now return HTTP 404 instead of the app's HTML page.
 
@@ -273,7 +261,7 @@ The cleanest long-term fix is to put the server behind HTTPS. Last checked again
 
 ### Restart Server does not return
 
-Start Marinara using `start.bat`, `start-local.bat`, `start.sh`, `start-termux.sh`, or `pnpm start`. These keep the server attached to its launcher and wait for the old process to exit before starting its replacement. In-app restart closes lingering connections after four seconds and forces exit after eight seconds if shutdown is still stuck; a forced shutdown can interrupt pending writes and is recorded as forced in diagnostics. Direct `node` runs and development watchers are not automatically replaced: stop and restart them from their terminal. Docker continues to use its container restart policy. On Windows, press Ctrl+C in the launcher console and wait for **Shutdown complete** before closing it. Closing or force-killing the terminal can interrupt pending saves.
+Start Marinara using `start.bat`, `start-local.bat`, `start.sh`, or `pnpm start`. These keep the server attached to its launcher and wait for the old process to exit before starting its replacement. In-app restart closes lingering connections after four seconds and forces exit after eight seconds if shutdown is still stuck; a forced shutdown can interrupt pending writes and is recorded as forced in diagnostics. Direct `node` runs and development watchers are not automatically replaced: stop and restart them from their terminal. Docker continues to use its container restart policy. On Windows, press Ctrl+C in the launcher console and wait for **Shutdown complete** before closing it. Closing or force-killing the terminal can interrupt pending saves.
 
 Do not launch another server against the same data directory while the old one is still running. If an older build left a process behind, stop that process first; do not remove a live server's writer lease.
 
@@ -281,7 +269,7 @@ Do not launch another server against the same data directory while the old one i
 
 Marinara allows only one running server to write to a local data directory. If startup reports **Another Marinara Engine process ... may be using** the directory, close the other Marinara process and start again.
 
-After a crash or a moved Docker data volume, startup can instead report **The storage writer lease ... is incomplete or invalid** or identify a process that no longer exists on this host. First verify that every Marinara process and container using that data directory is stopped. Then remove only the `.writer-lease` directory named in the error and restart Marinara. Do not remove the surrounding `storage` directory or any table files. On Linux, Android, and container hosts whose data directory lives on a local disk, Marinara reclaims a lease left by a crashed or force-killed process on its own, including after a reboot; the manual step remains the fallback for network or shared storage.
+After a crash or a moved Docker data volume, startup can instead report **The storage writer lease ... is incomplete or invalid** or identify a process that no longer exists on this host. First verify that every Marinara process and container using that data directory is stopped. Then remove only the `.writer-lease` directory named in the error and restart Marinara. Do not remove the surrounding `storage` directory or any table files. On Linux and container hosts whose data directory lives on a local disk, Marinara reclaims a lease left by a crashed or force-killed process on its own, including after a reboot; the manual step remains the fallback for network or shared storage.
 
 ### Data seems missing after an update
 
@@ -319,81 +307,7 @@ Docker and Podman keep data in the `marinara-data` volume, so run the command in
 
 Loopback sessions can make backups without an admin secret. From another device, a network address, or Docker, backups and profile exports need more. Set `ADMIN_SECRET` on the server and save the same value in **Settings** > **Advanced** > **Admin Access**. If you want loopback to require the secret too, set `MARINARA_REQUIRE_ADMIN_SECRET_ON_LOOPBACK=true`.
 
-## Android and Docker
-
-### Android app stuck on Connecting or Waiting for Server
-
-The Android app is a small shell around Termux. Termux is a Linux terminal app for Android, and it runs the real Marinara server.
-
-1. Tap **Install / Start Marinara**.
-2. If Android asks to install Termux, approve the prompts.
-3. If Android asks to run commands in Termux, grant it.
-4. Wait for the launcher to finish and start the server, then return to the app.
-
-The normal APK path never asks you to paste a Marinara secret. The app generates its private localhost credential, provisions it in Termux, and signs in automatically. Android's app-install and Termux permission dialogs are still required system prompts. Do not add `null`, `http://null`, or the APK's secret to `CSRF_TRUSTED_ORIGINS`; none is a valid or necessary Android setup step.
-
-Also confirm the app and Termux use the same port. The default is `7860`. If you built the app with a different port, set the matching `PORT` in the Termux `.env` too.
-
-### Android localhost opens the login page or returns 401/503
-
-APK-managed Termux installs protect localhost with a private per-install secret. The Android app authenticates automatically and should not display this login page during setup. If the login page appears inside the Marinara Engine app, install the [latest APK](https://github.com/Pasta-Devs/Marinara-Engine/releases/latest/download/marinara-engine-android.apk), tap **Install / Start Marinara** again, and return to the app when Termux finishes.
-
-An error naming origin `null` means an older APK/server pair let Android's opaque WebView origin reach the general CSRF gate before the private handshake. Editing `.env` cannot fix that: literal `null` is deliberately ignored, and trusting an opaque origin globally would weaken every unsafe API route. Update the APK and Engine instead; current Android login routes verify their own one-time proof or per-install secret while `null` remains rejected everywhere else.
-
-To open a browser on the same phone, select **Open in browser** on the Android launcher and tap **Retry connection**. A current APK and Engine authenticate it automatically; no secret entry is needed. Reopen through this action after a server restart or an expired session. From inside the app, return to the launcher through **Settings > General > App Behavior > Open Android launcher (app or browser)**.
-
-Older APKs can still use `/android-login` with the value from `cat ~/.marinara-engine/android-secret`. A browser link expires after one minute and works once; an expired link should be opened again through the launcher, not reused from history.
-
-The local `mari` CLI reads the same file automatically. A 401 means the pasted secret or an authentication challenge was rejected; reload `/android-login` and paste the current value. A 503 means the server received a malformed configured secret. Restart through `./start-termux.sh`; if the launcher reports that its secret file is invalid or empty, return to the Android app and tap **Install / Start Marinara** so the APK provisions it again. Do not put this secret in screenshots or issue reports.
-
-### Android update stops with exit status 134
-
-Exit status 134 usually means Android ran out of memory during a build step. Update again from the latest launcher:
-
-```bash
-./start-termux.sh
-```
-
-If it still stops, close other Android apps, reopen Termux, and run the command again.
-
-### Termux closes or restarts while Marinara is running
-
-The launcher requests an Android wake lock while the server runs and saves each server session under `~/.marinara-engine/logs/`. After an unexpected restart, include the newest `server-*.log` file in the report. If the file ends without a Marinara or Node error, Android or the phone vendor most likely terminated Termux outside the server process.
-
-Allow Termux to run in the background and remove battery optimization for it in Android settings. The `termux-wake-lock` and `termux-wake-unlock` commands ship with every standard Termux install (the core `termux-tools` package) — no add-on is required. These settings cannot prevent every vendor-specific process kill, but they remove the common idle-suspension cause while the persistent log preserves evidence from application-level failures.
-
-### Marinara stops responding until Termux is brought to the foreground
-
-If chats hang at "Opening chat..." and the app then reports **Server unreachable**, the Support Diagnostics copy shows **Unreachable (request timed out)** for the server fields, and everything recovers the instant you open Termux — the host process is **frozen**, not crashed. Android's cached-app freezer (and vendor equivalents, which are especially aggressive on some phones) suspends the whole Termux process: the phone still accepts the connection, but the frozen server never answers it. A wake lock alone does not exempt a process from freezing, and the session log shows a timestamp gap over the frozen window rather than an error.
-
-To reduce it: exempt Termux from battery optimization and allow background activity in Android settings, lock Termux in the recents screen if your phone supports it, and keep the Termux notification visible. If the freezes continue, the reliable workaround is keeping Termux foregrounded (or the screen on) while Marinara is in active use.
-
-### Android update runs out of storage while installing dependencies
-
-The built Marinara app is not several gigabytes, and Noodle does not download its own AI models. A large temporary footprint during an update usually comes from pnpm's dependency store and virtual store, especially after several releases or an interrupted forced reinstall.
-
-The current launcher prunes packages left over from older releases and avoids rebuilding the dependency store more than once for the same update. If an older launcher already filled the device, update the launcher and reclaim its unreferenced cache before trying again:
-
-```bash
-cd Marinara-Engine
-git pull --ff-only
-pnpm store prune
-./start-termux.sh
-```
-
-Do not delete `data`, `storage`, or `marinara-engine.db`; those locations may contain your chats and settings. If the command still stops, capture the lines beginning at `Installing dependencies` and include the phone's free-space and memory figures in the report.
-
-### In-app update fails when switching between Stable and Staging on Android
-
-Switching channels (Stable ↔ Staging) forces a near-full dependency reinstall, which on Termux's slower storage can take much longer than an ordinary update. The in-app updater now allows extra time for each step on Android, so a channel switch that used to stop with a bare `Update failed: Command failed: corepack pnpm ... install` should complete.
-
-If an update still fails, the error now names the step that failed and includes the tail of its output. Read that message: a genuine dependency or lockfile error is reported there. You can also run the update by hand from Termux with the manual command shown in the error's hint, or reclaim space first:
-
-```bash
-cd Marinara-Engine
-pnpm store prune
-./start-termux.sh
-```
+## Container and extension problems
 
 ### Noodle shows `Etc/Unknown` or schedules use the wrong timezone
 
@@ -453,7 +367,7 @@ services:
 
 Recreate the container after adding the override. Keeping the server process as root is necessary here so the added capability is not discarded when Marinara's entrypoint normally drops to the `node` user. Running the server as root with `SYS_ADMIN` is a broad privilege escalation, and disabling the container's AppArmor profile further weakens its outer security boundary; do not enable this merely to silence the unavailable-sandbox message. Docker's default seccomp profile adapts to added capabilities, so a blanket `seccomp=unconfined` setting should not be necessary on current Docker releases.
 
-Windows, Android, and other unsupported hosts deliberately refuse Server Extension execution instead of falling back to the main server process. Browser Extensions can still use their opaque-origin Worker sandbox.
+Windows and other unsupported hosts deliberately refuse Server Extension execution instead of falling back to the main server process. Browser Extensions can still use their opaque-origin Worker sandbox.
 
 ## Getting more help
 

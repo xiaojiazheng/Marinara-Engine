@@ -137,10 +137,6 @@ function getRuntimePreferenceOptions(platform: string, arch: string): SidecarRun
     return ["auto", "cpu", "system"];
   }
 
-  if (platform === "android") {
-    return ["auto", "cpu"];
-  }
-
   return ["auto", "cpu", "system"];
 }
 

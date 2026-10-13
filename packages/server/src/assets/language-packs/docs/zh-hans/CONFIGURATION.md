@@ -22,7 +22,7 @@ Marinara Engine 开箱即用，不配置也能跑。只有少数几件事才需�
 包的生命周期与存放位置：
 
 - **更新：** Marinara 会检查已安装的官方包有没有兼容的新版本，每次下载前都会先确认。选择 **No** 就保留当前版本，之后仍可在 Download Agents 里手动执行 **Update**。全新安装在挑选包之前一直是空的。
-- **平台：** 桌面端、Docker 和 Termux 托管的 Android 安装行为完全一致。iOS 和其他浏览器客户端使用各自 Marinara 宿主服务器上已安装的包。
+- **平台：** 桌面端和 Docker 的安装行为完全一致。iOS 和其他浏览器客户端使用各自 Marinara 宿主服务器上已安装的包。
 - **持久化：** 包存放在 `DATA_DIR/capability-packages` 下。Docker 卷、自定义数据文件夹、备份和常规更新都会保留它们。
 - **离线容错：** 连不上 GitHub 的 HTTPS 出站连接、拒绝了某次更新，或者更新没通过校验时，已有的包都会继续以已安装的版本工作。
 
@@ -92,13 +92,13 @@ Stop、Leave、关闭 Settings 和重启服务器都会结束相应的活动会�
 
 只连接可信的人。使用自己信任的 Marinara 客户端，绝不要安装房主提供的客户端、扩展或所谓必需文件。房主可以阅读、保留你分享的内容，并将其发送给所配置的 AI 服务商。直接连接会暴露网络地址。不要分享密码、API 密钥或敏感个人信息。发现可疑情况请立即退出。
 
-共享内容仅限有大小上限的文本。不支持对端文件/媒体传输、可执行内容、包导入、远程资源加载或原生操作。自定义/包工具和不安全命令在房间中仍不可用。Android 原生封装不能加入。具体限制与已测试平台见[兼容性与验证记录](development/multiplayer.md)；这些控制不保证能抵御所有浏览器/操作系统漏洞或独立的外部下载。
+共享内容仅限有大小上限的文本。不支持对端文件/媒体传输、可执行内容、包导入、远程资源加载或原生操作。自定义/包工具和不安全命令在房间中仍不可用。具体限制与已测试平台见[兼容性与验证记录](development/multiplayer.md)；这些控制不保证能抵御所有浏览器/操作系统漏洞或独立的外部下载。
 
 ## .env 文件在哪里
 
 配置写在一个名为 `.env` 的文件里。这是纯文本文件，每行一个设置，形式为 `KEY=value`。以 `#` 开头的行是注释，服务器会忽略。
 
-`.env` 是数据文件，不是 shell 脚本。Marinara 不会执行值里出现的 `$`、`$(...)` 这类命令替换或其他 shell 语法。macOS/Linux 和 Termux 启动脚本在服务器启动前需要读取的那一小部分设置，也遵循同样的“不求值”规则。如果启动脚本的环境里已经提供了某个值，它优先于 `.env` 里的同名条目。
+`.env` 是数据文件，不是 shell 脚本。Marinara 不会执行值里出现的 `$`、`$(...)` 这类命令替换或其他 shell 语法。macOS/Linux 启动脚本在服务器启动前需要读取的那一小部分设置，也遵循同样的“不求值”规则。如果启动脚本的环境里已经提供了某个值，它优先于 `.env` 里的同名条目。
 
 首次启动时 Marinara 会自动建好一个空的 `.env`，不用手动创建。
 
@@ -115,7 +115,7 @@ BASIC_AUTH_USER=alice
 BASIC_AUTH_PASS=correct-horse-battery-staple
 ```
 
-无论用什么方式启动，服务器都会自己读取 `.env`，直接跑 `pnpm start` 也一样。shell 启动脚本（`start.bat`、`start.sh`、`start-termux.sh`）额外做两件事：设置 `HOST=0.0.0.0` 让其他设备能访问服务器，以及自动打开浏览器。如果只用 `pnpm start`，除非自己设置 `HOST`，服务器只监听本机。
+无论用什么方式启动，服务器都会自己读取 `.env`，直接跑 `pnpm start` 也一样。shell 启动脚本（`start.bat`、`start.sh`）额外做两件事：设置 `HOST=0.0.0.0` 让其他设备能访问服务器，以及自动打开浏览器。如果只用 `pnpm start`，除非自己设置 `HOST`，服务器只监听本机。
 
 ## 重启还是热重载
 
@@ -166,7 +166,7 @@ Marinara 在运行期间会盯着 `.env` 文件。保存修改后，大部分设
 | `TRUSTED_HOSTS` | 空 | Marinara 额外允许响应的公网或反向代理主机名。直连 IP、localhost、`.local`、`.home.arpa` 和单段局域网名称自动生效。 |
 | `SSL_CERT` | 空 | TLS 证书文件的路径。与 `SSL_KEY` 一起设置即可直接提供 HTTPS 服务。 |
 | `SSL_KEY` | 空 | TLS 私钥文件的路径。 |
-| `CSRF_TRUSTED_ORIGINS` | 空 | 额外允许保存修改的浏览器源。用于公网域名或非常规端口。字面值 `null` 会被忽略，不得用于 Android APK；APK 自行认证的登录路由无需全局信任不透明源即可工作。 |
+| `CSRF_TRUSTED_ORIGINS` | 空 | 额外允许保存修改的浏览器源。用于公网域名或非常规端口。字面值 `null` 会被忽略。 |
 
 Basic Auth 是 HTTP Basic Authentication 的简称，就是一个简单的用户名密码提示框。它的凭据只做编码、不做加密，所以服务器面向公网时一定要配合 HTTPS 使用。HTTPS 是 HTTP 的安全加密版本。要直接启用，把 `SSL_CERT` 和 `SSL_KEY` 都设上，或者在 Marinara 前面放一个反向代理。
 
@@ -183,7 +183,7 @@ Basic Auth 是 HTTP Basic Authentication 的简称，就是一个简单的用户
 | `DATA_DIR` | `packages/server/data` | 所有用户数据的根文件夹。Docker 镜像设为 `/app/data`。 |
 | `FILE_STORAGE_DIR` | `DATA_DIR` 里的 `storage` 文件夹 | 覆盖文件存储文件夹。 |
 | `ENCRYPTION_KEY` | 空 | 用来加密已保存 API 密钥的密钥。用下面的命令生成一个。 |
-| `MARINARA_MAX_RESIDENT_CHATS` | `0`(无限制) | 限制服务器同时保留在内存里的聊天数量。聊天在第一次打开时载入内存；超过上限后，每次保存之后会把最久未使用、且没有未保存改动的那个聊天从内存中移出（不会从磁盘删除）。Termux 启动脚本默认把它设为 `8`，以保护手机内存。小于 `2` 的正数会被抬高到 `2`；设为 `0`(或不设置) 则关闭这项清理。 |
+| `MARINARA_MAX_RESIDENT_CHATS` | `0`(无限制) | 限制服务器同时保留在内存里的聊天数量。聊天在第一次打开时载入内存；超过上限后，每次保存之后会把最久未使用、且没有未保存改动的那个聊天从内存中移出（不会从磁盘删除）。小于 `2` 的正数会被抬高到 `2`；设为 `0`(或不设置) 则关闭这项清理。 |
 | `MARINARA_EAGER_STORAGE` | 关闭 | 设为 `1` 可在启动时把每一个聊天都载入内存，恢复 2.4.5 之前的行为。在体量大的档案上会占用多得多的内存；改动需要重启才生效。 |
 
 Marinara 把数据保存为普通的 JSON 文件，备份时便于直接复制和查看。
@@ -289,7 +289,7 @@ ADMIN_SECRET=replace-this-with-a-long-random-secret
 
 | 变量 | 默认值 | 作用 |
 | --- | --- | --- |
-| `PROVIDER_LOCAL_URLS_ENABLED` | `false` | 允许 AI 服务商 URL 访问私有或局域网地址。Android 上默认开启。 |
+| `PROVIDER_LOCAL_URLS_ENABLED` | `false` | 允许 AI 服务商 URL 访问私有或局域网地址。 |
 | `IMAGE_LOCAL_URLS_ENABLED` | `false` | 允许图像服务商 URL 访问私有或局域网地址。私有的生成图像结果 URL 仍然必须与所配置服务商的源完全一致。 |
 | `TTS_LOCAL_URLS_ENABLED` | `false` | 允许语音合成 URL 访问私有或局域网地址。 |
 | `STT_LOCAL_URLS_ENABLED` | `false` | 允许语音识别（Speech to Text）服务器 URL 访问私有或局域网地址。与 Marinara 在同一台机器上的服务器不开这个开关也能用。 |
@@ -312,12 +312,10 @@ ADMIN_SECRET=replace-this-with-a-long-random-secret
 
 | 变量 | 默认值 | 作用 |
 | --- | --- | --- |
-| `PORT` | `7860` | 服务器监听的端口。Android、Docker 和 Termux 上保持同一个值。 |
+| `PORT` | `7860` | 服务器监听的端口。Docker 上保持同一个值。 |
 | `HOST` | `127.0.0.1`(shell 启动脚本里是 `0.0.0.0`) | 要绑定的网络接口。局域网访问用 `0.0.0.0`。 |
-| `MARINARA_ANDROID_SECRET` | 空 | APK 管理的 Termux 安装使用的内部本地认证密钥。这不是安装程序的输入项：Android 外壳会生成并传递它，Termux 启动脚本会自动导出。不要要求 APK 用户提供，也不要在普通桌面安装或手动 Termux 安装中设置。设置后必须正好是 64 个十六进制字符。非空值无效时，设备本地请求会收到 HTTP 503，而不会通过削弱认证来继续运行。 |
-| `MARINARA_ANDROID_SECRET_FILE` | `~/.marinara-engine/android-secret` | Termux 启动脚本和本地 `mari` CLI 使用的私密密钥文件路径。APK 和启动脚本会自动管理这个文件；普通 APK 用户无需读取或复制。 |
 | `AUTO_OPEN_BROWSER` | `true` | 控制 shell 启动脚本是否自动打开应用 URL。设为 `false` 即可关闭。APK 管理的安装会关闭 shell 的浏览器自动打开功能。APK 会单独处理记住的应用或浏览器选择以及认证。 |
-| `AUTO_UPDATE_ENABLED` | `true` | 基于 Git 的 Windows、macOS/Linux 和 Termux 启动脚本是否在启动前拉取并应用 Engine 更新。设为 `false` 可长期关闭，下次启动生效。启动脚本仍会只读地检查有没有更新的正式发布版，有的话打印一条下载提醒；手动检查、应用内应用更新、包更新和模型更新都照常可用。加 `--skip-update` 可让本次启动跳过这两项检查。 |
+| `AUTO_UPDATE_ENABLED` | `true` | 基于 Git 的 Windows 和 macOS/Linux 启动脚本是否在启动前拉取并应用 Engine 更新。设为 `false` 可长期关闭，下次启动生效。启动脚本仍会只读地检查有没有更新的正式发布版，有的话打印一条下载提醒；手动检查、应用内应用更新、包更新和模型更新都照常可用。加 `--skip-update` 可让本次启动跳过这两项检查。 |
 | `MARINARA_ENV_FILE` | 项目根目录的 `.env` | 可选，覆盖 `.env` 文件的路径。要在启动前设置。 |
 | `TZ` | 系统默认 | 服务端任务使用的宿主机后备时区。Conversation 日程如果已经在日程控件里保存过全局时区，就用那个时区。不设 `TZ` 即沿用宿主机时区；写成空的 `TZ=` 也等同于未设置。 |
 | `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | 允许发起跨源请求的浏览器源。 |
@@ -385,7 +383,7 @@ Conversation 的日程控件默认使用浏览器或应用所在设备报告的�
 
 | 变量 | 默认值 | 作用 |
 | --- | --- | --- |
-| `CLAUDE_SUBSCRIPTION_USE_INSTALLED_CLI` | `true` | **Claude (Subscription)** 连接是否改用这台电脑上安装的 Claude Code，前提是它的版本不低于 Marinara 自带的那份。Android 上没有自带的版本，因此会使用已安装的任意 Claude Code，这一项需要保持开启。设为 `false` 则始终使用自带的版本。5 分钟内生效，无需重启。 |
+| `CLAUDE_SUBSCRIPTION_USE_INSTALLED_CLI` | `true` | **Claude (Subscription)** 连接是否改用这台电脑上安装的 Claude Code，前提是它的版本不低于 Marinara 自带的那份。设为 `false` 则始终使用自带的版本。5 分钟内生效，无需重启。 |
 | `DOCS_I18N_BASE_URL` | 官方 `docs-i18n` 分支 | 文档和界面语言包的下载来源。界面语言包位于 `ui/` 子树中。必须使用公开的 `https://` 主机；fork 和镜像可以指向自己的 `docs-i18n` 分支副本。 |
 | `GIPHY_API_KEY` | 空 | 用于 Conversation 模式里 GIF 搜索的 Giphy 密钥。未设置时搜索功能关闭。 |
 | `INTIFACE_URL` | `ws://127.0.0.1:12345` | Intiface 触感应用的默认地址。 |

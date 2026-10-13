@@ -4,9 +4,10 @@ import { RELEASE_BODY_LIMIT, renderReleaseNotes } from "../render-release-notes.
 const changelog = (entries) =>
   `# Changelog\n\n## [Unreleased]\n\n## [9.9.9]\n\n${entries.join("\n\n")}\n\n## [9.9.8]\n\n- Older entry.\n`;
 
-// Short notes are unchanged: the Android notice plus the whole entry.
+// Short notes are unchanged: the neutral preamble plus the whole entry.
 const short = renderReleaseNotes(changelog(["- First change.", "- Second change."]), "9.9.9");
-assert.match(short, /Android APK notice/u);
+assert.match(short, /^> \[!NOTE\]/u, "the release preamble still opens the body");
+assert.doesNotMatch(short, /Android|Termux/u, "the preamble carries no Android-specific content");
 assert.match(short, /- First change\.\n\n- Second change\.\n$/u);
 assert.doesNotMatch(short, /more changes/u);
 assert.doesNotMatch(short, /Older entry/u);
@@ -18,7 +19,7 @@ const entries = Array.from(
 );
 const long = renderReleaseNotes(changelog(entries), "9.9.9");
 assert.ok(long.length <= RELEASE_BODY_LIMIT, `body is ${long.length} characters`);
-assert.match(long, /^> \[!IMPORTANT\]/u);
+assert.match(long, /^> \[!NOTE\]/u, "the release preamble still opens the body");
 assert.match(long, /- Change 1: x+\n  - detail line 1\n/u);
 const kept = long.match(/^- Change \d+:/gmu).length;
 assert.ok(kept > 100 && kept < 900);
@@ -40,10 +41,10 @@ const heading = real.match(/^## (?:\[(\d+\.\d+\.\d+)\]|v?(\d+\.\d+\.\d+))$/mu);
 assert.ok(heading, "No supported release heading found in CHANGELOG.md");
 assert.ok(renderReleaseNotes(real, heading[1] ?? heading[2]).length <= RELEASE_BODY_LIMIT);
 
-// A single entry too large for GitHub is left out too; the body keeps the notice and links the full list.
+// A single entry too large for GitHub is left out too; the body keeps the preamble and links the full list.
 const oversized = renderReleaseNotes(changelog([`- ${"y".repeat(RELEASE_BODY_LIMIT)}`, "- Small."]), "9.9.9");
 assert.ok(oversized.length <= RELEASE_BODY_LIMIT);
-assert.match(oversized, /Android APK notice/u);
+assert.match(oversized, /^> \[!NOTE\]/u, "the preamble is the smallest renderable body");
 assert.doesNotMatch(oversized, /yyyy/u);
 assert.match(oversized, /_…and 2 more changes\./u);
 

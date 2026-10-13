@@ -5,12 +5,18 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "..");
 
-const ANDROID_APK_NOTICE = `> [!IMPORTANT]
-> **Android APK notice:** The APK is a Termux bootstrap + WebView shell, not a native Android server build. It opens an already-running local Marinara server, and on first launch it can download Termux from F-Droid, hand it to Android's installer, and start Marinara through Termux after Android permission prompts. Follow the [Android wrapper guide](https://github.com/Pasta-Devs/Marinara-Engine/blob/main/android/README.md) if Android blocks the bootstrap handoff.
+/**
+ * Prepended to every release body. This block is also the smallest renderable body: `renderReleaseNotes`
+ * trims entries until the remainder fits the GitHub limit, and what remains is this preamble — a single
+ * oversized bullet would have nothing to fall back on without it. The release-notes-render regression
+ * covers exactly that case, so do not remove this block.
+ */
+const RELEASE_BODY_PREAMBLE = `> [!NOTE]
+> The complete list of changes is in [CHANGELOG.md](https://github.com/Pasta-Devs/Marinara-Engine/blob/main/CHANGELOG.md).
 
 `;
 
-// GitHub rejects a release body over 125,000 characters; stay below it with room for the notice.
+// GitHub rejects a release body over 125,000 characters; stay below it with room for the preamble.
 export const RELEASE_BODY_LIMIT = 120_000;
 
 function parseArgs(args) {
@@ -63,11 +69,11 @@ function extractReleaseEntry(changelog, version) {
 }
 
 /**
- * The release body for a version: the Android notice plus its CHANGELOG entry. An entry too long for a GitHub
+ * The release body for a version: the release preamble plus its CHANGELOG entry. An entry too long for a GitHub
  * release is cut at the last whole bullet that fits and ends with a link to the full list at the tag.
  */
 export function renderReleaseNotes(changelog, version, limit = RELEASE_BODY_LIMIT) {
-  const notes = ANDROID_APK_NOTICE + extractReleaseEntry(changelog, version);
+  const notes = RELEASE_BODY_PREAMBLE + extractReleaseEntry(changelog, version);
   if (notes.length <= limit) return notes;
   const bullets = notes.split(/\n(?=- )/);
   const footer = (omitted) =>

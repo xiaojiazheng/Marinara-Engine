@@ -42,7 +42,6 @@ import {
   isRequestTimeoutError,
   requestTimeoutSignal,
 } from "../../lib/api-client";
-import { ANDROID_BRIDGE_READY_EVENT, getAndroidBridgeToken } from "../../lib/android-bridge";
 import { chatBackgroundUrlToMetadata } from "../../lib/backgrounds";
 import { normalizeThemeCss, sanitizeAppCss } from "../../lib/theme-css";
 import { getChatWidgetFontFamily } from "../../lib/font-family";
@@ -656,14 +655,6 @@ const SETTINGS_SEARCHABLE_CONTROLS: readonly SettingsSearchableControlMeta[] = [
     kind: "Toggle",
   },
   {
-    id: "android-status-bar",
-    sectionId: "application",
-    label: "Android status bar",
-    description: "Show the time, battery level, and notification icons in the Android app.",
-    aliases: ["android", "battery", "clock", "time", "notifications", "fullscreen"],
-    kind: "Toggle",
-  },
-  {
     id: "achievements",
     sectionId: "application",
     label: "Achievements",
@@ -749,14 +740,6 @@ const SETTINGS_SEARCHABLE_CONTROLS: readonly SettingsSearchableControlMeta[] = [
     label: "Background replies browser notifications",
     description: "Show browser notifications for background Conversation replies.",
     aliases: ["browser", "notifications", "conversation"],
-    kind: "Toggle",
-  },
-  {
-    id: "mobile-background-notifications",
-    sectionId: "notifications",
-    label: "Background replies mobile notifications",
-    description: "Show native Android notifications for background Conversation replies.",
-    aliases: ["mobile", "android", "notifications", "conversation"],
     kind: "Toggle",
   },
   {
@@ -1638,137 +1621,6 @@ const SETTINGS_BUTTON_CLASS = "mari-chrome-control mari-chrome-control--small te
 const SETTINGS_PRIMARY_BUTTON_CLASS = "mari-chrome-control mari-chrome-control--primary text-xs";
 const SETTINGS_COMPACT_PRIMARY_BUTTON_CLASS =
   "mari-chrome-control mari-chrome-control--compact mari-chrome-control--selected text-[0.625rem]";
-type MarinaraAndroidBridge = {
-  openLauncher?: (token?: string) => void;
-  openConsole?: {
-    (token: string): void;
-    (): void;
-  };
-  isStatusBarVisible?: {
-    (token: string): boolean;
-    (): boolean;
-  };
-  setStatusBarVisible?: {
-    (token: string, visible: boolean): void;
-    (visible: boolean): void;
-  };
-};
-
-function getMarinaraAndroidBridge(): MarinaraAndroidBridge | null {
-  if (typeof window === "undefined") return null;
-  const nativeWindow = window as Window & { MarinaraAndroid?: MarinaraAndroidBridge };
-  return nativeWindow.MarinaraAndroid ?? null;
-}
-
-function isMarinaraAndroidShell(): boolean {
-  return typeof navigator !== "undefined" && /\bMarinaraEngine\/Android\b/u.test(navigator.userAgent);
-}
-
-function readAndroidStatusBarVisibility(): boolean | null {
-  const bridge = getMarinaraAndroidBridge();
-  if (typeof bridge?.isStatusBarVisible !== "function") return null;
-  try {
-    const token = getAndroidBridgeToken();
-    return token ? bridge.isStatusBarVisible(token) : bridge.isStatusBarVisible();
-  } catch {
-    return null;
-  }
-}
-
-function updateAndroidStatusBarVisibility(visible: boolean): boolean {
-  const bridge = getMarinaraAndroidBridge();
-  if (typeof bridge?.setStatusBarVisible !== "function") return false;
-  try {
-    const token = getAndroidBridgeToken();
-    if (token) bridge.setStatusBarVisible(token, visible);
-    else bridge.setStatusBarVisible(visible);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function AndroidStatusBarSetting() {
-  const { t } = useTranslation();
-  const initialVisibility = readAndroidStatusBarVisibility();
-  const [visible, setVisible] = useState(initialVisibility ?? false);
-  const [supported, setSupported] = useState(initialVisibility !== null);
-
-  useEffect(() => {
-    const refreshBridge = () => {
-      const nextVisibility = readAndroidStatusBarVisibility();
-      if (nextVisibility === null) return;
-      setVisible(nextVisibility);
-      setSupported(true);
-    };
-    window.addEventListener(ANDROID_BRIDGE_READY_EVENT, refreshBridge);
-    refreshBridge();
-    return () => window.removeEventListener(ANDROID_BRIDGE_READY_EVENT, refreshBridge);
-  }, []);
-
-  const handleChange = useCallback(
-    (nextVisible: boolean) => {
-      if (!updateAndroidStatusBarVisibility(nextVisible)) {
-        toast.error(t("settings.application.androidStatusBar.error"));
-        return;
-      }
-      setVisible(nextVisible);
-    },
-    [t],
-  );
-
-  let help = t("settings.application.androidStatusBar.unavailable");
-  if (supported) {
-    help = t("settings.application.androidStatusBar.help");
-  } else if (isMarinaraAndroidShell()) {
-    help = t("settings.application.androidStatusBar.updateRequired");
-  }
-
-  return (
-    <>
-      <ToggleSetting
-        anchorId={getSettingsControlAnchorId("android-status-bar")}
-        label={t("settings.application.androidStatusBar.label")}
-        checked={visible}
-        onChange={handleChange}
-        help={help}
-        disabled={!supported}
-      />
-      {typeof getMarinaraAndroidBridge()?.openLauncher === "function" && (
-        <button
-          type="button"
-          className={SETTINGS_BUTTON_CLASS}
-          onClick={() => getMarinaraAndroidBridge()?.openLauncher?.(getAndroidBridgeToken() ?? undefined)}
-        >
-          {t("settings.application.androidLauncher")}
-        </button>
-      )}
-    </>
-  );
-}
-
-function isStandaloneIosInstall(): boolean {
-  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
-  const nav = navigator as Navigator & { standalone?: boolean };
-  const isIos = /\b(iPad|iPhone|iPod)\b/u.test(nav.userAgent);
-  const isStandalone = nav.standalone === true || window.matchMedia?.("(display-mode: standalone)")?.matches === true;
-  return isIos && isStandalone;
-}
-
-function getNativeConsoleShortcutHelp(): string {
-  const bridge = getMarinaraAndroidBridge();
-  if (typeof bridge?.openConsole === "function") {
-    return "Opens Termux from the Android APK so you can view Marinara server logs while Debug mode is enabled.";
-  }
-  if (isMarinaraAndroidShell()) {
-    return "This Android APK build cannot expose the Termux console shortcut yet. Update Marinara, or open Termux manually.";
-  }
-  if (isStandaloneIosInstall()) {
-    return "iPhone installations do not expose a native console shortcut yet. Use the host server logs or Safari Web Inspector.";
-  }
-  return "Available in packaged Android/iPhone installations only. Browser and desktop users should use the server terminal or browser developer tools.";
-}
-
 const SETTINGS_COMPONENTS: Record<(typeof TABS)[number]["id"], React.FC> = {
   general: React.memo(GeneralSettings),
   appearance: React.memo(AppearanceSettings),
@@ -3760,7 +3612,6 @@ function GeneralSettings() {
             onChange={setChatHelpButtonHidden}
             help={localizeUi("settings.controls.hideChatHelpButton.help")}
           />
-          <AndroidStatusBarSetting />
           <ToggleSetting
             anchorId={getSettingsControlAnchorId("achievements")}
             label={localizeUi("home.achievements.title")}
@@ -8368,23 +8219,6 @@ function AdvancedSettings() {
       toast.error(getPrivilegedActionErrorMessage(error, localizeUi("settings.storageOptimization.error")));
     },
   });
-  const nativeConsoleBridge = getMarinaraAndroidBridge();
-  const canOpenNativeConsole = typeof nativeConsoleBridge?.openConsole === "function";
-  const nativeConsoleHelp = getNativeConsoleShortcutHelp();
-
-  const handleOpenNativeConsole = useCallback(() => {
-    const bridge = getMarinaraAndroidBridge();
-    if (typeof bridge?.openConsole !== "function") {
-      toast.info(getNativeConsoleShortcutHelp());
-      return;
-    }
-
-    const token = getAndroidBridgeToken();
-    if (token) bridge.openConsole(token);
-    else bridge.openConsole();
-    toast.info(localizeUi("ui.panels.advancedsettings.openingTermuxConsole"));
-  }, [localizeUi]);
-
   const handleExternalExtensionsToggle = useCallback(
     async (enabled: boolean) => {
       if (enabled) {
@@ -9130,11 +8964,6 @@ function AdvancedSettings() {
                       {updateCheck.data.latestVersion}
                     </a>
                   )}
-                  {updateCheck.data.versionUpdate && (
-                    <span className="text-[0.625rem] text-[var(--muted-foreground)]">
-                      {localizeUi("ui.panels.advancedsettings.androidApkAssetsAreWebviewShellsNotStandaloneApps")}
-                    </span>
-                  )}
                   {manualUpdateHint && (
                     <span className="text-[0.625rem] text-[var(--muted-foreground)]">{manualUpdateHint}</span>
                   )}
@@ -9310,20 +9139,6 @@ function AdvancedSettings() {
             onChange={setDebugMode}
             help={localizeUi("settings.controls.debugMode.help")}
           />
-          <div className="flex items-center gap-2">
-            <div className="min-w-0 flex-1" title={nativeConsoleHelp}>
-              <button
-                type="button"
-                onClick={handleOpenNativeConsole}
-                disabled={!canOpenNativeConsole}
-                className={cn(SETTINGS_BUTTON_CLASS, "w-full justify-center gap-1.5 px-3 py-2 text-xs")}
-              >
-                <Terminal size="0.8125rem" className="shrink-0" />
-                <span>{localizeUi("ui.panels.advancedsettings.openConsole")}</span>
-              </button>
-            </div>
-            <HelpTooltip side="bottom" text={nativeConsoleHelp} />
-          </div>
         </div>
       </SettingsSection>
 

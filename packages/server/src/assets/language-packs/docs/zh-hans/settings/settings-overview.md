@@ -31,7 +31,7 @@
 **General** 选项卡下有六个部分。本页完整介绍其中两个：**App Behavior**(应用行为) 和 **Text Rules**。其余四个这里只做概述，详细内容在各自的指南里。
 
 - **App Behavior**：语言、删除保护，以及几个显示/隐藏开关。下面详述。
-- **Notifications**(通知)：通知提示音，以及浏览器和 Android 应用各自独立的开关。**Custom sound**(自定义提示音) 可以上传 MP3、WAV、OGG、M4A/MP4 或 WebM 格式的文件（最大 10 MB），用来替换 Marinara 内置的提示音，连接到这台服务器的所有设备都会生效。这个文件随时可以预览、替换或删除；文件读不出来时会自动退回内置提示音，它也会一起进入备份和档案导出。**Background Notifications**(后台通知) 管的是 Conversation 的自主消息，**Generation Completion Notifications**(生成完成通知) 管的是在 Conversation、Roleplay 和 Game Mode 里手动发起的回复。两者都在 Marinara 保持打开但不在前台时生效，消息内容不会显示出来。
+- **Notifications**(通知)：通知提示音，以及浏览器端独立的开关。**Custom sound**(自定义提示音) 可以上传 MP3、WAV、OGG、M4A/MP4 或 WebM 格式的文件（最大 10 MB），用来替换 Marinara 内置的提示音，连接到这台服务器的所有设备都会生效。这个文件随时可以预览、替换或删除；文件读不出来时会自动退回内置提示音，它也会一起进入备份和档案导出。**Background Notifications**(后台通知) 管的是 Conversation 的自主消息，**Generation Completion Notifications**(生成完成通知) 管的是在 Conversation、Roleplay 和 Game Mode 里手动发起的回复。两者都在 Marinara 保持打开但不在前台时生效，消息内容不会显示出来。
 - **Responses**(回复)：回复怎么流式输出、怎么保存、怎么分页。见[发送消息与流式输出](../chats/sending-and-streaming.md)。
 - **Input & Editing**(输入与编辑)：消息输入框和快速编辑相关的控件。见[消息操作](../chats/messages.md)。
 - **Text Rules**：应用到聊天文字上的格式规则。下面详述。

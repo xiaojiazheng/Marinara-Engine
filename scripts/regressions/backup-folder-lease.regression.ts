@@ -1,5 +1,5 @@
 // POST /api/backup copies the data folders. It must leave out the live writer lease: its owner.json blocks
-// startup when restored on another host (#6083), and on Docker/Termux its live socket made cp fail outright.
+// startup when restored on another host (#6083), and on Docker its live socket made cp fail outright.
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -28,7 +28,7 @@ try {
   await mkdir(join(storageDir, "tables", ".writer-lease"), { recursive: true });
   await writeFile(join(storageDir, "tables", ".writer-lease", "keep.json"), "{}");
   if (process.platform !== "win32") {
-    // Docker and Termux keep a liveness socket here; Node's cp refuses to copy sockets.
+    // Docker keeps a liveness socket here; Node's cp refuses to copy sockets.
     await new Promise<void>((resolve, reject) => {
       socketServer.once("error", reject);
       socketServer.listen(join(lease, "live.sock"), resolve);

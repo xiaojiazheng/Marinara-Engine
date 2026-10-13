@@ -4052,10 +4052,22 @@ html[data-marinara-reduced-effects="true"] .mari-win11-toaster [data-sonner-toas
 html[data-marinara-effects-paused="true"] .mari-win11-toaster [data-sonner-toast],
 html[data-marinara-reduced-effects="true"] .mari-win11-toaster [data-sonner-toast] > *,
 html[data-marinara-effects-paused="true"] .mari-win11-toaster [data-sonner-toast] > *,
-html[data-marinara-reduced-effects="true"] .mari-win11-toaster .mari-win11-toast[data-sonner-toast][data-styled="true"] [data-close-button],
-html[data-marinara-effects-paused="true"] .mari-win11-toaster .mari-win11-toast[data-sonner-toast][data-styled="true"] [data-close-button],
-html[data-marinara-reduced-effects="true"] .mari-win11-toaster .mari-win11-toast[data-sonner-toast][data-styled="true"] .mari-win11-toast__action,
-html[data-marinara-effects-paused="true"] .mari-win11-toaster .mari-win11-toast[data-sonner-toast][data-styled="true"] .mari-win11-toast__action {
+html[data-marinara-reduced-effects="true"]
+  .mari-win11-toaster
+  .mari-win11-toast[data-sonner-toast][data-styled="true"]
+  [data-close-button],
+html[data-marinara-effects-paused="true"]
+  .mari-win11-toaster
+  .mari-win11-toast[data-sonner-toast][data-styled="true"]
+  [data-close-button],
+html[data-marinara-reduced-effects="true"]
+  .mari-win11-toaster
+  .mari-win11-toast[data-sonner-toast][data-styled="true"]
+  .mari-win11-toast__action,
+html[data-marinara-effects-paused="true"]
+  .mari-win11-toaster
+  .mari-win11-toast[data-sonner-toast][data-styled="true"]
+  .mari-win11-toast__action {
   transition: none;
 }
 
@@ -6238,9 +6250,7 @@ strong {
 
   /* 100cqw is the chat pane (CenterContent is a size container), so the right edge ignores the
      transcript's scrollbar, as the composer does. */
-  [data-chat-mode="roleplay"][data-roleplay-presentation="classic"][data-chat-position="right"]
-    [data-chat-scroll]
-    > * {
+  [data-chat-mode="roleplay"][data-roleplay-presentation="classic"][data-chat-position="right"] [data-chat-scroll] > * {
     margin-left: max(
       0px,
       100cqw - 2 * var(--mari-roleplay-transcript-gutter) - var(--mari-chat-position-clearance, 0px) -

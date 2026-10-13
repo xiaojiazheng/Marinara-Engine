@@ -3,15 +3,10 @@ import { Bell, BellRing, Loader2, Play, Trash2, Upload, Volume2 } from "lucide-r
 import { useTranslation, useTranslation as useUiTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useUIStore } from "../../../stores/ui.store";
-import { ANDROID_BRIDGE_READY_EVENT } from "../../../lib/android-bridge";
 import {
   getLocalNotificationPermission,
-  getNativeNotificationPermission,
-  hasNativeNotificationBridge,
   requestLocalNotificationPermission,
-  requestNativeNotificationPermission,
   type LocalNotificationPermission,
-  type NativeNotificationPermission,
 } from "../../../lib/local-notifications";
 import { playNotificationPing, setCustomNotificationSoundUrl } from "../../../lib/notification-sound";
 import {
@@ -212,17 +207,9 @@ export function ConversationSoundSetting() {
   const setNotificationSoundsOnlyWhenUnfocused = useUIStore((s) => s.setNotificationSoundsOnlyWhenUnfocused);
   const conversationBrowserNotifications = useUIStore((s) => s.conversationBrowserNotifications);
   const setConversationBrowserNotifications = useUIStore((s) => s.setConversationBrowserNotifications);
-  const conversationMobileNotifications = useUIStore((s) => s.conversationMobileNotifications);
-  const setConversationMobileNotifications = useUIStore((s) => s.setConversationMobileNotifications);
   const generationBrowserNotifications = useUIStore((s) => s.generationBrowserNotifications);
   const setGenerationBrowserNotifications = useUIStore((s) => s.setGenerationBrowserNotifications);
-  const generationMobileNotifications = useUIStore((s) => s.generationMobileNotifications);
-  const setGenerationMobileNotifications = useUIStore((s) => s.setGenerationMobileNotifications);
   const [browserPermission, setBrowserPermission] = useState<LocalNotificationPermission>("default");
-  const [nativeNotificationsAvailable, setNativeNotificationsAvailable] = useState(hasNativeNotificationBridge);
-  const [nativePermission, setNativePermission] = useState<NativeNotificationPermission>(() =>
-    getNativeNotificationPermission(),
-  );
   const browserNotificationHelp =
     browserPermission === "insecure"
       ? "Browser notifications require HTTPS or localhost."
@@ -241,27 +228,6 @@ export function ConversationSoundSetting() {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    const refreshBridge = () => {
-      setNativeNotificationsAvailable(hasNativeNotificationBridge());
-      setNativePermission(getNativeNotificationPermission());
-    };
-    window.addEventListener(ANDROID_BRIDGE_READY_EVENT, refreshBridge);
-    refreshBridge();
-    return () => window.removeEventListener(ANDROID_BRIDGE_READY_EVENT, refreshBridge);
-  }, []);
-
-  useEffect(() => {
-    if (!nativeNotificationsAvailable) return;
-    const refreshPermission = () => setNativePermission(getNativeNotificationPermission());
-    window.addEventListener("focus", refreshPermission);
-    document.addEventListener("visibilitychange", refreshPermission);
-    return () => {
-      window.removeEventListener("focus", refreshPermission);
-      document.removeEventListener("visibilitychange", refreshPermission);
-    };
-  }, [nativeNotificationsAvailable]);
 
   const handleBrowserNotificationToggle = (
     enabled: boolean,
@@ -295,36 +261,6 @@ export function ConversationSoundSetting() {
               : localizeUi("ui.panels.conversationsoundsetting.browserNotificationPermissionWasNotGranted"),
       );
     });
-  };
-
-  const handleMobileNotificationToggle = (
-    enabled: boolean,
-    setPreference: (value: boolean) => void,
-    successMessage: string,
-  ) => {
-    if (!enabled) {
-      setPreference(false);
-      return;
-    }
-    void requestNativeNotificationPermission()
-      .then((permission) => {
-        setNativePermission(permission);
-        if (permission === "granted") {
-          setPreference(true);
-          toast.success(successMessage);
-          return;
-        }
-        setPreference(false);
-        toast.error(
-          permission === "unsupported"
-            ? localizeUi("ui.panels.conversationsoundsetting.mobileNotificationsRequireTheMarinaraAndroidApp")
-            : localizeUi("ui.panels.conversationsoundsetting.androidNotificationPermissionWasNotGranted"),
-        );
-      })
-      .catch(() => {
-        setPreference(false);
-        toast.error(localizeUi("ui.panels.conversationsoundsetting.androidNotificationPermissionCouldNotBeRequested"));
-      });
   };
 
   return (
@@ -392,24 +328,6 @@ export function ConversationSoundSetting() {
         }
         help={browserNotificationHelp}
       />
-      <ToggleSetting
-        anchorId="settings-control-mobile-background-notifications"
-        label={localizeUi("settings.notifications.mobileApp")}
-        checked={conversationMobileNotifications && nativePermission === "granted"}
-        onChange={(enabled) =>
-          handleMobileNotificationToggle(
-            enabled,
-            setConversationMobileNotifications,
-            "Mobile notifications enabled for autonomous messages.",
-          )
-        }
-        disabled={!nativeNotificationsAvailable}
-        help={
-          nativeNotificationsAvailable
-            ? localizeUi("ui.panels.conversationsoundsetting.usesNativeAndroidNotificationsFromTheInstalledMarinaraApp")
-            : localizeUi("ui.panels.conversationsoundsetting.availableInTheUpdatedMarinaraAndroidApkBrowserAnd")
-        }
-      />
       <div className="mt-1 flex items-center gap-1.5">
         <BellRing size="0.75rem" className="text-[var(--muted-foreground)]" />
         <span className="text-xs font-medium">{localize("Generation Completion Notifications")}</span>
@@ -431,24 +349,6 @@ export function ConversationSoundSetting() {
           )
         }
         help={browserNotificationHelp}
-      />
-      <ToggleSetting
-        anchorId="settings-control-mobile-generation-notifications"
-        label={localizeUi("settings.notifications.mobileApp")}
-        checked={generationMobileNotifications && nativePermission === "granted"}
-        onChange={(enabled) =>
-          handleMobileNotificationToggle(
-            enabled,
-            setGenerationMobileNotifications,
-            "Mobile notifications enabled for generation completions.",
-          )
-        }
-        disabled={!nativeNotificationsAvailable}
-        help={
-          nativeNotificationsAvailable
-            ? localizeUi("ui.panels.conversationsoundsetting.usesNativeAndroidNotificationsFromTheInstalledMarinaraApp")
-            : localizeUi("ui.panels.conversationsoundsetting.availableInTheUpdatedMarinaraAndroidApkBrowserAnd")
-        }
       />
     </div>
   );

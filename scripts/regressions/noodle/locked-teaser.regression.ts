@@ -19,7 +19,7 @@ const workDir = mkdtempSync(join(tmpdir(), "marinara-noodle-locked-teaser-"));
 
 try {
   const sharp = await getSharp();
-  // sharp has no Android/Termux prebuild. Where it cannot load the route fails closed and
+  // sharp may have no prebuild on every host. Where it cannot load the route fails closed and
   // serves nothing, which is the behaviour the null branch below pins.
   if (!sharp) {
     // A source that exists and is perfectly readable: the null here is Sharp being absent,

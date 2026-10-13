@@ -32,9 +32,7 @@ on:
       - "migrate-variables.cjs"
       - "start.bat"
       - "start.sh"
-      - "start-termux.sh"
       # Platform-specific sources
-      - "android/**"
       - "win/**"
       - "MarinaraLauncher.exe"
       # GitHub community files

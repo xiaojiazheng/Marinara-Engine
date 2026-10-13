@@ -60,8 +60,6 @@ Decision 模型回答一种特定问题。它接收聊天的最近消息及一�
 | 托管 Decision 连接 | 按请求计费；一个回合可能发出多次请求 | API 密钥（TypeSafe 或 OpenRouter） | 手机，以及不运行本地模型的电脑 |
 | 可安装的判定模型 | 额外占用磁盘和显存，见[模型大小](#let-marinara-install-a-decision-model) | Linux x86-64 和受支持的 NVIDIA GPU | 在聊天模型旁运行独立判定模型 |
 
-**在 Android (Termux) 上，**可安装的判定模型无法运行，因为它需要配备 NVIDIA GPU 的电脑。手机处理器上运行的小型本地模型也可能无法在时限内完成。手机上更实用的是托管 Decision 连接，例如通过 OpenRouter 使用 Jev。见[设置 Decision 连接](#set-up-a-decision-connection)。
-
 预设、角色卡和智能体应以“一个 Decision 模型”为前提编写，不要写成“必须使用 Jev”。无论用户选择哪个模型，陈述语法都相同，但答案可能不同。
 
 导入使用判定的内容时，Marinara 会显示通知并链接到本指南。这也包括自定义智能体和 Agent 目录安装。如果没有选择 Decision 模型，通知会解释备用行为：提示词陈述按否处理，世界书条目无法通过判定激活，而智能体激活问题会在关键词和 **Trigger Cadence** 允许时放行。如果不希望智能体在没有 Decision 模型时每回合运行，也要为它设置频率。恢复整个档案的 ZIP 不会显示此导入通知。
@@ -103,7 +101,7 @@ Marinara 向模型提出一个是/否问题，让它生成一个 Token，再从�
 ## 设置 Decision 连接
 
 1. 在 **Connections** 中创建连接，将服务商设为 **Decision**。
-2. 选择 **TypeSafe**、**OpenRouter**、**Custom System One endpoint**(自定义 System One 端点) 或 **OpenAI-compatible chat model**。托管来源需要 API 密钥。TypeSafe 默认发送到 `https://api.typesafe.ai`；如果把它的 **Base URL**(基础 URL) 换成另一台运行 TypeSafe API 的服务器地址（不含 `/v1/systemone`），仍需要你的 TypeSafe 密钥，该密钥会发送到那台服务器。如果那台服务器在局域网内的另一台机器上，也和其他本地服务商一样需要 `PROVIDER_LOCAL_URLS_ENABLED`；Android 上默认开启。Custom 接受已有的 System One 服务器，包括 Open-Jev 或 [Strands decider](#run-strands-decider-yourself)；输入不含 `/v1/systemone` 的基础 URL 和受支持的模型名称。Ollama、LM Studio 等聊天模型服务器不使用 System One：请按[使用已运行的服务器](#on-a-server-you-already-run)选择 **OpenAI-compatible chat model**。
+2. 选择 **TypeSafe**、**OpenRouter**、**Custom System One endpoint**(自定义 System One 端点) 或 **OpenAI-compatible chat model**。托管来源需要 API 密钥。TypeSafe 默认发送到 `https://api.typesafe.ai`；如果把它的 **Base URL**(基础 URL) 换成另一台运行 TypeSafe API 的服务器地址（不含 `/v1/systemone`），仍需要你的 TypeSafe 密钥，该密钥会发送到那台服务器。如果那台服务器在局域网内的另一台机器上，也和其他本地服务商一样需要 `PROVIDER_LOCAL_URLS_ENABLED`。Custom 接受已有的 System One 服务器，包括 Open-Jev 或 [Strands decider](#run-strands-decider-yourself)；输入不含 `/v1/systemone` 的基础 URL 和受支持的模型名称。Ollama、LM Studio 等聊天模型服务器不使用 System One：请按[使用已运行的服务器](#on-a-server-you-already-run)选择 **OpenAI-compatible chat model**。
 3. 对于 OpenRouter，在 **API key source**(API 密钥来源) 下选择已保存的连接，或输入单独的密钥。其编辑器也提供 **Use this key for decisions**(将此密钥用于判定)，用于通过 OpenRouter 配置 Jev。关联的密钥会自动跟随后续更改。Custom System One 和 OpenAI-compatible chat model 连接只有在两个 URL 同源（协议、主机和端口相同）时，才能借用自定义聊天连接的密钥。
 4. 保存后在 **Decision model** 下选择它，再点击 **Test**。成功后显示概率、回答耗时和连接的时限。Test 至少等待 10 秒；时限更长时，等待时限再加 5 秒，因此慢回答也会按实际耗时报告。如果超过时限，结果会注明：在聊天中，这样的回答会视为没有答案。
 

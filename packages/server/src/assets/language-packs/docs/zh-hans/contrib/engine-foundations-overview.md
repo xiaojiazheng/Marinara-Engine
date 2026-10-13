@@ -353,7 +353,7 @@ H 添加启动完整性检查、运行时内存遥测、可选调试文件、后
 
 基于 `staging` 提交 `dd876831a` 检查。未进行付费模型调用。
 
-- **Linux Node 回归**：按 CI `complete-node-regressions`（WSL 下 Ubuntu 24.04、Node 24、`pnpm install --frozen-lockfile`、`pnpm regression`）运行，384 个文件全部通过。机器繁忙时 `server-signal-shutdown` 偶达 30 秒，未改动的 `staging` 也如此。时间敏感的 `smart-group-decision`、`agent-activation-questions`、`advanced-memory-core` 各失败一次，之后重跑均通过。
+- **Linux Node 回归**：按 CI `complete-node-regressions`（WSL 下 Ubuntu 24.04、Node 24、`pnpm install --frozen-lockfile`、`pnpm verify`）运行，384 个文件全部通过。机器繁忙时 `server-signal-shutdown` 偶达 30 秒，未改动的 `staging` 也如此。时间敏感的 `smart-group-decision`、`agent-activation-questions`、`advanced-memory-core` 各失败一次，之后重跑均通过。
 - **Windows Node 回归**：384 中 379 通过。`decision-sidecar-runtime`、`gallery-previews`、`request-timeouts`、`server-signal-shutdown`、`storage-writer-lock` 在同机未改动的 `staging` 也失败，原因是本地文件锁、控制台信号、磁盘空间检查。
 - **类型、lint、格式、构建**：shared、server、client、根项目及令牌估算项目运行 `tsc --noEmit`；lint 零错误；`packages/**/*.{ts,tsx}` 的 Prettier；locale 与静态 JSX 检查；客户端/服务端构建。
 - **设置浏览器测试**（`core-flows`、`issue-sweep-settings`、`ux-feedback-sweep`、`afternoon-sweep`、`client-runtime-diagnostics`）在 `mobile-chromium` 上 171 通过、0 失败。`mobile-webkit`（Windows WebKit）重跑后剩余失败也在原始 `staging` 出现。

@@ -644,7 +644,7 @@ import { connectionKeys } from "./use-connections";
 import { lorebookKeys } from "./use-lorebooks";
 import { presetKeys } from "./use-presets";
 import { playConfiguredNotificationPing } from "../lib/notification-sound";
-import { showLocalMessageNotification, showNativeMessageNotification } from "../lib/local-notifications";
+import { showLocalMessageNotification } from "../lib/local-notifications";
 import {
   dispatchCapabilityClientEvent,
   dispatchSpatialCapabilityEvent,
@@ -3532,12 +3532,6 @@ export function useGenerate() {
                 enabled: params.autonomous
                   ? uiState.conversationBrowserNotifications
                   : uiState.generationBrowserNotifications,
-              });
-              showNativeMessageNotification({
-                ...notification,
-                enabled: params.autonomous
-                  ? uiState.conversationMobileNotifications
-                  : uiState.generationMobileNotifications,
               });
             });
           }

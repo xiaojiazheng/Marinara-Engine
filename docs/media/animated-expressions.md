@@ -73,7 +73,7 @@ Generation fails with a message about ffmpeg. Install ffmpeg and make sure the s
 
 The dropdown says no video generation connections were found. Add a **Video Generation** connection first. See [Scene Video Generation](scene-video.md).
 
-The **Generate Sprite** button is disabled. On some devices Marinara cannot load its image library, which turns off all sprite generation, including animated expressions. This happens on some Android and Termux installs.
+The **Generate Sprite** button is disabled. On some devices Marinara cannot load its image library, which turns off all sprite generation, including animated expressions. This happens on some installs.
 
 The saved GIF still shows a background. This is expected. Animated expressions skip background cleanup. See "Transparency caveat" above.
 

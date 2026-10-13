@@ -5332,40 +5332,6 @@ assert.deepEqual(
   "Oldest chat sorting must use creation time",
 );
 
-const termuxLauncher = readFileSync(new URL("../../start-termux.sh", import.meta.url), "utf8");
-assert.doesNotMatch(termuxLauncher, /run_pnpm install --force/u);
-assert.match(termuxLauncher, /run_pnpm store prune/u);
-assert.match(termuxLauncher, /TERMUX_REBUILD_REQUIRED/u);
-assert.doesNotMatch(termuxLauncher, /--max-old-space-size=2048/u);
-assert.match(
-  termuxLauncher,
-  /has_explicit_node_heap_limit\(\)[\s\S]*NODE_OPTIONS_VALUE[\s\S]*const heapOption = \/\^--max[\s\S]*resolve_default_node_heap_mb\(\)[\s\S]*heap_mb=1024[\s\S]*heap_mb=1536[\s\S]*if ! has_explicit_node_heap_limit; then[\s\S]*--max-old-space-size=\$\{MARINARA_TERMUX_HEAP_MB\}/u,
-  "Termux must parse complete heap-option tokens before applying its bounded profile-aware default",
-);
-for (const buildEntry of ["packages/shared/dist/constants/defaults.js", "packages/server/dist/index.js"]) {
-  assert.ok(
-    termuxLauncher.includes(`if [ ! -f "${buildEntry}" ]; then`),
-    `Termux must rebuild when ${buildEntry} is missing`,
-  );
-}
-const termuxClientBuildBlock = termuxLauncher
-  .split("if ! node scripts/check-client-build.mjs; then\n")[1]
-  ?.split("\nfi")[0];
-assert.ok(termuxClientBuildBlock, "Termux must handle an incomplete client build");
-assert.equal(
-  termuxClientBuildBlock.match(/build_termux_client/gu)?.length,
-  2,
-  "Initial build and retry must use the bounded build heap",
-);
-const termuxClientBuildHelper = termuxLauncher.split("build_termux_client() (")[1]?.split("\n)")[0];
-assert.ok(termuxClientBuildHelper, "Termux must define the isolated client build helper");
-assert.match(termuxClientBuildHelper, /MARINARA_LOW_MEMORY_BUILD=1 run_pnpm --filter @marinara-engine\/client build/u);
-assert.match(
-  termuxClientBuildBlock,
-  /    node scripts\/check-client-build\.mjs$/u,
-  "Termux must rebuild and recheck incomplete client assets, including a missing index",
-);
-
 const trafficExtensionId = "open-issues-extension-traffic";
 const trafficNow = 180_000;
 for (const requestedAt of [59_000, 119_000, 179_000]) {
@@ -6357,14 +6323,6 @@ const spriteDownloadSource = readFileSync(
   new URL("../../packages/client/src/lib/sprite-download.ts", import.meta.url),
   "utf8",
 );
-const androidMainActivitySource = readFileSync(
-  new URL("../../android/app/src/main/java/com/marinara/engine/MainActivity.java", import.meta.url),
-  "utf8",
-);
-const configureWebViewStart = androidMainActivitySource.indexOf("private void configureWebView()");
-const configureWebViewEnd = androidMainActivitySource.indexOf("private void tryConnect()", configureWebViewStart);
-assert.ok(configureWebViewStart >= 0 && configureWebViewEnd > configureWebViewStart);
-const configureWebViewSource = androidMainActivitySource.slice(configureWebViewStart, configureWebViewEnd);
 const gameJournalSource = readFileSync(
   new URL("../../packages/client/src/components/game/GameJournal.tsx", import.meta.url),
   "utf8",
@@ -6677,19 +6635,7 @@ assert.match(characterEditorSource, /if \(uploading \|\| !expression\) return;/u
 assert.match(personaEditorSource, /if \(uploading \|\| !expression\) return;/u);
 assert.match(characterEditorSource, /className="flex flex-col gap-2 sm:flex-row"/u);
 assert.match(personaEditorSource, /className="flex flex-col gap-2 sm:flex-row"/u);
-assert.match(fileDownloadSource, /MarinaraAndroid/u);
 assert.match(spriteDownloadSource, /saveBlobToDevice/u);
-assert.match(
-  androidMainActivitySource,
-  /public void saveFile\(String token, String base64Data, String mimeType, String filename\)/u,
-  "Android file saves must require the authenticated top-frame bridge token",
-);
-assert.match(androidMainActivitySource, /MediaStore\.Images\.Media\.getContentUri/u);
-assert.match(
-  configureWebViewSource,
-  /settings\.setTextZoom\(100\);/u,
-  "The Android wrapper must not inherit oversized WebView text zoom",
-);
 assert.match(
   characterEditorSource,
   /<SettingsSwitch\s+checked=\{formData\.extensions\.versioningEnabled !== false\}/u,
@@ -6703,7 +6649,7 @@ assert.match(
 assert.match(
   setupGenerationParametersSource,
   /className="flex min-w-0 w-full items-center justify-between gap-3 text-left"[\s\S]*className="min-w-0 flex-1"[\s\S]*"h-5 w-9 shrink-0 rounded-full/u,
-  "The New Chat parameter toggle must stay within its card when Android enlarges text",
+  "The New Chat parameter toggle must stay within its card when the browser enlarges text",
 );
 assert.match(
   characterEditorSource,
@@ -6762,7 +6708,7 @@ assert.match(
 assert.doesNotMatch(
   choiceSelectionModalSource,
   /inline-flex h-4 w-7 shrink-0 items-center rounded-full/u,
-  "Preset choices must not restore the undersized Android toggle",
+  "Preset choices must not restore the undersized custom toggle",
 );
 // #3624: the Session window embeds the Game Journal, whose tabs scroll only inside a bounded height. The old
 // popover's fixed height cap moved to the control windows: a computer's window has a set height, and a phone's

@@ -44,19 +44,6 @@ This file matters when you move or restore your data. Say you copy your data fol
 
 Some advanced setups provide the key through an `ENCRYPTION_KEY` environment variable instead of the file. If you use that variable, keep the value safe on its own. In that case there is no `.encryption-key` file to copy. See the [Server Configuration Reference](../CONFIGURATION.md) for details.
 
-## Where is my data on Android
-
-On Android, the server's data folder usually sits in app storage that you cannot reach without root access. This means you cannot simply copy the folder off the phone.
-
-To get a copy of your data on Android, use the **Download Backup** button. You can find it in **Settings**, on the **Advanced** tab, in the **Backup & Export** section. This creates a single zip file with your data. The zip includes the `.encryption-key` file when one exists. This is the most reliable way to save your data from a phone.
-
-The same section can keep 1 to 9999 rotating daily, weekly, or monthly automatic archives in `backups/` inside the
-data folder. The newest is `marinara-automatic-backup.zip`, and retained older automatic archives are timestamped.
-This limit applies only to automatic backups. Copy important backups somewhere outside the app's storage too, because
-uninstalling or resetting the app can remove both the live data and its local automatic backups.
-
-For the full backup and restore steps on every platform, see [Backing Up and Restoring Marinara](backup-and-restore.md).
-
 ## Related guides
 
 - [Backing Up and Restoring Marinara](backup-and-restore.md)

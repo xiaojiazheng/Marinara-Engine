@@ -84,7 +84,7 @@ On the **Full-body** source, if the character already has portrait expressions, 
 Two notes about AI generation:
 
 - Generation can take a few minutes, even though the in-app text may suggest less. Slow AI services take longer. Please wait rather than starting over.
-- On some devices, such as certain Android installs, AI sprite generation and background cleanup are not available. When that happens, the button is disabled and Marinara shows the reason on screen.
+- On some devices, AI sprite generation and background cleanup are not available. When that happens, the button is disabled and Marinara shows the reason on screen.
 
 ### Animated portrait sprites
 

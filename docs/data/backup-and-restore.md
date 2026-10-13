@@ -31,7 +31,7 @@ From a phone, tablet, or any other device, backup and restore need the **Admin A
 6. When the archive is ready, Marinara streams it straight to your browser without holding the whole file in page memory.
 7. Your browser either opens its normal **Save As** dialog or puts the file in your Downloads folder, depending on your download settings.
 
-This step matters most on Android and iOS. On those devices the app's own data folder is usually not reachable. That makes **Download Backup** the only easy way to get a copy off the device. Save it somewhere safe and private, like your own cloud storage.
+This step matters most on iOS. On that platform the app's own data folder is usually not reachable. That makes **Download Backup** the only easy way to get a copy off the device. Save it somewhere safe and private, like your own cloud storage.
 
 The **.zip** also contains a plain text file named `RESTORE.txt`. It explains how to recover your data by hand if you ever need to. Treat the backup as private: it can hold secret files used to unlock your saved API keys. To learn what each folder holds, see the data location guide linked below.
 

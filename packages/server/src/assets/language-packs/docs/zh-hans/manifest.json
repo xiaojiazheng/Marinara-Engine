@@ -3,18 +3,18 @@
   "files": [
     {
       "path": "CONFIGURATION.md",
-      "sha256": "2caa33030a181a6438734d1af331d9dce386d148a8bb6508cccd7ef77c3ce6e1",
-      "bytes": 40560
+      "sha256": "ed7b621802ff4c370a52a007dbff94f12b057a4f71a701fea7c6afba1c31c91c",
+      "bytes": 39420
     },
     {
       "path": "FAQ.md",
-      "sha256": "a5b1477b8a04912aa26b752934a9f6b6e632e7f7715673e458d6a8f623af3c93",
-      "bytes": 21890
+      "sha256": "8d7bf017dacb33203c6aac06813a2c0b98400d848e253c4dbba408b36ce40e98",
+      "bytes": 20578
     },
     {
       "path": "INSTALLATION.md",
-      "sha256": "6c1b3ac49baaf3ee46bc80157041357d6b3b2e5808a179b803cff5ea3efcba7c",
-      "bytes": 3809
+      "sha256": "b240fef83f445815a8426654c8655625673be7918707fe3afe5ad422c98c3927",
+      "bytes": 3013
     },
     {
       "path": "REMOTE_ACCESS.md",
@@ -23,18 +23,18 @@
     },
     {
       "path": "TROUBLESHOOTING.md",
-      "sha256": "cc7c218d6fd3230d6fdabbd162b5f27e72dd6b47ec20fb964cb2713d14b7f531",
-      "bytes": 44583
+      "sha256": "f850737e8d3f7e219be8f91ac457204380dc5ddadd90cd2f318f3540ff7adab5",
+      "bytes": 34911
     },
     {
       "path": "UPGRADING.md",
-      "sha256": "52de270039d9f43b2f061b6bc12ff6dea7e31b7660c839cfa85c750906413cf5",
-      "bytes": 12656
+      "sha256": "118b11616445aa4fe5eee45168c50ea9bfa4485c17740bfcfd288f139bab4f86",
+      "bytes": 11451
     },
     {
       "path": "agents/agents-overview.md",
-      "sha256": "db52e10f279fd4d4d35d566998ba902b4eeb1ad273d9571e6a37e9298c7c4bcc",
-      "bytes": 11405
+      "sha256": "750dbde55cb291b87a5b663d5b85e17559b73c1e64eae3bab2f8b504f8de5e67",
+      "bytes": 11367
     },
     {
       "path": "agents/approvals-and-agent-suite.md",
@@ -138,8 +138,8 @@
     },
     {
       "path": "characters/sprites.md",
-      "sha256": "10c848a9d83709c603b5beab977be1acea8a140760f9d2874f6d4e8e6a66241f",
-      "bytes": 11446
+      "sha256": "c869a5c00777eccd7586cc3d4d3049d8b4517f3bb718b787dcab8968af269747",
+      "bytes": 11410
     },
     {
       "path": "chats/branches.md",
@@ -213,18 +213,18 @@
     },
     {
       "path": "connections/decision-models.md",
-      "sha256": "d31baa052ef1322a892ac01b2a55772c7b357c2824120d33883bf0873d000c6b",
-      "bytes": 25368
+      "sha256": "259433fa03729f0fd49beab26a816cb67bd0277e7f5d7923b535c68425280f70",
+      "bytes": 24997
     },
     {
       "path": "connections/local-model.md",
-      "sha256": "394c59117e56764073e9cbd207e91b7b7de62b5807b3b4232f115576a7108ca5",
-      "bytes": 15077
+      "sha256": "8230936a54603f156b0540fa856651c80fd59d8da3af0bbfab0f9ea0df1a8c76",
+      "bytes": 15065
     },
     {
       "path": "connections/local-self-hosted.md",
-      "sha256": "0945d1a141a1121f820e7063f629d37fca11d57dd718df3cc00147a9d71d6287",
-      "bytes": 7104
+      "sha256": "76ec6d5b7875dd082678f8c57d5f5014960bf9db08f26f1ed8c345c6afb228ee",
+      "bytes": 7041
     },
     {
       "path": "connections/organizing-connections.md",
@@ -243,8 +243,8 @@
     },
     {
       "path": "contrib/engine-foundations-overview.md",
-      "sha256": "557ee6a3f30de7df40b065777dda655e5ec3cf1474f2a16405fc595e42ed72cf",
-      "bytes": 27669
+      "sha256": "3c3d0d306df764e0a3d89749b7254122ec9572371c24efdbbca5098f65ff0ef3",
+      "bytes": 27665
     },
     {
       "path": "conversation/calls.md",
@@ -283,8 +283,8 @@
     },
     {
       "path": "data/backup-and-restore.md",
-      "sha256": "71f0a8e5fd20dd1f643fed5ea2c1a7b992406f6ab56148468d3d51b0db716354",
-      "bytes": 9663
+      "sha256": "ac738c7fa6e32a1747c9e02100044bc762d744556b3c81317d76d8483b9e3255",
+      "bytes": 9651
     },
     {
       "path": "data/clearing-data.md",
@@ -298,8 +298,8 @@
     },
     {
       "path": "data/where-data-is-stored.md",
-      "sha256": "abc464df6a9a069f7d4308c7b717d82bde0e624e084fbe1f180b2dd03c8a338f",
-      "bytes": 4671
+      "sha256": "8b4c3963f7b430b7af66a8476e3425927af584ee39dedebe39203c7d8b8d962b",
+      "bytes": 3568
     },
     {
       "path": "development/architecture-map.md",
@@ -313,8 +313,8 @@
     },
     {
       "path": "development/code-cleanup-audit.md",
-      "sha256": "d0ff114d5fb473d2a56358f3f02ee1225f3a94b6215feffd7d116e17fd6c26fb",
-      "bytes": 26122
+      "sha256": "6e2b61d8191507027b6d89236f399a66c1effa577e58640ba52e2fb8bb402eb1",
+      "bytes": 26064
     },
     {
       "path": "development/file-storage.md",
@@ -353,8 +353,8 @@
     },
     {
       "path": "development/hierarchical-locations-prd-v3.md",
-      "sha256": "45c48fffcff89165a542de3cd9060c0882b16e9bf0074a0a0b04d52f1e2fca3c",
-      "bytes": 86223
+      "sha256": "3c7db972eb10e20486749902df77d87921c6204d4023bc8540bd5bb63ed93109",
+      "bytes": 86219
     },
     {
       "path": "development/ios-pwa-safe-area.md",
@@ -378,8 +378,8 @@
     },
     {
       "path": "development/multiplayer.md",
-      "sha256": "53146c2664707e81111fb4c089d5f34d3f7a1793c91caed4d708b818f1680098",
-      "bytes": 13886
+      "sha256": "011451f87e10498bea16186c35a9f382ac170812fa5cd0de044cb2fb7621bde1",
+      "bytes": 13683
     },
     {
       "path": "development/noodle-internals.md",
@@ -388,13 +388,13 @@
     },
     {
       "path": "development/optional-agent-packages.md",
-      "sha256": "3271a21c474ae83931b5086150edf3f70e60ae7a639553aa5f6f1e384a2c2c67",
-      "bytes": 78711
+      "sha256": "1697e6facc82f4b8544243c7eb7b53fe91444bd06a49618b98aa5a176c886663",
+      "bytes": 78694
     },
     {
       "path": "development/personal-extensions.md",
-      "sha256": "e44157943f7e138b78421f7e1e90200b71279e4e97625c391b6e85a77aa0ee86",
-      "bytes": 15543
+      "sha256": "7d298d23ef930bd62952e318b957aa1f6e2b2dea6146b9f0829ef0ae38a03412",
+      "bytes": 15533
     },
     {
       "path": "extending/custom-tools.md",
@@ -403,8 +403,8 @@
     },
     {
       "path": "extending/personal-extensions.md",
-      "sha256": "f25a7e3480cf7c1f2c3fd4dab7645cbff60f1cb424aece87ab0305ff07ef110f",
-      "bytes": 17594
+      "sha256": "1e22dc5a3b47d087d55e3ba10e95dc72b78804d7e53d9f12bdbcd8a8ef406e2a",
+      "bytes": 17421
     },
     {
       "path": "extending/regex-scripts.md",
@@ -492,19 +492,14 @@
       "bytes": 6859
     },
     {
-      "path": "installation/android-termux.md",
-      "sha256": "62086df4633b03f2143a06944f169430205f8dac0545592624bc4996acfdb9fe",
-      "bytes": 7055
-    },
-    {
       "path": "installation/containers.md",
       "sha256": "10a1bd105c1317d9a4fed493634290d5c10acd6804172b36ba0bae93cfd2759a",
       "bytes": 10418
     },
     {
       "path": "installation/ios-pwa.md",
-      "sha256": "8d95b3738e0feb7237a6b614939ad690f00a7fcdf46b973dc39705970ca4b549",
-      "bytes": 6806
+      "sha256": "b9b0e2b6c87e99d3db8982bf67148dc166718e0544407a9558316a8f1856da74",
+      "bytes": 6649
     },
     {
       "path": "installation/macos-linux.md",
@@ -568,8 +563,8 @@
     },
     {
       "path": "media/animated-expressions.md",
-      "sha256": "3481c7a79ae03e605dfdb1df24fd9aa74a75b62a0ad04101fa8006b897f08d3c",
-      "bytes": 6180
+      "sha256": "b2d5add47a21cbf816308655b8eb1890b15e75d6d5cab481171eb55d6d66cb12",
+      "bytes": 6160
     },
     {
       "path": "media/comfyui.md",
@@ -683,8 +678,8 @@
     },
     {
       "path": "settings/settings-overview.md",
-      "sha256": "3c4b59fd74fcf18fabeadbfeafa71b528f45b6f827666cdd199f18b765998cc4",
-      "bytes": 13520
+      "sha256": "a7585048f078ca76d95d509fe9467617a561c19409a6d571759fb1a1b2c7c01f",
+      "bytes": 13499
     }
   ]
 }

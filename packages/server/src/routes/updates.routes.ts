@@ -83,10 +83,6 @@ const MANUAL_PNPM_COMMAND = `corepack pnpm@${DEFAULT_PNPM_DESCRIPTOR}`;
 const DOCKER_IMAGE = "ghcr.io/pasta-devs/marinara-engine";
 const MANUAL_GIT_UPDATE_COMMAND = `git fetch origin +refs/heads/main:refs/remotes/origin/main && (git merge --ff-only origin/main || git checkout --detach origin/main) && ${MANUAL_PNPM_COMMAND} --config.trustPolicy=off --config.confirmModulesPurge=false install --force --frozen-lockfile && ${MANUAL_PNPM_COMMAND} --filter @marinara-engine/shared build && ${MANUAL_PNPM_COMMAND} --filter @marinara-engine/server --filter @marinara-engine/client --parallel run build && ${MANUAL_PNPM_COMMAND} start`;
 const DOCKER_UPDATE_COMMAND = "docker compose pull && docker compose up -d";
-const ANDROID_APK_NOTICE =
-  "> [!IMPORTANT]\n" +
-  "> **Android APK notice:** The APK is a Termux bootstrap + WebView shell, not a native Android server build. It opens an already-running local Marinara server, and on first launch it can download Termux from F-Droid, hand it to Android's installer, and start Marinara through Termux after Android permission prompts.";
-
 // ── Cached release info (15-min TTL) ──
 let cachedRelease: {
   latestVersion: string;
@@ -564,17 +560,9 @@ function buildFallbackRelease(tag: string) {
   return {
     latestVersion: normalizeTag(tag),
     releaseUrl: `${GITHUB_REPO_URL}/releases/tag/${tag}`,
-    releaseNotes: ANDROID_APK_NOTICE,
+    releaseNotes: "",
     publishedAt: "",
   };
-}
-
-function withAndroidApkNotice(notes: string) {
-  if (/Android APK notice|not a standalone Marinara Engine app|requires Termux/i.test(notes)) {
-    return notes;
-  }
-
-  return notes.trim() ? `${ANDROID_APK_NOTICE}\n\n${notes}` : ANDROID_APK_NOTICE;
 }
 
 function buildRequestHeaders() {
@@ -773,7 +761,7 @@ async function resolveLatestReleaseFromGitHub(signal: AbortSignal) {
   return {
     latestVersion: normalizeTag(latestTag),
     releaseUrl: release.html_url ?? `${GITHUB_REPO_URL}/releases/tag/${latestTag}`,
-    releaseNotes: withAndroidApkNotice(release.body ?? ""),
+    releaseNotes: release.body ?? "",
     publishedAt: release.published_at ?? "",
   };
 }

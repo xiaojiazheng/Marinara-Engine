@@ -300,9 +300,7 @@ test("multiplayer requires separate consent and reviews only selected persona te
   await expect(page.getByRole("switch", { name: "Enable multiplayer", exact: true })).toBeDisabled();
 });
 
-test("multiplayer stays inaccessible without the environment gate and native guests stay disabled", async ({
-  page,
-}, info) => {
+test("multiplayer stays inaccessible without the environment gate", async ({ page }, info) => {
   let available = false;
   await page.route("**/api/**", (route) =>
     route.fulfill({
@@ -316,10 +314,6 @@ test("multiplayer stays inaccessible without the environment gate and native gue
   await expect(page.getByText("Multiplayer is unavailable.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Join session", exact: true })).toHaveCount(0);
   available = true;
-  await page.addInitScript(() => Object.assign(window, { MarinaraAndroidNative: {} }));
-  await mountControls(page, info, "settings");
-  await expect(page.getByRole("button", { name: "Join session", exact: true })).toBeDisabled();
-  await expect(page.getByText("Joining is unavailable in the native Android app", { exact: false })).toBeVisible();
 });
 
 for (const disabledGate of ["environment", "settings"] as const) {
@@ -995,9 +989,6 @@ test("stopped rooms remain escapable when multiplayer endpoints are disabled", a
   await mountControls(page, info, "guest");
   await page.getByRole("button", { name: "Leave", exact: true }).click();
   await expect(page.locator("#fixture")).toHaveAttribute("data-active-chat", "none");
-  await page.addInitScript(() => Object.assign(window, { MarinaraAndroidNative: {} }));
-  await mountControls(page, info, "guest");
-  await expect(page.getByText("Joining is unavailable in the native Android app", { exact: false })).toBeVisible();
   const pageErrors: Error[] = [];
   page.on("pageerror", (error) => pageErrors.push(error));
   await page.getByRole("button", { name: "Leave", exact: true }).last().click();

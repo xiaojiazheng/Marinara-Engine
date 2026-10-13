@@ -10,9 +10,7 @@ import { generateClientId } from "../../lib/utils";
 import "./multiplayer-guest.css";
 
 const rootElement = document.getElementById("multiplayer-root");
-// The current Android wrapper injects a native object into every frame. It is
-// unsupported until it provides a separately verified bridge-free guest view.
-if (rootElement && window.parent !== window && !("MarinaraAndroidNative" in window)) {
+if (rootElement && window.parent !== window) {
   const root = createRoot(rootElement);
   let bound = false;
   let closed = false;

@@ -1,11 +1,5 @@
 import { prepareViteFixtureDependencies } from "./vite-fixture-dependencies.js";
 import Fastify from "../packages/server/node_modules/fastify/fastify.js";
-import {
-  androidLocalAuthHook,
-  androidLocalAuthRoutes,
-  androidLocalLoginRoute,
-  androidLocalAuthTesting,
-} from "../packages/server/src/middleware/android-local-auth.js";
 import { securityHeadersHook } from "../packages/server/src/middleware/security-headers.js";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import { createServer } from "node:http";
@@ -410,62 +404,6 @@ test("blank local models run agent retries and manual Illustrator prompts", asyn
   } finally {
     await f.cleanup();
     await new Promise<void>((resolve) => provider.close(() => resolve()));
-  }
-});
-
-test("Android browser handoff signs in without typing a secret and clears the one-use link", async ({
-  page,
-  request,
-}, testInfo) => {
-  // Keep server-only dependency types in the server TypeScript project.
-  const { csrfProtectionHook } = await import("../packages/server/src/middleware/csrf-protection.js" as string);
-  const previousSecret = process.env.MARINARA_ANDROID_SECRET;
-  const secret = "11".repeat(32);
-  process.env.MARINARA_ANDROID_SECRET = secret;
-  androidLocalAuthTesting.clear();
-  const app = Fastify();
-  app.addHook("onRequest", securityHeadersHook);
-  app.addHook("onRequest", csrfProtectionHook);
-  app.addHook("onRequest", androidLocalAuthHook);
-  await app.register(androidLocalAuthRoutes, { prefix: "/api/android-auth" });
-  await androidLocalLoginRoute(app);
-  app.get("/", async (_req, reply) => reply.type("text/html").send("<h1>Marinara browser authenticated</h1>"));
-  const origin = await app.listen({ host: "127.0.0.1", port: 0 });
-  try {
-    await page.goto(`${origin}/android-login`);
-    await expect(page.getByRole("heading", { name: "Authenticate this local browser" })).toBeVisible();
-    await page.screenshot({ path: testInfo.outputPath("android-browser-login.png") });
-    const clientNonce = "22".repeat(32);
-    const challenge = await (
-      await request.post(`${origin}/api/android-auth/challenge`, { data: { clientNonce } })
-    ).json();
-    const response = await request.post(`${origin}/api/android-auth/session`, {
-      data: {
-        clientNonce,
-        serverNonce: challenge.serverNonce,
-        browser: true,
-        proof: androidLocalAuthTesting.hmac(secret, `client:${clientNonce}:${challenge.serverNonce}`),
-      },
-    });
-    expect(response.ok(), await response.text()).toBeTruthy();
-    const { browserTicket } = await response.json();
-    expect(browserTicket).not.toBe(secret);
-    await page.goto(`${origin}/android-login#ticket=${browserTicket}`);
-    await expect(page.getByRole("heading", { name: "Marinara browser authenticated" })).toBeVisible();
-    expect(page.url()).toBe(`${origin}/`);
-    const cookie = (await page.context().cookies(origin)).find((cookie) => cookie.name === "MarinaraAndroidSession");
-    expect(cookie).toMatchObject({ httpOnly: true, sameSite: "Strict" });
-    expect(cookie?.value).not.toBe(secret);
-    const replay = await request.post(`${origin}/api/android-auth/browser-session`, {
-      data: { ticket: browserTicket },
-      maxRedirects: 0,
-    });
-    expect(replay.status()).toBe(401);
-  } finally {
-    await app.close();
-    androidLocalAuthTesting.clear();
-    if (previousSecret === undefined) delete process.env.MARINARA_ANDROID_SECRET;
-    else process.env.MARINARA_ANDROID_SECRET = previousSecret;
   }
 });
 

@@ -86,7 +86,7 @@
 | `packages/client/src/components/agents/AgentDebugPanel.tsx`(296 行) | 没有任何地方导入它，`AgentDebugPanel` 只在自己的声明处出现。 | 删除该组件。然后检查智能体 store 里的 `debugLog` 和 `clearDebugLog`，除了这个无法到达的面板之外没有别处使用它们。不要删除 `lastResults`，`SpriteOverlay` 还在用。 | `pnpm check`；打开智能体设置和调试模式，确认仍在使用的调试界面正常。 |
 | `packages/client/src/components/agents/AgentThoughtBubbles.tsx`(113 行) | 没有任何地方导入它，`AgentThoughtBubbles` 只在自己的声明处出现。现在的思考气泡和清单界面由 `RoleplayHUD` / `RoleplayHUDActionsMenu` 渲染。 | 删除该组件，以及 `packages/client/.instructions.md` 里过时的对应条目。 | `pnpm check`；`pnpm regression:roleplay`；在浏览器里检查 Roleplay(角色扮演) 的 HUD 和连续性清单。 |
 | `packages/client/src/components/panels/GlobalGalleryPanel.tsx`(468 行) | 没有任何地方导入，没有路由注册，也没有精确同名的引用。 | 只删除这一个面板。**不要**由此推断整个图库功能已经废弃：`NoodleHome`、图库相关 Hook、服务器路由和存储层都还有实际引用。 | `pnpm check`；`pnpm smoke:ui`；手动验证 Noodle 的图片上传和图库行为。 |
-| `packages/shared/src/features/turn-games/engine-utils.ts`(22 行) | 没有任何导入，没有 barrel 导出，4 个导出符号全都只在这个文件里出现。 | 直接删除文件。 | `pnpm check`；`pnpm regression`。 |
+| `packages/shared/src/features/turn-games/engine-utils.ts`(22 行) | 没有任何导入，没有 barrel 导出，4 个导出符号全都只在这个文件里出现。 | 直接删除文件。 | `pnpm check`；`pnpm verify`。 |
 
 ### 1.2 已废弃的 sidecar 构建脚本
 
@@ -258,7 +258,7 @@
 按改动类型选择对应的验证手段：
 
 - 任何代码清理：`pnpm check`。
-- shared 包的改动或影响面较大的服务器改动：先跑 `pnpm regression`，或者范围更窄的 `pnpm regression:<domain>`，合并前再跑一遍完整流程。
+- shared 包的改动或影响面较大的服务器改动：先跑 `pnpm verify`，或者范围更窄的 `pnpm regression:<domain>`，合并前再跑一遍完整流程。
 - 界面组件或 Hook 的清理：`pnpm smoke:ui`，再手动在浏览器里验证受影响的流程。
 - 提示词、智能体或 Roleplay 相关代码：`pnpm regression:prompt` 和/或 `pnpm regression:roleplay`。
 - 依赖清理：干净环境安装或锁定版本安装、`pnpm check`、生产构建，以及受支持平台上的 CI。
@@ -273,7 +273,7 @@
 
 - 全部受版本控制的 JSON 文件都能正常解析；
 - 全部 12 个受版本控制的 Python 文件都能通过 Python 的 AST 解析器解析；
-- `start.sh`、`start-termux.sh` 和 `android/build-apk.sh` 都通过了 `bash -n`；
+- `start.sh` 通过了 `bash -n`；
 - TypeScript 的未使用项探测得到了上文记录的 57 条服务器诊断和 3 条客户端诊断；
 - 直接观察到服务器和根目录的测试命令在零测试的情况下返回成功。
 

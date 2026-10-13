@@ -82,36 +82,12 @@ podman compose down && podman compose pull && podman compose up -d
 
 Release images are published as `ghcr.io/pasta-devs/marinara-engine:X.Y.Z` and `:latest`, plus matching `-lite` tags. Pull `:latest` or the newest version tag unless you want to stay on an older release on purpose. Your data in the `marinara-data` volume is not touched by a pull.
 
-### Android (Termux)
-
-Termux is a terminal and Linux environment for Android. Its launcher updates Marinara each time you run it.
-
-1. Open Termux.
-2. Run the launcher.
-
-```bash
-cd Marinara-Engine
-./start-termux.sh
-```
-
-The launcher updates the code, upgrades Node.js when needed, rebuilds, and starts the local server.
-
-If an update is broken and you need to stay on your current copy, skip the update check instead.
-
-```bash
-cd Marinara-Engine
-./start-termux.sh --skip-update
-```
-
-For a persistent opt-out, set `AUTO_UPDATE_ENABLED=false` in the project `.env`. This affects only launcher-managed Engine updates; manual updates and the in-app update controls remain available.
-
-If you use the Android app icon (the APK), [download the latest APK](https://github.com/Pasta-Devs/Marinara-Engine/releases/latest/download/marinara-engine-android.apk) and open the downloaded file so Android updates the wrapper itself. Then open Marinara Engine and tap **Install / Start Marinara** to update and start the Termux copy behind it. The app preserves and exchanges its private localhost credential automatically; an update never asks you for signing credentials or that secret.
 
 ### iPhone and iPad
 
 iPhone and iPad do not run the Marinara server. They open a server that runs on another device through Safari. The copy on your Home Screen is a PWA, short for Progressive Web App. A PWA is a website you add to your Home Screen so it opens like an app.
 
-1. Update the computer, Docker host, or Android device that actually runs your Marinara server. Use that device's section above.
+1. Update the computer or Docker host that actually runs your Marinara server. Use that device's section above.
 2. Reload the Home Screen PWA or the Safari tab on your iPhone or iPad.
 
 If Safari keeps showing an older build after the host is updated, reset the cached copy.
@@ -209,5 +185,4 @@ For error messages and step-by-step fixes, see [Troubleshooting Marinara Engine]
 - [Windows Installation Guide](installation/windows.md)
 - [macOS / Linux Installation Guide](installation/macos-linux.md)
 - [Run via Container (Docker / Podman)](installation/containers.md)
-- [Android (Termux) Installation Guide](installation/android-termux.md)
 - [iOS / iPadOS PWA Guide](installation/ios-pwa.md)

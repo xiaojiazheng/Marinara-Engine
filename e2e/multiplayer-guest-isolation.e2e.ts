@@ -167,11 +167,6 @@ async function openGuest(page: Page) {
     if (window === parent) {
       localStorage.setItem("marinara_admin_secret", "private-test-secret");
       document.cookie = "admin=private-test-cookie; SameSite=Strict";
-      scope.MarinaraAndroidNative = {
-        saveFile: () => {
-          scope.nativeCalls = (scope.nativeCalls ?? 0) + 1;
-        },
-      };
     }
   });
   await page.goto(origin);
@@ -203,6 +198,7 @@ test("production guest renders hostile data as inert text with no capabilities o
       parent: denied(() => parent.document.body),
       storage: denied(() => localStorage.getItem("marinara_admin_secret")),
       cookie: denied(() => document.cookie),
+      // The native bridge retired with Android support: it must be absent in every frame, guest included.
       native: "MarinaraAndroidNative" in window,
       executed: "pwned" in window,
     };

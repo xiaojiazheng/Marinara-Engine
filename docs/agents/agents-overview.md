@@ -8,7 +8,7 @@ Agents are small AI helpers that run automatically around your main chat reply. 
 
 Agents are turned on per chat, not per character. There is no agent toggle on a character card. Two chats with the same character can run completely different agents. You choose which agents run in each chat's settings.
 
-Fresh Marinara Engine installations start without optional agents. This keeps the base app and Termux installation smaller. **Download Agents** groups the official one-click packages into **Apps**, **Writer Agents**, **Tracker Agents**, and **Misc Agents**. The catalog includes Long-Term Memory, World Maps, Calls, Inventory Tracker, and all six Conversation games. Their source, manifests, downloadable artifacts, and repository-level catalog are public in [Pasta-Devs/Marinara-Agents](https://github.com/Pasta-Devs/Marinara-Agents). For the complete per-agent guide, see [Downloadable Agents Reference](built-in-agents.md). To make your own, see [Creating Custom Agents](custom-agents.md).
+Fresh Marinara Engine installations start without optional agents. This keeps the base app smaller. **Download Agents** groups the official one-click packages into **Apps**, **Writer Agents**, **Tracker Agents**, and **Misc Agents**. The catalog includes Long-Term Memory, World Maps, Calls, Inventory Tracker, and all six Conversation games. Their source, manifests, downloadable artifacts, and repository-level catalog are public in [Pasta-Devs/Marinara-Agents](https://github.com/Pasta-Devs/Marinara-Agents). For the complete per-agent guide, see [Downloadable Agents Reference](built-in-agents.md). To make your own, see [Creating Custom Agents](custom-agents.md).
 
 ## The three phases
 
@@ -39,7 +39,7 @@ Marinara asks before it updates a package. When a newer compatible version of a 
 
 You can still update any package later from **Download Agents**. Installed packages keep working at their current version until you update them, even when the catalog cannot be reached.
 
-Updates only apply to packages you already installed. Desktop, Docker, and Android/Termux installations keep their packages on their local server. iOS, iPadOS, and other browser clients use the packages installed on the Marinara server they connect to.
+Updates only apply to packages you already installed. Desktop and Docker installations keep their packages on their local server. iOS, iPadOS, and other browser clients use the packages installed on the Marinara server they connect to.
 
 ## Enabling agents for a chat
 

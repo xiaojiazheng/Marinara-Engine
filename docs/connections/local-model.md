@@ -39,7 +39,7 @@ Support depends on your operating system:
 - **Windows (64-bit) and Linux (64-bit)**: You get a full **Runtime Target** picker, so you can choose your graphics card (GPU) family or run on the processor (CPU) only.
 - **Windows on ARM and Linux on ARM**: A reduced set of options, mostly CPU based.
 - **macOS on Apple Silicon**: Marinara uses the MLX runtime, tuned for Apple chips. Custom models are HuggingFace repositories instead of single files.
-- **macOS on Intel and Android**: Effectively CPU only.
+- **macOS on Intel**: Effectively CPU only.
 
 The Local Model is not available in "Lite" installs. A Lite install is a slimmed-down build that leaves out the local runtime to save space. On a Lite install, the Local Model card does not appear.
 

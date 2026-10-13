@@ -104,7 +104,7 @@ import { useSidecarStore } from "../../stores/sidecar.store";
 import { useUIStore, type MariEditViewMode, type MariPanelSortMode } from "../../stores/ui.store";
 import { MariEditEasyViewer } from "./MariEditEasyViewer";
 import { MariPromptPreviewModal, type MariPromptRenderSide } from "./MariPromptPreviewModal";
-import { showLocalMessageNotification, showNativeMessageNotification } from "../../lib/local-notifications";
+import { showLocalMessageNotification } from "../../lib/local-notifications";
 import {
   isProfessorMariTranscriptNearBottom,
   scrollProfessorMariTranscriptToBottom,
@@ -3844,7 +3844,6 @@ export function HomeProfessorMariChat({
       tag: "marinara-mari-approval",
     };
     void showLocalMessageNotification({ ...notification, enabled: uiState.generationBrowserNotifications });
-    showNativeMessageNotification({ ...notification, enabled: uiState.generationMobileNotifications });
   }, [pendingChangeReviews]);
 
   const workspaceTimelineActive = workspaceActive || hasActiveGeneration;

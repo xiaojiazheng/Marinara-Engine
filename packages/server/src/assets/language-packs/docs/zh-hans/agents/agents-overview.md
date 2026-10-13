@@ -8,7 +8,7 @@
 
 智能体按聊天开启，不按角色开启。角色卡上没有智能体开关。同一个角色的两个聊天，可以运行完全不同的智能体。每个聊天要运行哪些智能体，都在这个聊天自己的设置里选。
 
-全新安装的 Marinara Engine 不带任何可选智能体，这样能让基础应用和 Termux 安装包更小。**Download Agents**(下载智能体) 把官方一键安装包分成 **Apps**(应用)、**Writer Agents**(写作智能体)、**Tracker Agents**(追踪器智能体) 和 **Misc Agents**(其他智能体) 四组。目录里包括 Long-Term Memory、World Maps、Calls、Inventory Tracker 以及全部 6 款 Conversation 游戏。它们的源码、清单文件、可下载产物和仓库级目录都公开在 [Pasta-Devs/Marinara-Agents](https://github.com/Pasta-Devs/Marinara-Agents)。每个智能体的详细说明见[可下载智能体参考](built-in-agents.md)。想自己做一个，见[创建自定义智能体](custom-agents.md)。
+全新安装的 Marinara Engine 不带任何可选智能体，这样能让基础应用更小。**Download Agents**(下载智能体) 把官方一键安装包分成 **Apps**(应用)、**Writer Agents**(写作智能体)、**Tracker Agents**(追踪器智能体) 和 **Misc Agents**(其他智能体) 四组。目录里包括 Long-Term Memory、World Maps、Calls、Inventory Tracker 以及全部 6 款 Conversation 游戏。它们的源码、清单文件、可下载产物和仓库级目录都公开在 [Pasta-Devs/Marinara-Agents](https://github.com/Pasta-Devs/Marinara-Agents)。每个智能体的详细说明见[可下载智能体参考](built-in-agents.md)。想自己做一个，见[创建自定义智能体](custom-agents.md)。
 
 ## 三个阶段
 
@@ -43,7 +43,7 @@ Marinara 会先征求你的同意，再更新包。你安装的包出现兼容�
 
 之后仍然可以随时在 **Download Agents** 里更新任意包。已安装的包在你更新之前会一直以当前版本工作，即使连不上目录也一样。
 
-更新只针对你已经安装的包。桌面端、Docker 和 Android/Termux 安装把包保存在各自的本地服务器上。iOS、iPadOS 和其他浏览器客户端使用的，是它们所连接的那台 Marinara 服务器上安装的包。
+更新只针对你已经安装的包。桌面端和 Docker 安装把包保存在各自的本地服务器上。iOS、iPadOS 和其他浏览器客户端使用的，是它们所连接的那台 Marinara 服务器上安装的包。
 
 ## 为聊天开启智能体
 

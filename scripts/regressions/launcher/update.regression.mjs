@@ -85,7 +85,6 @@ for (const runtimePath of [
   "Dockerfile.lite",
   "packages/server/src/routes/updates.routes.ts",
   "start-local.bat",
-  "start-termux.sh",
   "start.bat",
   "start.sh",
   "win/installer/install.bat",
@@ -264,14 +263,6 @@ function assertPosixReminderRouting(launcherName) {
 }
 
 assertPosixReminderRouting("start.sh");
-assertPosixReminderRouting("start-termux.sh");
-
-const termuxLauncherSource = readFileSync(join(repositoryRoot, "start-termux.sh"), "utf8");
-assert.match(
-  termuxLauncherSource,
-  /cd "\$\(dirname "\$0"\)"[\s\S]*?export GIT_TERMINAL_PROMPT=0/u,
-  "The Termux launcher must disable interactive Git credential prompts before update checks",
-);
 
 const windowsLauncherSource = readFileSync(join(repositoryRoot, "start.bat"), "utf8");
 assert.match(windowsLauncherSource, /check-launcher-update\.mjs/u);
@@ -281,7 +272,7 @@ assert.match(
   "start.bat must distinguish unavailable Git checks from the retained version check",
 );
 
-for (const launcherName of ["start.sh", "start-termux.sh", "start.bat"]) {
+for (const launcherName of ["start.sh", "start.bat"]) {
   const launcherSource = readFileSync(join(repositoryRoot, launcherName), "utf8");
   assert.doesNotMatch(launcherSource, /pnpm install --force/u, `${launcherName} must not force dependency reinstalls`);
   assert.match(launcherSource, /install --frozen-lockfile --prefer-offline/u);
@@ -291,7 +282,7 @@ for (const launcherName of ["start.sh", "start-termux.sh", "start.bat"]) {
   assert.doesNotMatch(launcherSource, /10\.33\.2/u, `${launcherName} must not retain the affected pnpm pin`);
 }
 
-for (const launcherName of ["start.sh", "start-termux.sh"]) {
+for (const launcherName of ["start.sh"]) {
   const launcherSource = readFileSync(join(repositoryRoot, launcherName), "utf8");
   const updateSuccess = launcherSource.indexOf('echo "  [OK] Updated to');
   const refreshedRunner = launcherSource.indexOf("if ! resolve_pnpm_runner; then", updateSuccess);

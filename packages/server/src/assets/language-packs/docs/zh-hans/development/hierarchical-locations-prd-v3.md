@@ -1096,7 +1096,7 @@ Marinara 的原生聊天导出必须带上：
 | 界面足够健壮 | 覆盖创建、编辑、待生效移动、冲突和移动端导航的 Playwright 流程 | 验证深色、浅色、SillyTavern 主题、键盘、触摸、超长名称和空状态 |
 | 可移植性保住 ID 和状态 | 原生导出导入以及档案备份恢复的往返，覆盖空间、世界设定、图片和分镜清单绑定；目标缺少世界设定或图片时给出警告 | 导出一个带分镜的分支聊天，分别在带和不带其世界书与图库素材的情况下导入，然后查看面包屑、历史、绑定、冻结的关键帧来源和警告 |
 
-添加 `scripts/regressions/spatial-context.regression.ts` 和一个 `regression:spatial` 包脚本，然后把它纳入 `pnpm regression`。不要添加长期存在的 `.test.ts` 文件。每个实现 PR 仍然要跑这条窄范围的空间回归，外加与其改动范围相称的仓库检查。
+添加 `scripts/regressions/spatial-context.regression.ts` 和一个 `regression:spatial` 包脚本，然后把它纳入 `pnpm verify`。不要添加长期存在的 `.test.ts` 文件。每个实现 PR 仍然要跑这条窄范围的空间回归，外加与其改动范围相称的仓库检查。
 
 ## 验收标准
 

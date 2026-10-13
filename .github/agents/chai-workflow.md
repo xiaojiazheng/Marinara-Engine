@@ -110,7 +110,7 @@ Maintainer-equivalent self-review questions:
 Treat these as risky:
 
 - storage, migrations, import/export, backups, user data
-- installers, launchers, Docker, Android, release/update flow
+- installers, launchers, Docker, release/update flow
 - prompt assembly, agent routing, model/provider request shaping
 - auth, CSRF, credentials, filesystem paths, external services
 - destructive actions, bulk operations, compatibility paths

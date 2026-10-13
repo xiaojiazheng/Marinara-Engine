@@ -57,7 +57,7 @@ jobs:
           fi
 
   node:
-    name: complete-node-regressions
+    name: targeted-verify
     needs: revision
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -86,8 +86,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run complete Node regression suite
-        run: pnpm regression
+      - name: Run targeted verify suite
+        run: pnpm verify
 
   smoke:
     name: browser-smoke

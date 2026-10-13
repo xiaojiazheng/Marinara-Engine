@@ -1096,7 +1096,7 @@ Suggested issue split:
 | UI is resilient | Playwright flow for create, edit, pending move, conflict, and mobile navigation | Verify dark, light, SillyTavern, keyboard, touch, long names, and empty states |
 | Portability preserves IDs and state | Native export/import and profile backup/restore round trips cover spatial, lore, image, and Storyboard-manifest bindings; missing destination lore or images produce warnings | Export a branched chat with a storyboard, import it with and without its lorebooks and gallery assets, and inspect the breadcrumb, history, bindings, frozen keyframe sources, and warnings |
 
-Add `scripts/regressions/spatial-context.regression.ts` and a `regression:spatial` package script, then include it in `pnpm regression`. Do not add permanent `.test.ts` files. Each implementation PR still runs the narrow spatial regression plus the repository checks appropriate to its scope.
+Add `scripts/regressions/spatial-context.regression.ts` and a `regression:spatial` package script, then include it in `pnpm verify`. Do not add permanent `.test.ts` files. Each implementation PR still runs the narrow spatial regression plus the repository checks appropriate to its scope.
 
 ## Acceptance criteria
 

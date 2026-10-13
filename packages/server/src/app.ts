@@ -53,11 +53,6 @@ import { capabilityModuleRuntime } from "./services/capability-packages/capabili
 import { migrateLegacyCapabilities } from "./services/capability-packages/legacy-capability-migration.js";
 import { createClientNotFoundHandler, createClientStaticOptions } from "./config/client-static-config.js";
 import { hostValidationHook } from "./middleware/host-validation.js";
-import {
-  androidLocalAuthHook,
-  androidLocalLoginRoute,
-  isAndroidLocalAuthSatisfied,
-} from "./middleware/android-local-auth.js";
 import { arch, platform, release } from "node:os";
 import { execFileSync } from "node:child_process";
 import { getRuntimeMemorySnapshot } from "./utils/runtime-memory.js";
@@ -92,9 +87,6 @@ function resolveServerOs(): string {
     }
   }
   if (hostPlatform === "win32") return `Windows ${hostRelease} (${hostArch})`;
-  if (hostPlatform === "android" || process.env.PREFIX?.includes("com.termux")) {
-    return `Android / Termux ${hostRelease} (${hostArch})`;
-  }
   if (hostPlatform === "linux") return `Linux ${hostRelease} (${hostArch})`;
   return `${hostPlatform} ${hostRelease} (${hostArch})`;
 }
@@ -284,10 +276,6 @@ export async function buildApp(https?: { cert: Buffer; key: Buffer }) {
   // ── CSRF / Origin protection for unsafe API requests ──
   app.addHook("onRequest", csrfProtectionHook);
 
-  // APK-managed Termux installs use a per-install secret so unrelated Android
-  // apps cannot inherit the server's ordinary loopback trust.
-  app.addHook("onRequest", androidLocalAuthHook);
-
   // ── Prevent caching of API JSON responses ──
   // Without explicit Cache-Control, browsers apply heuristic caching which
   // can return stale data when React Query refetches after mutations.
@@ -310,7 +298,6 @@ export async function buildApp(https?: { cert: Buffer; key: Buffer }) {
   // ── Routes ──
   await startup.phase("routes.register", async () => {
     await registerRoutes(app);
-    await androidLocalLoginRoute(app);
   });
 
   // Trusted downloaded server capabilities register while Fastify is still mutable.
@@ -387,7 +374,7 @@ export async function buildApp(https?: { cert: Buffer; key: Buffer }) {
     // The probe is exempt from sign-in, so local model file names and GPU details only go to callers who could
     // open the app itself (this machine, a trusted network, or a signed-in browser).
     let sidecars: ReturnType<typeof buildSidecarHealthSection> | null = null;
-    if (isBasicAuthSatisfied(request) && isAndroidLocalAuthSatisfied(request)) {
+    if (isBasicAuthSatisfied(request)) {
       try {
         sidecars = buildSidecarHealthSection();
       } catch (error) {

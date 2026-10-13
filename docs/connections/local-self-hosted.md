@@ -72,7 +72,7 @@ PROVIDER_LOCAL_URLS_ENABLED=true
 
 Save the file and restart the Marinara server for the change to take effect. After that, you can use a Base URL that points at another machine on your network, such as `http://192.168.1.50:11434/v1`.
 
-On Android, this setting is turned on by default when you do not set it. For more about the `.env` file and server settings, see the [Server Configuration Reference](../CONFIGURATION.md).
+For more about the `.env` file and server settings, see the [Server Configuration Reference](../CONFIGURATION.md).
 
 ## Test your connection
 

@@ -253,7 +253,9 @@ try {
   try {
     await installDocsPack("zh-hans");
     const chineseManifest = await readInstalledDocsPackManifest("zh-hans");
-    assert.equal(chineseManifest?.files.length, 137);
+    // The bundled pack ships one file per English source; the Android (Termux) install guide retired
+    // with Android support, so the count dropped by one.
+    assert.equal(chineseManifest?.files.length, 136);
     assert.equal(await verifyDocsPackHashes("zh-hans"), true, "every bundled file must match its manifest");
     const chineseFaq = resolvePhysical("zh-hans", ["FAQ.md"]);
     assert.equal(chineseFaq.language, "zh-hans");

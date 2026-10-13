@@ -1,30 +1,5 @@
 import { toast } from "sonner";
-import { getAndroidBridgeToken } from "./android-bridge";
 import { isIosWebKitBrowser } from "./generation-stream-policy";
-
-type MarinaraAndroidFileBridge = {
-  saveFile?: {
-    (token: string, base64Data: string, mimeType: string, filename: string): void;
-    (base64Data: string, mimeType: string, filename: string): void;
-  };
-};
-
-/** Read the optional Android shell file bridge from the current browser window. */
-function getAndroidFileBridge(): MarinaraAndroidFileBridge | null {
-  if (typeof window === "undefined") return null;
-  return (window as Window & { MarinaraAndroid?: MarinaraAndroidFileBridge }).MarinaraAndroid ?? null;
-}
-
-/** Encode binary file data for the Android JavaScript bridge without overflowing the call stack. */
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  const chunkSize = 0x8000;
-  let binary = "";
-  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
-  }
-  return window.btoa(binary);
-}
 
 /** Trigger the standard browser download path and retain the object URL long enough for mobile browsers. */
 function triggerBrowserDownload(blob: Blob, filename: string) {
@@ -86,21 +61,12 @@ export function savePreparedImageToDevice(prepared: PreparedImageSave): Promise<
   });
 }
 
-/** Save a fetched file through the Android shell when available, or through the browser otherwise. */
+/** Save a fetched file through the browser download path. */
 export async function saveBlobToDevice(blob: Blob, filename: string): Promise<void> {
-  const bridge = getAndroidFileBridge();
-  if (typeof bridge?.saveFile === "function") {
-    const base64Data = arrayBufferToBase64(await blob.arrayBuffer());
-    const token = getAndroidBridgeToken();
-    if (token) bridge.saveFile(token, base64Data, blob.type || "application/octet-stream", filename);
-    else bridge.saveFile(base64Data, blob.type || "application/octet-stream", filename);
-    return;
-  }
-
   triggerBrowserDownload(blob, filename);
 }
 
-/** Fetch a same-origin media URL and save it through the active browser or Android shell. */
+/** Fetch a same-origin media URL and save it through the browser. */
 export async function downloadUrlToDevice(url: string, filename: string): Promise<void> {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Download failed (${response.status})`);
@@ -198,8 +164,8 @@ export async function showExportError(error: unknown): Promise<void> {
 export type ExportSaveStatus = "saved" | "prompted" | "cancelled" | "failed";
 
 /**
- * Save an exported file: the Android shell bridge, the iOS share sheet (or a Save file toast when the
- * export's fetch used up the tap), the desktop save dialog when requested, or a plain browser download.
+ * Save an exported file: the iOS share sheet (or a Save file toast when the export's fetch used up the
+ * tap), the desktop save dialog when requested, or a plain browser download.
  * Never rejects; a failure shows an error and resolves "failed".
  */
 export async function saveExportFile(
@@ -208,10 +174,6 @@ export async function saveExportFile(
   options: { savePicker?: boolean } = {},
 ): Promise<ExportSaveStatus> {
   try {
-    if (typeof getAndroidFileBridge()?.saveFile === "function") {
-      await saveBlobToDevice(blob, filename);
-      return "saved";
-    }
     if (isIosDevice()) {
       const file = new File([blob], filename, { type: blob.type || "application/octet-stream" });
       if (canShareFile(file)) {

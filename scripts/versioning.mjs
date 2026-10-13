@@ -67,38 +67,12 @@ function updateInstallerBat(content, version) {
   return replaceOrThrow(next, /set "RELEASE_TAG=v[^"]+"/, `set "RELEASE_TAG=v${version}"`, "installer release tag");
 }
 
-function updateAndroidBuildGradle(content, version, androidVersionCode) {
-  let next = replaceOrThrow(content, /versionName "[^"]+"/, `versionName "${version}"`, "Android versionName");
-
-  next = replaceOrThrow(
-    next,
-    /buildConfigField "String", "MARINARA_RELEASE_TAG", "\\"v[^"]+\\""/,
-    `buildConfigField "String", "MARINARA_RELEASE_TAG", "\\"v${version}\\""`,
-    "Android MARINARA_RELEASE_TAG",
-  );
-
-  if (androidVersionCode != null) {
-    next = replaceOrThrow(next, /versionCode \d+/, `versionCode ${androidVersionCode}`, "Android versionCode");
-  }
-
-  return next;
-}
-
 export async function readCanonicalVersion() {
   const packageJson = JSON.parse(await readText("package.json"));
   if (typeof packageJson.version !== "string" || packageJson.version.length === 0) {
     throw new Error("Root package.json is missing a version");
   }
   return packageJson.version;
-}
-
-export async function readAndroidVersionCode() {
-  const buildGradle = await readText("android/app/build.gradle");
-  const match = buildGradle.match(/versionCode (\d+)/);
-  if (!match) {
-    throw new Error("Could not read Android versionCode");
-  }
-  return Number.parseInt(match[1], 10);
 }
 
 const DERIVED_VERSION_FILES = [
@@ -130,15 +104,10 @@ const DERIVED_VERSION_FILES = [
     path: "win/installer/install.bat",
     render: (content, version) => updateInstallerBat(content, version),
   },
-  {
-    path: "android/app/build.gradle",
-    render: (content, version, androidVersionCode) => updateAndroidBuildGradle(content, version, androidVersionCode),
-  },
 ];
 
-async function buildExpectedFiles(androidVersionCode) {
+async function buildExpectedFiles() {
   const version = await readCanonicalVersion();
-  const resolvedAndroidVersionCode = androidVersionCode ?? (await readAndroidVersionCode());
   const files = [];
 
   for (const spec of DERIVED_VERSION_FILES) {
@@ -146,15 +115,15 @@ async function buildExpectedFiles(androidVersionCode) {
     files.push({
       path: spec.path,
       current,
-      expected: spec.render(current, version, resolvedAndroidVersionCode),
+      expected: spec.render(current, version),
     });
   }
 
-  return { version, androidVersionCode: resolvedAndroidVersionCode, files };
+  return { version, files };
 }
 
-export async function syncVersionFiles(options = {}) {
-  const state = await buildExpectedFiles(options.androidVersionCode);
+export async function syncVersionFiles() {
+  const state = await buildExpectedFiles();
   const changed = [];
 
   for (const file of state.files) {
@@ -165,7 +134,6 @@ export async function syncVersionFiles(options = {}) {
 
   return {
     version: state.version,
-    androidVersionCode: state.androidVersionCode,
     changed,
   };
 }
@@ -174,7 +142,6 @@ export async function checkVersionDrift() {
   const state = await buildExpectedFiles();
   return {
     version: state.version,
-    androidVersionCode: state.androidVersionCode,
     mismatches: state.files.filter((file) => file.current !== file.expected).map((file) => file.path),
   };
 }

@@ -253,18 +253,25 @@
 :where(:root:not([data-marinara-custom-cursor="enabled"])[data-visual-theme="sillytavern"] button),
 :where(:root:not([data-marinara-custom-cursor="enabled"])[data-visual-theme="sillytavern"] .cursor-pointer),
 :where(:root:not([data-marinara-custom-cursor="enabled"])[data-visual-theme="sillytavern"] .cursor-grab),
-:where(:root:not([data-marinara-custom-cursor="enabled"])[data-visual-theme="sillytavern"] label[class*="cursor-pointer"]),
+:where(
+  :root:not([data-marinara-custom-cursor="enabled"])[data-visual-theme="sillytavern"] label[class*="cursor-pointer"]
+),
 :where(:root:not([data-marinara-custom-cursor="enabled"])[data-visual-theme="sillytavern"] input[type="color"]) {
   cursor: pointer !important;
 }
 :where(:root:not([data-marinara-custom-cursor="enabled"])[data-visual-theme="sillytavern"] .cursor-not-allowed),
-:where(:root:not([data-marinara-custom-cursor="enabled"])[data-visual-theme="sillytavern"] .disabled\:cursor-not-allowed:disabled) {
+:where(
+  :root:not([data-marinara-custom-cursor="enabled"])[data-visual-theme="sillytavern"]
+    .disabled\:cursor-not-allowed:disabled
+) {
   cursor: not-allowed !important;
 }
 :where(:root:not([data-marinara-custom-cursor="enabled"])[data-visual-theme="sillytavern"] .cursor-grab) {
   cursor: grab !important;
 }
-:where(:root:not([data-marinara-custom-cursor="enabled"])[data-visual-theme="sillytavern"] .active\:cursor-grabbing:active) {
+:where(
+  :root:not([data-marinara-custom-cursor="enabled"])[data-visual-theme="sillytavern"] .active\:cursor-grabbing:active
+) {
   cursor: grabbing !important;
 }
 :where(:root:not([data-marinara-custom-cursor="enabled"])[data-visual-theme="sillytavern"] .cursor-help) {

@@ -1,7 +1,7 @@
 // #5592 PR-B: the autonomous-messaging idle check must be storage-free after
 // its one-time activity seed. Before this, every 30s background poll read the
 // full transcript of every autonomous-enabled chat — loading and LRU-touching
-// each chat's whole storage unit — which churned the Termux eviction cap and
+// each chat's whole storage unit — which churned the resident-chat eviction cap and
 // could evict the chat the user was actively viewing. These regressions drive
 // the REAL app + store and pin:
 //   - the first check seeds activity state (one unit load, correct answer),

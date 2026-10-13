@@ -10,7 +10,6 @@ Marinara Engine 由两部分组成：一个负责实际工作的服务器，以�
 
 - 一台 Windows 电脑（见 [Windows 安装指南](windows.md)）。
 - 一台 Mac 或 Linux 机器（见 [macOS / Linux 安装指南](macos-linux.md)）。
-- 一部装了 Termux 的 Android 手机（见 [Android (Termux) 安装指南](android-termux.md)）。
 - 一个 Docker 或 Podman 容器（见[通过容器运行](containers.md)）。
 
 iPhone 或 iPad 通过网络访问那台服务器。这和打开任何一个网站是一回事，只不过这个网站是自己的 Marinara 服务器。
@@ -89,4 +88,3 @@ Tailscale 会给每台设备分配一个固定的私有地址，可达性也更�
 - [远程访问：Basic Auth 与 IP 允许列表](../REMOTE_ACCESS.md)
 - [常见问题](../FAQ.md)
 - [Marinara Engine 故障排查](../TROUBLESHOOTING.md)
-- [Android (Termux) 安装指南](android-termux.md)

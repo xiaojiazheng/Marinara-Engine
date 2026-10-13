@@ -34,9 +34,7 @@ An authenticated MessageChannel carries only validated room projections and a
 small explicit action union. The parent supplies local presentation preferences;
 peers cannot supply styles, assets, code, URLs to fetch or arbitrary API calls.
 Peer text is rendered as text. Existing rich chat renderers are outside this
-boundary. The Android wrapper injects a native bridge into every frame and must
-remain unavailable as a guest until a bridge-free context is implemented and
-verified on a physical device.
+boundary.
 
 ## Trust boundaries
 
@@ -170,8 +168,7 @@ Before merging, rerun `pnpm check`, relevant Node regressions,
 `pnpm regression:prompt`, `pnpm smoke:ui` and the focused browser matrix against
 the final candidate. Record actual command results/revision in the PR, complete
 CodeRabbit and a focused security review, and verify supported physical devices.
-Browser emulation is not physical iPhone/iPad Home Screen or Android proof. The
-native Android wrapper remains disabled as a guest. Physical-device results are
+Browser emulation is not proof on a physical iPhone/iPad Home Screen. Physical-device results are
 pending until recorded; do not infer support from a viewport preset.
 
 The guest is built as a classic IIFE because opaque-origin ES-module loading would

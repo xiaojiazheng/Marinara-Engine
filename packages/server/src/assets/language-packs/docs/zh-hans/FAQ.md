@@ -6,7 +6,7 @@
 
 Marinara Engine 以本地服务器的形式跑在一台电脑上，用浏览器打开使用。这一节讲的是怎么从同一网络下的手机、平板或另一台电脑访问它。
 
-启动脚本（`start.sh`、`start.bat` 和 `start-termux.sh`）已经把服务器绑定到了全部网络接口（`0.0.0.0`）。其他设备在网络上能连到服务器，但访问控制默认会把它们挡在外面。在主机电脑上配好访问方式之前，远程设备只会看到一个 **Access blocked** 页面，上面写着配置说明。
+启动脚本（`start.sh` 和 `start.bat`）已经把服务器绑定到了全部网络接口（`0.0.0.0`）。其他设备在网络上能连到服务器，但访问控制默认会把它们挡在外面。在主机电脑上配好访问方式之前，远程设备只会看到一个 **Access blocked** 页面，上面写着配置说明。
 
 按下面的步骤操作：
 
@@ -34,7 +34,7 @@ http://192.168.1.42:7860
 
 5. 浏览器要求输入 Basic Auth 用户名和密码时登录一下。如果看到的是 **Access blocked** 页面，说明主机上的第 2 步还没做完。
 
-普通桌面安装在同一台电脑上（`127.0.0.1`）不需要密码。由 APK 管理的 Android 安装会为 localhost 添加私密登录，防止其他 Android 应用冒充 Marinara，但 Android 外壳会自动创建并使用这份凭据。其他设备在配好访问控制（Basic Auth 或 IP 允许列表）之前一律被拦。两种方式都在[远程访问](REMOTE_ACCESS.md)里有详细说明。
+普通桌面安装在同一台电脑上（`127.0.0.1`）不需要密码。其他设备在配好访问控制（Basic Auth 或 IP 允许列表）之前一律被拦。两种方式都在[远程访问](REMOTE_ACCESS.md)里有详细说明。
 
 两台设备不在同一网络时，可以借助 Tailscale 这类工具。Tailscale 会给每台设备分配一个固定的私有地址，这样在哪都能连上，也不用把 Marinara 暴露到公网。连不上的话，看 [Marinara Engine 故障排查](TROUBLESHOOTING.md)。
 
@@ -42,9 +42,8 @@ http://192.168.1.42:7860
 
 没有单独的手机原生应用。在手机或平板上，用浏览器打开的是同一个网页版。大多数手机浏览器都有 **Add to Home Screen**(添加到主屏幕) 或 **Install App**(安装应用) 之类的选项，加上之后没有浏览器地址栏，用起来跟真正的应用差不多。这种形式叫 PWA(Progressive Web App，可以像应用一样装到设备上的网站)。
 
-Android 上还可以[直接下载最新 APK](https://github.com/Pasta-Devs/Marinara-Engine/releases/latest/download/marinara-engine-android.apk)，通过 Termux 把 Marinara 跑在手机本地。安装不需要签名密钥、密码或本地访问密钥；Android 权限提示见 [Android (Termux) 安装指南](installation/android-termux.md)。iPhone 和 iPad 用户见 [iOS / iPadOS PWA 指南](installation/ios-pwa.md)。
+iPhone 和 iPad 用户见 [iOS / iPadOS PWA 指南](installation/ios-pwa.md)。
 
-Android 包装应用会在应用内或浏览器中自动登录。在启动界面选择 **Open in browser**(在浏览器中打开)，然后点击 **Retry connection**(重试连接)；服务器停止时使用 **Install / Start Marinara**。这个选择会被记住。应用内的 **Settings > General > App Behavior > Open Android launcher (app or browser)**(设置 → 常规 → 应用行为 → 打开 Android 启动界面(应用或浏览器)) 可以返回选择界面。要使用自动认证并打开浏览器的功能，需要同时更新 APK 和 Engine。旧版 APK 仍可通过 `/android-login` 手动登录。本地 `mari` CLI 会自动读取启动脚本管理的密钥，手动安装的 Termux 则保留正常的 localhost 规则。
 
 <a id="can-i-play-with-other-people"></a>
 
@@ -52,7 +51,7 @@ Android 包装应用会在应用内或浏览器中自动登录。在启动界面
 
 可选多人模式会创建全新的共享 Conversation、Roleplay 或 Game，会话没有固定的人类或 AI 角色数量上限。每位参与者先启用环境前提条件和独立的 Settings 开关，再用自己信任的客户端明确主持或加入。访客不需要 AI 密钥；房主控制生成和入场审批。Game 会等待所有必需玩家提交行动或明确跳过后再结算一轮。
 
-有密码不代表陌生房主安全。共享房间只接受文本，访客视图与文件、原生集成和本地 API 隔离。Android 原生封装不能加入。启用前请阅读[多人模式设置、警告和限制](CONFIGURATION.md#optional-multiplayer)。
+有密码不代表陌生房主安全。共享房间只接受文本，访客视图与文件、原生集成和本地 API 隔离。启用前请阅读[多人模式设置、警告和限制](CONFIGURATION.md#optional-multiplayer)。
 
 ## 三种聊天模式分别是什么？
 

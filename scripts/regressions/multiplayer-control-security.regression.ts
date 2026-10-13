@@ -26,7 +26,7 @@ if (process.argv[2] !== "--child") {
     assert.equal(result.status, 0, `${value} environment: ${result.stdout}\n${result.stderr}`);
   }
   console.info(
-    "multiplayer controls: fresh-process opt-in, normal authentication/CSRF/Host guards, native denial, strict bodies and no restart hosting passed",
+    "multiplayer controls: fresh-process opt-in, normal authentication/CSRF/Host guards, strict bodies and no restart hosting passed",
   );
 } else {
   const directory = mkdtempSync(join(tmpdir(), "marinara-multiplayer-controls-"));
@@ -65,7 +65,6 @@ if (process.argv[2] !== "--child") {
   const { hostValidationHook } = await import("../../packages/server/src/middleware/host-validation.js");
   const { basicAuthHook } = await import("../../packages/server/src/middleware/basic-auth.js");
   const { csrfProtectionHook } = await import("../../packages/server/src/middleware/csrf-protection.js");
-  const { androidLocalAuthHook } = await import("../../packages/server/src/middleware/android-local-auth.js");
   const { rateLimitHook, MULTIPLAYER_GUEST_VIEW_RATE_LIMIT } =
     await import("../../packages/server/src/middleware/rate-limit.js");
   const { CSRF_HEADER, CSRF_HEADER_VALUE } = await import("../../packages/server/src/utils/security.js");
@@ -87,7 +86,6 @@ if (process.argv[2] !== "--child") {
   app.addHook("onRequest", rateLimitHook);
   app.addHook("onRequest", basicAuthHook);
   app.addHook("onRequest", csrfProtectionHook);
-  app.addHook("onRequest", androidLocalAuthHook);
   await app.register(multiplayerRoutes, { prefix: "/api/multiplayer", service });
   const headers = {
     host: "127.0.0.1",
@@ -227,18 +225,23 @@ if (process.argv[2] !== "--child") {
         payload: { mode: "game", name: "Room" },
       });
       assert.equal(prepared.statusCode, 200);
-      const nativeHeaders = { ...headers, "user-agent": "MarinaraEngine/Android" };
-      assert.equal(
-        (await app.inject({ method: "GET", url: "/api/multiplayer/guest-view", headers: nativeHeaders })).statusCode,
-        400,
-      );
-      assert.equal(
-        (await app.inject({ method: "POST", url: "/api/multiplayer/join", headers: nativeHeaders, payload: {} }))
-          .statusCode,
-        400,
-      );
       const document = await app.inject({ method: "GET", url: "/api/multiplayer/guest-view", headers });
       assert.equal(document.statusCode, 200, "built trusted guest document is available only after both gates");
+      // The native Android wrapper retired with Android support, so no user agent is special-cased any more:
+      // the same two gates decide, and neither the guest view nor joining is denied because of one.
+      const nonBrowserHeaders = { ...headers, "user-agent": "MarinaraEngine/Android" };
+      assert.equal(
+        (await app.inject({ method: "GET", url: "/api/multiplayer/guest-view", headers: nonBrowserHeaders }))
+          .statusCode,
+        200,
+        "a non-browser caller is gated like any other, not denied by product-specific user-agent matching",
+      );
+      assert.equal(
+        (await app.inject({ method: "POST", url: "/api/multiplayer/join", headers: nonBrowserHeaders, payload: {} }))
+          .statusCode,
+        400,
+        "joining still requires a valid invitation payload",
+      );
       assert.match(document.headers["content-security-policy"]!, /sandbox allow-scripts/u);
       assert.match(document.headers["content-security-policy"]!, /connect-src 'none'/u);
       assert.ok(!document.headers["content-security-policy"]!.includes("allow-same-origin"));

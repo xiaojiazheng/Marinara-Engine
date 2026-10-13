@@ -27,7 +27,7 @@ assignees: ""
 ## Environment
 
 - Marinara Engine version:
-- Install type: (source / installer / docker / termux / other)
+- Install type: (source / installer / docker / other)
 - OS + version:
 - Browser or app shell:
 

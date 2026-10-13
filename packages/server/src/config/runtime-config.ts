@@ -505,9 +505,6 @@ export function isUpdatesRemoteApplyAllowed() {
 }
 
 export function isProviderLocalUrlsEnabled() {
-  if (process.platform === "android" && normalizeEnvValue(process.env.PROVIDER_LOCAL_URLS_ENABLED) === null) {
-    return true;
-  }
   return isEnabledFlag(process.env.PROVIDER_LOCAL_URLS_ENABLED);
 }
 
@@ -601,7 +598,7 @@ export function getGameDynamicImagePromptTimeoutMs() {
 /**
  * SteamOS ships games that claim most of the Deck's 16 GiB of shared RAM, so
  * unbounded load-and-keep gets the server OOM-killed mid session (#5838). The
- * cap matches the one the Termux launcher exports, but lives engine-side so it
+ * cap lives engine-side so it
  * covers every launch method (start.sh, systemd units, direct node) and so an
  * explicit MARINARA_MAX_RESIDENT_CHATS - including 0 to disable - always wins
  * at boot AND on .env hot reload. A launcher export could not offer that: the
@@ -626,13 +623,11 @@ export function detectSteamOs(
 }
 
 /**
- * Android means Termux - the only way this server runs there. Its launcher
- * already exports 8 when the variable is unset, so this engine-side default
- * matters for launcher-less launches and for invalid values, which bash's
- * ${VAR:-8} substitution passes through verbatim.
+ * SteamOS is the remaining constrained platform: its desktop session shares 16 GiB of RAM with
+ * games. Keeping the default engine-side covers every launch method, and it also covers invalid
+ * values, which a launcher's ${VAR:-8} substitution passes through verbatim.
  */
 function constrainedPlatformDetected(): boolean {
-  if (process.platform === "android") return true;
   if (cachedSteamOsDetection === null) cachedSteamOsDetection = detectSteamOs();
   return cachedSteamOsDetection;
 }
@@ -663,9 +658,7 @@ export function getMaxResidentChatUnits() {
     // Warn once per distinct value. An invalid value falls back to the
     // platform default rather than to 0, because a typo silently disabling
     // eviction would remove the memory bound on exactly the constrained
-    // targets - Android/Termux and SteamOS, both covered by the platform
-    // default above (the Termux launcher's ${VAR:-8} only covers unset, not
-    // invalid text, which it exports verbatim).
+    // targets - SteamOS, covered by the platform default above.
     if (lastInvalidMaxResidentChats !== raw) {
       lastInvalidMaxResidentChats = raw;
       sharedLogger.warn(

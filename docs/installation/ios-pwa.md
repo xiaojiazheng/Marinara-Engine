@@ -10,7 +10,6 @@ The server can run on any of these:
 
 - A Windows PC (see [Windows Installation Guide](windows.md)).
 - A Mac or Linux machine (see [macOS / Linux Installation Guide](macos-linux.md)).
-- An Android phone with Termux (see [Android (Termux) Installation Guide](android-termux.md)).
 - A Docker or Podman container (see [Run via Container](containers.md)).
 
 Your iPhone or iPad reaches that server over the network. This is the same idea as opening any website, except the website is your own Marinara server.
@@ -89,4 +88,3 @@ Your chats, characters, and settings are stored on the server, not on your iPhon
 - [Remote Access: Basic Auth and IP Allowlist](../REMOTE_ACCESS.md)
 - [Frequently Asked Questions](../FAQ.md)
 - [Troubleshooting Marinara Engine](../TROUBLESHOOTING.md)
-- [Android (Termux) Installation Guide](android-termux.md)

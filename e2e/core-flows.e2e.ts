@@ -700,53 +700,6 @@ test("gradient Accent Pulse keeps animating while Appearance settings are open",
     .not.toBe(firstAccent);
 });
 
-test("Android status bar setting reads and updates the native bridge", async ({ page }) => {
-  await mockUILanguagePacks(page);
-  await page.addInitScript(() => {
-    const nativeWindow = window as Window & {
-      MarinaraAndroid?: {
-        isStatusBarVisible: () => boolean;
-        setStatusBarVisible: (visible: boolean) => void;
-      };
-      __androidStatusBarChanges?: boolean[];
-    };
-    let visible = true;
-    nativeWindow.__androidStatusBarChanges = [];
-    nativeWindow.MarinaraAndroid = {
-      isStatusBarVisible: () => visible,
-      setStatusBarVisible: (nextVisible) => {
-        visible = nextVisible;
-        nativeWindow.__androidStatusBarChanges?.push(nextVisible);
-      },
-    };
-  });
-
-  await page.goto("/");
-  await clickTopbarPanel(page, "settings");
-
-  const statusBarToggle = page.getByLabel("Show Android status bar");
-  await expect(statusBarToggle).toBeChecked();
-
-  await page.getByText("Show Android status bar", { exact: true }).click();
-  await expect(statusBarToggle).not.toBeChecked();
-  await expect
-    .poll(() =>
-      page.evaluate(() => (window as Window & { __androidStatusBarChanges?: boolean[] }).__androidStatusBarChanges),
-    )
-    .toEqual([false]);
-
-  await page.getByText("Show Android status bar", { exact: true }).click();
-  await expect(statusBarToggle).toBeChecked();
-  await expect
-    .poll(() =>
-      page.evaluate(() => (window as Window & { __androidStatusBarChanges?: boolean[] }).__androidStatusBarChanges),
-    )
-    .toEqual([false, true]);
-
-  await page.locator("#settings-control-language select").selectOption("pl");
-  await expect(page.getByLabel("Pokaż pasek stanu Androida")).toBeChecked();
-});
-
 test("default dialogue color fills only cards without their own dialogue color", async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.includes("desktop"), "Dialogue color precedence is covered on desktop.");
 
@@ -8993,13 +8946,11 @@ type GallerySaveProbe = {
   }>;
   anchors: number;
   downloadTargets: string[];
-  androidFiles: string[][];
 };
 
 for (const owner of ["character", "persona"] as const) {
   test(`${owner} gallery image saves keep the app open`, async ({ page, request }, testInfo) => {
     const ios = testInfo.project.name === "mobile-webkit";
-    const android = testInfo.project.name === "mobile-chromium";
     const name = `${owner} gallery save regression`;
     const base = owner === "character" ? "/api/characters" : "/api/characters/personas";
     const response = await request.post(base, {
@@ -9021,17 +8972,15 @@ for (const owner of ["character", "persona"] as const) {
       const image = (await upload.json()) as { filePath: string; url: string };
       const filename = image.filePath.split(/[\\/]/).pop();
       await page.addInitScript(
-        ({ ios, android }) => {
+        ({ ios }) => {
           const target = window as unknown as Window & {
             __gallerySave: GallerySaveProbe;
-            MarinaraAndroid?: { saveFile: (...args: string[]) => void };
           };
           target.__gallerySave = {
             mode: "success",
             shares: [],
             anchors: 0,
             downloadTargets: [],
-            androidFiles: [],
           };
           document.addEventListener(
             "click",
@@ -9067,14 +9016,8 @@ for (const owner of ["character", "persona"] as const) {
               },
             });
           }
-          if (android)
-            target.MarinaraAndroid = {
-              saveFile: (...args) => {
-                target.__gallerySave.androidFiles.push(args);
-              },
-            };
         },
-        { ios, android },
+        { ios },
       );
       await page.goto("/");
       await page.evaluate(
@@ -9135,24 +9078,17 @@ for (const owner of ["character", "persona"] as const) {
         }
         expect((await probe()).anchors).toBe(0);
       } else {
-        const download = android ? null : page.waitForEvent("download");
+        const download = page.waitForEvent("download");
         await gallery.getByTitle("Download", { exact: true }).click();
-        if (download) {
-          const file = await download;
-          expect(file.suggestedFilename()).toBe(filename);
-          expect(readFileSync((await file.path())!)).toEqual(Buffer.from(TRANSPARENT_PNG_BASE64, "base64"));
-        } else {
-          await expect
-            .poll(async () => (await probe()).androidFiles)
-            .toEqual([[TRANSPARENT_PNG_BASE64, "image/png", filename]]);
-        }
+        const file = await download;
+        expect(file.suggestedFilename()).toBe(filename);
+        expect(readFileSync((await file.path())!)).toEqual(Buffer.from(TRANSPARENT_PNG_BASE64, "base64"));
         await expect(lightbox).toHaveCount(0);
         await gallery.getByAltText(name, { exact: true }).click();
         await expect(lightbox).toBeVisible();
-        const previewDownload = android ? null : page.waitForEvent("download");
+        const previewDownload = page.waitForEvent("download");
         await save.click();
-        if (previewDownload) expect((await previewDownload).suggestedFilename()).toBe(filename);
-        else await expect.poll(async () => (await probe()).androidFiles.length).toBe(2);
+        expect((await previewDownload).suggestedFilename()).toBe(filename);
       }
       await expect(page).toHaveURL(appUrl);
       const close = lightbox.getByRole("button", { name: "Close image", exact: true });
@@ -13436,7 +13372,7 @@ test("Backup & Export identifies the automatic backup location", async ({ page }
   await expect(backupSection).toContainText("DATA_DIR/backups");
   await expect(backupSection).toContainText("marinara-automatic-backup.zip");
   await expect(backupSection).toContainText("Docker defaults to /app/data");
-  await expect(backupSection).toContainText("On Android, app storage is usually inaccessible");
+  await expect(backupSection).toContainText("The startup log shows the active DATA_DIR");
 });
 
 test("custom generation parameters become reusable chat controls", async ({ page }, testInfo) => {

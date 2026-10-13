@@ -132,15 +132,9 @@ for (const mode of ["conversation", "roleplay", "game"] as const) {
       await page.goto("/");
       const installSpies = () =>
         page.evaluate(async () => {
-          const counts = { browser: 0, native: 0, sound: 0 };
+          const counts = { browser: 0, sound: 0 };
           Object.assign(window, {
             __notificationCounts: counts,
-            MarinaraAndroid: {
-              getNotificationPermission: () => "granted",
-              showNotification: () => {
-                counts.native += 1;
-              },
-            },
           });
           Object.defineProperty(document, "hasFocus", { configurable: true, value: () => false });
           Object.defineProperty(window, "Notification", {
@@ -181,8 +175,7 @@ for (const mode of ["conversation", "roleplay", "game"] as const) {
       const counts = () =>
         page.evaluate(
           () =>
-            (window as unknown as { __notificationCounts: { browser: number; native: number; sound: number } })
-              .__notificationCounts,
+            (window as unknown as { __notificationCounts: { browser: number; sound: number } }).__notificationCounts,
         );
       const run = async (content: string) => {
         generation = undefined;
@@ -207,7 +200,7 @@ for (const mode of ["conversation", "roleplay", "game"] as const) {
       };
       await run("The archive is quiet.");
       await expect.poll(() => !!translation).toBe(true);
-      expect(await counts()).toEqual({ browser: 0, native: 0, sound: 0 });
+      expect(await counts()).toEqual({ browser: 0, sound: 0 });
       await expect
         .poll(async () => (await (await request.get(`/api/generate/status/${chat.id}`)).json()).active)
         .toBe(false);
@@ -227,22 +220,22 @@ for (const mode of ["conversation", "roleplay", "game"] as const) {
       await expect.poll(() => !!generation).toBe(true);
       await request.post("/api/generate/abort", { data: { chatId: chat.id } });
       expect((await nextTurn).status()).toBe(200);
-      expect(await counts()).toEqual({ browser: 0, native: 0, sound: 0 });
+      expect(await counts()).toEqual({ browser: 0, sound: 0 });
       releaseTranslation("W archiwum panuje cisza.");
-      await expect.poll(counts).toEqual({ browser: 1, native: 1, sound: 1 });
+      await expect.poll(counts).toEqual({ browser: 1, sound: 1 });
       staleTranslationSettings = false;
 
       await run("The experiment continues.");
       await expect.poll(() => !!translation).toBe(true);
-      expect(await counts()).toEqual({ browser: 1, native: 1, sound: 1 });
+      expect(await counts()).toEqual({ browser: 1, sound: 1 });
       releaseTranslation(""); // An empty provider response is a translation failure, not a failed chat turn.
-      await expect.poll(counts).toEqual({ browser: 2, native: 2, sound: 2 });
+      await expect.poll(counts).toEqual({ browser: 2, sound: 2 });
 
       await request.patch(`/api/chats/${chat.id}/metadata`, { data: { autoTranslate: false } });
       await page.reload();
       await installSpies();
       await run("Ready without translation.");
-      await expect.poll(counts).toEqual({ browser: 1, native: 1, sound: 1 });
+      await expect.poll(counts).toEqual({ browser: 1, sound: 1 });
       expect(translationRequests).toBe(2);
       const messages = () => request.get(`/api/chats/${chat.id}/messages`).then((response) => response.json());
       const savedTranslation = async (content: string) => {

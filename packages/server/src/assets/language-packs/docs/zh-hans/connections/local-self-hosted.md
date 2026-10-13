@@ -72,7 +72,7 @@ PROVIDER_LOCAL_URLS_ENABLED=true
 
 保存文件并重启 Marinara 服务器，改动才会生效。之后就可以把 Base URL 指向网络里的另一台机器，比如 `http://192.168.1.50:11434/v1`。
 
-在 Android 上，不设置这一项时它默认是开启的。关于 `.env` 文件和服务器设置的更多内容，见[服务器配置参考](../CONFIGURATION.md)。
+关于 `.env` 文件和服务器设置的更多内容，见[服务器配置参考](../CONFIGURATION.md)。
 
 ## 测试连接
 

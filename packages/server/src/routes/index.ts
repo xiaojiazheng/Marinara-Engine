@@ -65,7 +65,6 @@ import { customAgentRepositoriesRoutes } from "./custom-agent-repositories.route
 import { personalExtensionsRoutes } from "./personal-extensions.routes.js";
 import { notificationSoundRoutes } from "./notification-sound.routes.js";
 import { libraryFoldersRoutes } from "./library-folders.routes.js";
-import { androidLocalAuthRoutes } from "../middleware/android-local-auth.js";
 import { multiplayerRoutes } from "./multiplayer.routes.js";
 import { MultiplayerService, type MultiplayerGameRuntime } from "../services/multiplayer/service.js";
 import { loadTlsOptions, multiplayerAvailable } from "../config/runtime-config.js";
@@ -90,7 +89,6 @@ export async function registerRoutes(app: FastifyInstance) {
   await multiplayer.initialize();
   app.decorate("multiplayer", multiplayer);
   app.addHook("onClose", () => multiplayer.close());
-  await app.register(androidLocalAuthRoutes, { prefix: "/api/android-auth" });
   await app.register(chatsRoutes, { prefix: "/api/chats" });
   await app.register(advancedMemoryRoutes, { prefix: "/api/chats" });
   await app.register(chatInsightsRoutes, { prefix: "/api/chat-insights" });

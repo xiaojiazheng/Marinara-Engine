@@ -123,7 +123,6 @@ export async function multiplayerRoutes(app: FastifyInstance, options: { service
     service.preview(z.object(invitation).strict().parse(request.body).inviteCode),
   );
   app.post("/join", { bodyLimit: 16_384 }, async (request) => {
-    if (request.headers["user-agent"]?.includes("MarinaraEngine/Android")) throw new MultiplayerError("unavailable");
     return service.join(
       z
         .object({ ...invitation, password, ...identity, consent: z.literal(true) })
@@ -139,9 +138,7 @@ export async function multiplayerRoutes(app: FastifyInstance, options: { service
     await service.leaveGuest(z.object({ chatId: id.optional() }).strict().parse(request.query).chatId);
     return { left: true };
   });
-  app.get("/guest-view", { config: { rateLimit: MULTIPLAYER_GUEST_VIEW_RATE_LIMIT } }, async (request, reply) => {
-    // The current Android wrapper injects its bridge into every frame, even an opaque sandbox.
-    if (request.headers["user-agent"]?.includes("MarinaraEngine/Android")) throw new MultiplayerError("unavailable");
+  app.get("/guest-view", { config: { rateLimit: MULTIPLAYER_GUEST_VIEW_RATE_LIMIT } }, async (_request, reply) => {
     const [javascript, css] = await Promise.all([
       readFile(new URL("../../../client/dist/multiplayer/guest.js", import.meta.url), "utf8"),
       readFile(new URL("../../../client/dist/multiplayer/guest.css", import.meta.url), "utf8"),

@@ -6,7 +6,7 @@ This guide answers the questions people ask most about Marinara Engine. Answers 
 
 Marinara Engine runs as a local server on one computer. You open it in a web browser. This answer covers access from phone, tablet, or another computer on the same network.
 
-The start scripts (`start.sh`, `start.bat`, and `start-termux.sh`) already bind the server to all network interfaces (`0.0.0.0`). Other devices can reach the server over the network, but access control blocks them by default. Until you set up access on the host computer, a remote device only sees an **Access blocked** page with setup instructions.
+The start scripts (`start.sh` and `start.bat`) already bind the server to all network interfaces (`0.0.0.0`). Other devices can reach the server over the network, but access control blocks them by default. Until you set up access on the host computer, a remote device only sees an **Access blocked** page with setup instructions.
 
 Follow these steps:
 
@@ -34,7 +34,7 @@ Replace `192.168.1.42` with your own host IP address.
 
 5. Sign in if the browser asks for the Basic Auth username and password. If you see an **Access blocked** page instead, finish step 2 on the host first.
 
-On ordinary desktop installs, the same computer (`127.0.0.1`) does not need a password. APK-managed Android installs add a private localhost login so another Android app cannot impersonate Marinara, but the Android wrapper creates and uses that credential automatically. Other devices are blocked until you set up access control (Basic Auth or an IP allowlist). Each option is explained in [Remote Access](REMOTE_ACCESS.md).
+On ordinary desktop installs, the same computer (`127.0.0.1`) does not need a password. Other devices are blocked until you set up access control (Basic Auth or an IP allowlist). Each option is explained in [Remote Access](REMOTE_ACCESS.md).
 
 If the two devices are not on the same network, a tool like Tailscale can help. Tailscale gives each device a stable private address. You can then connect from anywhere without exposing Marinara to the public internet. If you cannot connect, see [Troubleshooting](TROUBLESHOOTING.md).
 
@@ -42,15 +42,14 @@ If the two devices are not on the same network, a tool like Tailscale can help. 
 
 There is no separate native mobile app. On a phone or tablet, you use the same web app in a browser. Most mobile browsers offer an **Add to Home Screen** or **Install App** option that makes it feel like a real app, with no browser bar. This is called a PWA (Progressive Web App, a website you can install like an app).
 
-On Android, you can also [download the latest APK directly](https://github.com/Pasta-Devs/Marinara-Engine/releases/latest/download/marinara-engine-android.apk). It runs Marinara locally on the phone through Termux. Installing it does not require a signing key, password, or local-access secret; see [Android Installation](installation/android-termux.md) for the Android permission prompts. On iPhone and iPad, see the [iOS PWA Guide](installation/ios-pwa.md).
+On iPhone and iPad, see the [iOS PWA Guide](installation/ios-pwa.md).
 
-The Android wrapper signs in automatically in the app or your browser. Select **Open in browser** on its launcher and tap **Retry connection**; use **Install / Start Marinara** when the server is stopped. This choice is remembered. In the app, **Settings > General > App Behavior > Open Android launcher (app or browser)** returns to that choice. Update both the APK and Engine to use the automatic browser handoff. Older APKs still offer manual sign-in at `/android-login`. The local `mari` CLI reads the launcher-managed secret automatically, and manual Termux installs retain normal localhost rules.
 
 ## Can I play with other people?
 
 Optional multiplayer creates a fresh shared Conversation, Roleplay or Game without a fixed human or AI roster cap. Every participant enables the environment prerequisite and the separate Settings switch, then explicitly hosts or joins using their own trusted client. Guests need no AI key; the host controls generation and approval. Game waits for every required player's action or explicit pass before resolving a round.
 
-A password does not make an unknown host safe. Shared rooms accept text only and keep the guest view isolated from files, native integrations and local APIs. The Android native wrapper cannot join. Read [multiplayer setup, warnings and limits](CONFIGURATION.md#optional-multiplayer) before enabling it.
+A password does not make an unknown host safe. Shared rooms accept text only and keep the guest view isolated from files, native integrations and local APIs. Read [multiplayer setup, warnings and limits](CONFIGURATION.md#optional-multiplayer) before enabling it.
 
 ## What are the three chat modes?
 

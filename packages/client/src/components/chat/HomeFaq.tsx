@@ -137,26 +137,11 @@ const HOME_FAQ_ITEMS: HomeFaqItem[] = [
     ],
   },
   {
-    id: "android-apk-termux",
-    category: "Setup",
-    question: "Is the Android APK standalone?",
-    answer: "No. The APK is only a WebView shell for Marinara Engine running locally in Termux.",
-    bullets: [
-      "Use Install / Start Marinara in the APK, or follow the Android Termux guide so Termux creates the Marinara-Engine folder before running ./start-termux.sh.",
-      "The APK opens the same-device local server at 127.0.0.1, so it cannot work if Termux is closed.",
-      "If it stays on the connection screen, go back to Termux and start the server.",
-    ],
-  },
-  {
     id: "pnpm-install-bat",
     category: "Setup",
     question: "'pnpm: not found' or install.bat failed. What now?",
     answer: "Your system usually just does not have pnpm available yet.",
-    bullets: [
-      "Install pnpm globally with npm install -g pnpm, or use the EXE installer if you want the guided path.",
-      "On Android or Termux, a long pause at Corepack alignment is a recurring pain point rather than a special Marinara-only error.",
-      "If Termux hangs specifically on 'Aligning pnpm via Corepack', let it finish before assuming it is dead.",
-    ],
+    bullets: ["Install pnpm globally with npm install -g pnpm, or use the EXE installer if you want the guided path."],
   },
   {
     id: "google-cloud-credit",

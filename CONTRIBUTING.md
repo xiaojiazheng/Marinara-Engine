@@ -38,7 +38,7 @@ Useful entry points:
 - `pnpm dev` starts the server and client with hot reload.
 - `pnpm dev:server` builds the shared package, then starts only the API server. If shared source changes while it is running, rerun `pnpm build:shared` and restart the server; the server watcher intentionally ignores shared build output.
 - `pnpm dev:client` starts only the Vite frontend.
-- `start.bat`, `start.sh`, and `start-termux.sh` run the launcher flow, including git-based auto-update and optional browser auto-open.
+- `start.bat` and `start.sh` run the launcher flow, including git-based auto-update and optional browser auto-open.
 - `tools/dev-mcp/` is an optional MCP server for coding agents working on the engine: it reads prompts, cache statistics and logs from a local engine, runs typechecks and regressions, and restarts the engine without using the launchers. It is not a workspace package. See [tools/dev-mcp/README.md](tools/dev-mcp/README.md).
 - Platform launchers and `pnpm start` supervise explicit in-app restarts in the same console; exit code 75 requests a replacement after the server exits. Development watchers should be restarted from their terminal, not Advanced Settings.
 
@@ -48,10 +48,10 @@ Copy `.env.example` to `.env` when you need to change ports, HTTPS settings, or 
 
 Marinara Engine uses two long-lived branches:
 
-| Branch    | Role                                                                                                      |
-| --------- | --------------------------------------------------------------------------------------------------------- |
-| `staging` | Active development and testing. This is the only target for feature, bug-fix, and documentation PRs.      |
-| `main`    | Stable release branch. Only `SpicyMarinara` may promote tested work from `staging` or publish a hotfix.    |
+| Branch    | Role                                                                                                    |
+| --------- | ------------------------------------------------------------------------------------------------------- |
+| `staging` | Active development and testing. This is the only target for feature, bug-fix, and documentation PRs.    |
+| `main`    | Stable release branch. Only `SpicyMarinara` may promote tested work from `staging` or publish a hotfix. |
 
 Guidelines:
 
@@ -68,10 +68,9 @@ Guidelines:
 - `packages/client/` — React frontend, PWA shell, and UI components
 - `packages/server/` — Fastify API, file-native storage, importers, and AI agents
 - `packages/shared/` — Shared types, schemas, constants, and `APP_VERSION`
-- `android/` — Android WebView wrapper for the Termux-served local app
 - `win/` — Windows installer sources and helper scripts
 - `docs/` — Docs and repo media assets
-- `start.bat`, `start.sh`, `start-termux.sh` — platform launchers
+- `start.bat`, `start.sh` — platform launchers
 
 Official downloadable agent and capability-package sources live in the separate [Pasta-Devs/Marinara-Agents](https://github.com/Pasta-Devs/Marinara-Agents) repository. Fixes to agents such as Illustrator, Music DJ, and Lorebook Keeper—including their definitions, default prompts, package-owned runtime code, metadata, artwork/assets, manifests, artifacts, and catalog validation—must use that repository's issues and target its `staging` branch.
 
@@ -81,15 +80,15 @@ The Engine update channel also selects the official Agent channel. Stable Engine
 
 ## Prompt Leaf Content Is Verbatim (Decision + Threat Model)
 
-**Invariant:** what the model receives inside a prompt section equals what the user typed. Prompt *leaf* content — character card fields, persona, lorebook entries, memories, scene text, example dialogue — is passed to the model **verbatim**. Do not HTML-escape `<`, `>`, or `&` in this content. Users legitimately organize cards and lorebooks with angle-bracket / HTML-style tags (`<thinking>`, `<scenario>`, `<div>`), and those must reach the model as written.
+**Invariant:** what the model receives inside a prompt section equals what the user typed. Prompt _leaf_ content — character card fields, persona, lorebook entries, memories, scene text, example dialogue — is passed to the model **verbatim**. Do not HTML-escape `<`, `>`, or `&` in this content. Users legitimately organize cards and lorebooks with angle-bracket / HTML-style tags (`<thinking>`, `<scenario>`, `<div>`), and those must reach the model as written.
 
 **Why this is safe.** Marinara is a local, single-user tool. The person who authors or imports a card is the same person any "injection" in that card would target — so the worst realistic outcome of an unescaped tag is the model role-playing something odd, which the user sees in their own chat and fixes by editing their own card. That is a rare, self-inflicted, self-correcting annoyance, not a security boundary. An LLM also does not parse the prompt as an XML document, so a stray `<` cannot "break out" of a section the way it would in a real parser — escaping it only corrupts text. Escaping traded that non-threat for a constant, real harm (mangled cards, broken roleplay HTML, wasted tokens).
 
 **Optional multiplayer changes the boundary.** The local-only rationale above applies to ordinary single-player use. Multiplayer peers and model output remain untrusted even after password authentication. Keep prompt leaves verbatim, review the shared persona/card text at admission, and enforce the room policy at rendering, storage, command and tool dispatch. Peer traffic uses a separate restricted listener; never proxy it into ordinary Engine routes or load the host's web client. See [multiplayer architecture and proof](docs/development/multiplayer.md).
 
-**Structure is separate from content.** The framework's own section wrappers (`<description>…</description>`, `<last_message>…`, etc.) are emitted by `wrapContent` *around* leaf content, from fixed section names. Verbatim content therefore cannot alter structural tags; it only changes what sits inside them.
+**Structure is separate from content.** The framework's own section wrappers (`<description>…</description>`, `<last_message>…`, etc.) are emitted by `wrapContent` _around_ leaf content, from fixed section names. Verbatim content therefore cannot alter structural tags; it only changes what sits inside them.
 
-**What stays escaped (do not "harmonize" these back into the leaf path).** The agent value/attribute escapers — `escapeXml` / `escapeXmlAttribute` in `agent-executor.ts` and the local escaper in `knowledge-router.ts` — escape dynamic values into XML *attributes* and into strict, machine-parsed agent output (world-state documents, entry catalogs). Those are genuinely parsed downstream, where a stray `"` or `<` breaks an attribute or element, so they must stay escaped. Note that `agent-executor.ts` also escapes some of the same card fields into element *content* of that parsed document — a different consumer with different rules. It is **not** a reason to re-escape the main prompt path.
+**What stays escaped (do not "harmonize" these back into the leaf path).** The agent value/attribute escapers — `escapeXml` / `escapeXmlAttribute` in `agent-executor.ts` and the local escaper in `knowledge-router.ts` — escape dynamic values into XML _attributes_ and into strict, machine-parsed agent output (world-state documents, entry catalogs). Those are genuinely parsed downstream, where a stray `"` or `<` breaks an attribute or element, so they must stay escaped. Note that `agent-executor.ts` also escapes some of the same card fields into element _content_ of that parsed document — a different consumer with different rules. It is **not** a reason to re-escape the main prompt path.
 
 **If you are about to re-add escaping here: don't.** It has been tried repeatedly (see the flip-flop history in `CHANGELOG.md` and the header comment in `packages/server/src/services/prompt/prompt-escaping.ts`), it corrupts legitimate cards, and it protects against nothing in this deployment model. If a future multi-tenant or shared-marketplace deployment ever changes the threat model, the correct response is a validation/consent step at the import boundary — not silent per-token escaping of everyone's content at prompt-assembly time. Check with a maintainer before changing this.
 
@@ -126,11 +125,10 @@ Useful follow-up checks:
 
 ```bash
 pnpm version:check
-pnpm regression
+pnpm verify
 pnpm regression:prompt
 pnpm smoke:ui
 pnpm smoke:production
-pnpm regression:ui
 ```
 
 `pnpm smoke:production` opens the compiled frontend with the compiled server in isolated test data,
@@ -140,21 +138,23 @@ server and HTTP-only container health checks cannot detect.
 
 Regression guards:
 
-- `pnpm regression` (or `pnpm regression:node`) builds the shared package once, discovers the complete Node regression set from the filesystem, and runs it serially. Pull requests and staging pushes retain this complete lane on a hosted runner.
+- `pnpm verify` is this fork's acceptance lane: it runs `pnpm check`, a fixed set of source-scanning guards, and a focused desktop e2e batch. The sets live in `scripts/run-targeted-verify.mjs`; add to them when a change proves a check matters, and keep the lane small. It replaces the former full Node lane (`pnpm regression`), which built the shared package once, discovered every regression from the filesystem, and ran it serially.
 - `pnpm regression:prompt` runs fast deterministic checks for prompt assembly, lorebook keyword matching, macros, summaries, and mode-specific generation gates.
-- `pnpm smoke:ui` runs only the `@smoke` tests on desktop Chromium, with one worker. This small suite covers the Home shell, settings persistence, chat-mode navigation, generation stop/refusal, Conversation and Roleplay reasoning, and Game narration. Development PRs into `staging` run it inside the existing required `pnpm-validate` check, so a smoke failure blocks merging. Staging pushes run it as `browser-smoke`. Both replace the full browser matrix at those development boundaries. Keep the smoke selection small; feature-specific regressions belong in focused local runs and the full matrix.
-- `pnpm regression:ui` still runs the full Playwright suite across desktop Chromium, Android-sized Chromium, and iPhone-sized WebKit. GitHub runs the full matrix nightly at 02:17 UTC against `staging`, on manual dispatch, and on PRs into `main` (including promotion and hotfix candidates). Every test job uses the same immutable commit from its triggering event; the `regression-revision` job records that SHA in its summary. Full-matrix checks retain the `desktop-chromium`, `mobile-chromium`, and `mobile-webkit` verdicts; ordinary development runs skip those full lanes.
+- `pnpm smoke:ui` runs only the `@smoke` tests on desktop Chromium, with one worker. This small suite covers the Home shell, settings persistence, chat-mode navigation, generation stop/refusal, Conversation and Roleplay reasoning, and Game narration. Development PRs into `staging` run it inside the existing required `pnpm-validate` check, so a smoke failure blocks merging. Staging pushes run it as `browser-smoke`. Both replace the full browser matrix at those development boundaries. Keep the smoke selection small; feature-specific regressions belong in focused local runs.
+- The former full Playwright matrix lane (`pnpm regression:ui`) is removed in this fork. Run the focused desktop batch through `pnpm verify`, or one spec directly: `npx playwright test -c playwright.config.ts <spec> --project=desktop-chromium --workers=1`.
   Browser runs clear `.tmp/playwright-data` and use disposable app-server fixtures. Local runs start separate desktop and mobile servers; hosted jobs start only the pair their selected project needs. Stop any process already using the configured Playwright ports before running tests; the suite does not reuse a running development server.
-- `node scripts/run-regressions.mjs` (what `pnpm regression` runs) gives each regression file its own throwaway `DATA_DIR`, `FILE_STORAGE_DIR` and `.env` (through `MARINARA_ENV_FILE`) and removes them when the file finishes. A regression that sets these variables itself keeps its own values. Use `--filter <text>` to run a subset.
-- `pnpm test` checks the Windows installer layout, then runs the Node regression lane. It does not run the UI lane; invoke `pnpm regression:ui` explicitly for browser validation.
+- `node scripts/run-regressions.mjs` (the runner `pnpm verify` and the focused `regression:*` commands use) gives each regression file its own throwaway `DATA_DIR`, `FILE_STORAGE_DIR` and `.env` (through `MARINARA_ENV_FILE`) and removes them when the file finishes. A regression that sets these variables itself keeps its own values. Use `--filter <text>` to run a subset.
+- `pnpm test` checks the Windows installer layout, then runs `pnpm verify`.
 
 Before pushing, run `pnpm check` and the regressions covering the behavior you changed. For browser-affecting work, run `pnpm smoke:ui` plus the relevant spec files or named cases. Include mobile Chromium and WebKit when changing responsive layout, touch/keyboard behavior, media playback, or browser-specific APIs. Shared shell, styling, storage, or routing changes warrant broader coverage. Running the entire browser matrix before every push is not required.
+
+**This fork's rule: never run the full test suite — targeted checks only.** Run `pnpm check` plus the regressions and spec files the change touches (one `--filter`, one spec file, one Playwright project pair). The complete Node lane and the full browser matrix are out of scope in this fork: they take tens of minutes, depend on tools this environment may not have (openssl, bash, outbound network), and their inter-file coupling produces false reds that look exactly like product defects. Reproduce a failure in isolation before trusting it, and delete guards that can never pass on the target machine rather than skipping them. The agent-facing rules are `AGENTS.md § Frontend Changes` rules 1–6.
 
 For example, select a focused desktop regression or a mobile case without running every spec:
 
 ```bash
-pnpm regression:ui e2e/game-verb-only-turn.e2e.ts --project=desktop-chromium --workers=1
-pnpm regression:ui e2e/core-flows.e2e.ts --project=mobile-webkit --grep "chat mode tabs" --workers=1
+npx playwright test -c playwright.config.ts e2e/game-verb-only-turn.e2e.ts --project=desktop-chromium --workers=1
+node ./scripts/run-regressions.mjs --filter scripts/regressions/open-issues.regression.ts
 ```
 
 Record the commands, results, and tested revision in the PR. Rerun affected checks after later edits; do not present results from an earlier revision as validation of changed code. Explain any unavailable browser or skipped coverage. These automated checks do not replace manual verification of the changed behavior.
@@ -249,7 +249,7 @@ The overlay is not a substitute for this guide. When instructions conflict, foll
 - Explain the why clearly in the PR description. Reviewers should understand the user problem, regression, or tradeoff being addressed, not just the implementation summary.
 - Update documentation in the same PR when behavior changes affect installation, updates, release flow, launchers, or platform-specific behavior.
 - Include screenshots or short recordings for UI changes.
-- Call out manual validation clearly, especially for launcher, installer, or Android wrapper changes.
+- Call out manual validation clearly, especially for launcher or installer changes.
 - Add a concise user-focused entry under the appropriate `CHANGELOG.md` `[Unreleased]` heading for every bug fix, behavior change, or new feature. Purely mechanical changes with no product or contributor-workflow impact may omit one.
 - Avoid version drift. If your PR intentionally bumps a release, update every version-bearing file in one pass.
 
@@ -257,7 +257,6 @@ The overlay is not a substitute for this guide. When instructions conflict, foll
 
 - `README.md` is the user-facing overview and quickstart, not the full release log.
 - `CHANGELOG.md` is the durable release-notes source and should be reusable for GitHub Releases.
-- `android/README.md` is scoped to the Android wrapper around the Termux-served app.
 - `CONTRIBUTING.md` is the canonical contributor and maintainer workflow document.
 - `docs/CONFIGURATION.md` is the environment variable and `.env` reference.
 - `docs/TROUBLESHOOTING.md` collects common user-facing issues and fixes.
@@ -322,18 +321,11 @@ Current version touchpoints:
 | `packages/shared/src/constants/defaults.ts` | Shared `APP_VERSION` used by the app and update checks |
 | `win/installer/installer.nsi`               | Windows installer output version                       |
 | `win/installer/install.bat`                 | Windows installer banner text                          |
-| `android/app/build.gradle`                  | Android `versionName` and `versionCode`                |
-
-Android policy:
-
-- `versionName` must match the app version.
-- `versionCode` must increase monotonically for every shipped APK.
-- Stable and tagged release APKs require the repository maintainers' configured `ANDROID_SIGNING_*` keystore credentials. These are CI build inputs, never information requested from APK downloaders. The manual pre-alpha workflow may publish a debug-signed APK only as a draft, test-only artifact.
 
 Release-related behavior already in the repo:
 
 - Docker publishing is triggered by `v*` tags.
-- Tagged releases are published from `CHANGELOG.md` by the GitHub release workflow, with a named versioned source ZIP and a temporary Android APK notice prepended so release-page downloaders know the APK still requires Termux. Android releases attach both the versioned APK and the stable `marinara-engine-android.apk` alias used by the one-click latest-download link.
+- Tagged releases are published from `CHANGELOG.md` by the GitHub release workflow, with a named versioned source ZIP and the matching CHANGELOG entry.
 - The server update check reads the newest GitHub `v*` tag and uses matching release metadata when it exists.
 - Git-based installs can apply updates automatically; Docker installs are prompted with the pull command instead.
 - Pull request CI runs `pnpm check`, `pnpm version:check`, and the tracked-installer guard.
@@ -349,20 +341,20 @@ alongside this Engine release. Copying the preview catalog to `main` alone keeps
 from stable Engine users. Leave other staging-only packages at their existing release tier.
 
 1. Bump the canonical version in root `package.json`.
-2. Run `pnpm version:sync -- --android-version-code <next-code>` to sync all derived version fields.
+2. Run `pnpm version:sync` to sync all derived version fields.
 3. Run `pnpm credits:check`; if it reports stale contributor credits, run `pnpm credits:sync` and include the Credits modal update in the release PR.
 4. Update `CHANGELOG.md`; when publishing a stable release, update README's current-stable-release link to the matching tag.
 5. Open the promotion PR from `staging` to `main` and wait for its full browser matrix and required checks to pass before merging. If the candidate changes, validate the updated candidate. For a release without a promotion PR, manually run the full matrix against its exact candidate commit before tagging.
 6. Create and push the tag `vX.Y.Z` from the `main` commit that contains that exact version bump.
-7. Let the release workflows publish or update the GitHub Release, named source ZIP, Windows installer, Android WebView shell APK, and GHCR container images (`X.Y.Z`, `X.Y`, `X`, `latest`, plus `X.Y.Z-lite` / `lite`) from the matching changelog entry.
+7. Let the release workflows publish or update the GitHub Release, named source ZIP, Windows installer, and GHCR container images (`X.Y.Z`, `X.Y`, `X`, `latest`, plus `X.Y.Z-lite` / `lite`) from the matching changelog entry.
 
 Release helpers now in the repo:
 
-- `pnpm version:sync -- --android-version-code <next-code>` updates the derived version files from the root `package.json` version. README's current-stable-release link changes only when that release is published.
+- `pnpm version:sync` updates the derived version files from the root `package.json` version. README's current-stable-release link changes only when that release is published.
 - `pnpm version:check` fails when those derived files drift out of sync.
 - `pnpm credits:check` compares the in-app Credits modal with the GitHub contributors list, and `pnpm credits:sync` refreshes it.
 - `pnpm guard:installer-artifacts` fails when tracked installer binaries appear under `win/installer/*.exe`.
-- `pnpm release:notes -- <version>` renders the matching `CHANGELOG.md` entry for release publication and prepends the temporary Android APK / Termux notice.
+- `pnpm release:notes -- <version>` renders the matching `CHANGELOG.md` entry for release publication.
 
 ## Immediate Way Forward
 

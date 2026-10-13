@@ -40,7 +40,7 @@ Local Model 会下载一个运行时（负责跑模型的那个程序）和一�
 - **Windows(64 位) 和 Linux(64 位)**：可以使用完整的 **Runtime Target**(运行时目标) 选择器，既能选显卡（GPU）系列，也能只用处理器（CPU）运行。
 - **Windows on ARM 和 Linux on ARM**：可选项较少，基本以 CPU 为主。
 - **macOS on Apple Silicon**：Marinara 使用针对苹果芯片调优的 MLX 运行时。自定义模型是 HuggingFace 仓库，而不是单个文件。
-- **macOS on Intel 和 Android**：实际上只能用 CPU。
+- **macOS on Intel**：实际上只能用 CPU。
 
 “Lite”安装包里没有 Local Model。Lite 安装是精简版构建，为了省空间去掉了本地运行时。在 Lite 安装上，Local Model 卡片不会出现。
 

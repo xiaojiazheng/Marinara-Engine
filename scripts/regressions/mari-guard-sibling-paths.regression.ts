@@ -129,7 +129,7 @@ for (const blocked of [
   "cp evil.nsi win/installer/installer.nsi",
   "mv new-start.sh start.sh",
   "rm docker-compose.yml",
-  "touch android/app/build.gradle",
+  "touch win/installer/installer.nsi",
   "true && tee package.json < input.txt",
   String.raw`echo x > win\installer\install.bat`,
   // Quoted targets and heredocs - the shapes LLMs actually write

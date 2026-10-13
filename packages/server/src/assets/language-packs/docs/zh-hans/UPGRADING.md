@@ -79,36 +79,12 @@ podman compose down && podman compose pull && podman compose up -d
 
 发布镜像会推送为 `ghcr.io/pasta-devs/marinara-engine:X.Y.Z` 和 `:latest`，还有对应的 `-lite` 标签。除非有意留在旧版本，否则拉取 `:latest` 或最新的版本标签。拉取镜像不会动 `marinara-data` 卷里的数据。
 
-### Android (Termux)
-
-Termux 是 Android 上的终端和 Linux 环境。它的启动脚本每运行一次就更新一次 Marinara。
-
-1. 打开 Termux。
-2. 运行启动脚本。
-
-```bash
-cd Marinara-Engine
-./start-termux.sh
-```
-
-启动脚本会更新代码，必要时把 Node.js 一并更新，重新构建并启动本地服务器。
-
-如果某次更新有问题，需要留在当前副本上，那就跳过更新检查。
-
-```bash
-cd Marinara-Engine
-./start-termux.sh --skip-update
-```
-
-想长期关闭，在项目的 `.env` 里设置 `AUTO_UPDATE_ENABLED=false`。这只影响由启动脚本管理的 Engine 更新，手动更新和应用内的更新控件仍然可用。
-
-如果用的是 Android 应用图标（APK），请[下载最新 APK](https://github.com/Pasta-Devs/Marinara-Engine/releases/latest/download/marinara-engine-android.apk)并打开下载的文件，让 Android 更新外壳本身。然后打开 Marinara Engine，点击 **Install / Start Marinara** 来更新并启动背后的 Termux 副本。应用会自动保留并交换私密 localhost 凭据；更新不会要求签名凭据或这个密钥。
 
 ### iPhone 和 iPad
 
 iPhone 和 iPad 不运行 Marinara 服务器，而是通过 Safari 打开跑在另一台设备上的服务器。添加到主屏幕的那个副本是 PWA，全称 Progressive Web App。PWA 就是添加到主屏幕、能像应用一样打开的网站。
 
-1. 更新真正运行 Marinara 服务器的电脑、Docker 主机或 Android 设备，参照上面对应的小节。
+1. 更新真正运行 Marinara 服务器的电脑或 Docker 主机，参照上面对应的小节。
 2. 在 iPhone 或 iPad 上重新加载主屏幕的 PWA 或 Safari 选项卡。
 
 如果服务器已经更新，Safari 却一直显示旧版本，就清掉缓存的副本。
@@ -206,5 +182,4 @@ Marinara 可以在应用内向 GitHub 检查有没有新版本。部分安装方
 - [Windows 安装指南](installation/windows.md)
 - [macOS / Linux 安装指南](installation/macos-linux.md)
 - [通过容器运行（Docker / Podman）](installation/containers.md)
-- [Android (Termux) 安装指南](installation/android-termux.md)
 - [iOS / iPadOS PWA 指南](installation/ios-pwa.md)

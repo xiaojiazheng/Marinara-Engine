@@ -6,7 +6,6 @@ import { isPrivateNetworkIp, isLoopbackIp } from "./ip-allowlist.js";
 
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const SAFE_FETCH_SITES = new Set(["same-origin", "same-site", "none"]);
-const ANDROID_SELF_AUTHENTICATING_PATHS = new Set(["/api/android-auth/session", "/api/android-auth/browser-session"]);
 
 // Throttle "origin not trusted" log lines so a misbehaving client can't flood
 // the log. Each unique origin is announced once. The cache is bounded so an
@@ -154,7 +153,7 @@ function appendOriginHint(origin: string): string {
   if (origin.trim().toLowerCase() === "null") {
     return (
       "Origin 'null' is opaque and cannot be added to CSRF_TRUSTED_ORIGINS. " +
-      "Open Marinara from its HTTP(S) server URL; Android APK users should install the latest APK and retry setup."
+      "Open Marinara from its HTTP(S) server URL and retry the request."
     );
   }
   // Non-destructive instruction: tell the operator to APPEND the offending
@@ -274,12 +273,6 @@ export function logCsrfTrustSummary(log: { info(message: string): void; warn(mes
 export function csrfProtectionHook(request: FastifyRequest, reply: FastifyReply, done: () => void) {
   if (!UNSAFE_METHODS.has(request.method.toUpperCase())) return done();
   if (!request.url.startsWith("/api/")) return done();
-  const requestPath = request.url.split("?", 1)[0] ?? request.url;
-  // Android WebView's top-level postUrl navigation may send `Origin: null`.
-  // These two device-local routes authenticate the request itself with either
-  // a one-time HMAC proof or the full 256-bit per-install secret.
-  if (ANDROID_SELF_AUTHENTICATING_PATHS.has(requestPath)) return done();
-
   const origin = firstHeader(request.headers.origin);
   const referer = firstHeader(request.headers.referer);
   let originTrusted = false;

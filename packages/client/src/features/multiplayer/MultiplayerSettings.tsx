@@ -84,7 +84,7 @@ export function MultiplayerSettings() {
                 </button>
                 <button
                   type="button"
-                  disabled={"MarinaraAndroidNative" in window}
+
                   className={MULTIPLAYER_BUTTON_CLASS}
                   onClick={() => setJoinOpen((value) => !value)}
                 >
@@ -92,13 +92,13 @@ export function MultiplayerSettings() {
                 </button>
               </div>
             )}
-            {"MarinaraAndroidNative" in window && <p className="text-xs">{t("multiplayer.nativeUnavailable")}</p>}
+
             {settings.isError && (
               <p role="alert" className="text-xs text-[var(--destructive)]">
                 {t("multiplayer.actionFailed")}
               </p>
             )}
-            {joinOpen && status.data.enabled && !("MarinaraAndroidNative" in window) && <MultiplayerJoin />}
+            {joinOpen && status.data.enabled && <MultiplayerJoin />}
             <ChatModeSelectorModal
               open={createOpen}
               onClose={() => setCreateOpen(false)}

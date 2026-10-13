@@ -123,7 +123,7 @@ Server source runs in a separate Node process, never through an in-process impor
 
 The sandbox receives a minimal environment, a small V8 heap, no application files, no server secrets, and bounded line-delimited protocol files inside its private temporary directory. It receives only logging, private extension storage, managed timers, and cleanup registration. Message quotas and a separate heartbeat file contain protocol flooding and busy loops.
 
-Node permissions and `node:vm` are defense-in-depth layers, not the security boundary. The separate OS sandbox is mandatory. Windows, Android, Linux without `bwrap`, and any other unsupported platform refuse to enable Server Extensions.
+Node permissions and `node:vm` are defense-in-depth layers, not the security boundary. The separate OS sandbox is mandatory. Windows, Linux without `bwrap`, and any other unsupported platform refuse to enable Server Extensions.
 
 ## Validation
 

@@ -86,7 +86,7 @@ Static analysis cannot prove the absence of runtime string lookup, downloaded pa
 | `packages/client/src/components/agents/AgentDebugPanel.tsx` (296 lines) | No inbound import and `AgentDebugPanel` occurs only at its declaration. | Remove the component. Then review the agent store's `debugLog` and `clearDebugLog`; they are otherwise consumed only by this unreachable panel. Do not remove `lastResults`, which is used by `SpriteOverlay`. | `pnpm check`; open agent settings/debug mode and verify the active debug surfaces. |
 | `packages/client/src/components/agents/AgentThoughtBubbles.tsx` (113 lines) | No inbound import and `AgentThoughtBubbles` occurs only at its declaration. Current thought-bubble/checklist UI is rendered through `RoleplayHUD` / `RoleplayHUDActionsMenu`. | Remove the component and its stale entry in `packages/client/.instructions.md`. | `pnpm check`; `pnpm regression:roleplay`; browser-check the roleplay HUD and continuity checklist. |
 | `packages/client/src/components/panels/GlobalGalleryPanel.tsx` (468 lines) | No inbound import, route registration, or exact-name reference. | Remove this panel only. Do **not** infer that the entire gallery capability is dead: `NoodleHome`, gallery hooks, server routes, and storage still have active references. | `pnpm check`; `pnpm smoke:ui`; manually verify Noodle image upload/gallery behavior. |
-| `packages/shared/src/features/turn-games/engine-utils.ts` (22 lines) | No imports, no barrel export, and all four exported symbols occur only in this file. | Delete the file. | `pnpm check`; `pnpm regression`. |
+| `packages/shared/src/features/turn-games/engine-utils.ts` (22 lines) | No imports, no barrel export, and all four exported symbols occur only in this file. | Delete the file. | `pnpm check`; `pnpm verify`. |
 
 ### 1.2 Obsolete sidecar build script
 
@@ -260,7 +260,7 @@ Avoid combining dependency removal, broad UI refactoring, and route decompositio
 Run the proof appropriate to each change:
 
 - Every code cleanup: `pnpm check`.
-- Shared or broad server changes: `pnpm regression` or the narrow `pnpm regression:<domain>` command first, followed by the full lane before merge.
+- Shared or broad server changes: `pnpm verify` or the narrow `pnpm regression:<domain>` command first, followed by the full lane before merge.
 - UI component/hook cleanup: `pnpm smoke:ui` plus manual browser verification of the affected flow.
 - Prompt, agent, or roleplay paths: `pnpm regression:prompt` and/or `pnpm regression:roleplay`.
 - Dependency cleanup: clean/frozen install, `pnpm check`, production builds, and supported-platform CI.
@@ -275,7 +275,7 @@ During this audit:
 
 - all tracked JSON files parsed successfully;
 - all 12 tracked Python files parsed successfully with Python's AST parser;
-- `start.sh`, `start-termux.sh`, and `android/build-apk.sh` passed `bash -n`;
+- `start.sh` passed `bash -n`;
 - TypeScript unused probes produced the 57 server and 3 client findings documented above;
 - the server and root test commands were directly observed succeeding with zero tests.
 

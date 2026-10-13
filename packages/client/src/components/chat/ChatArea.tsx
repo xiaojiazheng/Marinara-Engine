@@ -517,8 +517,8 @@ function ChatOpeningState({
         {hasOpenError && (
           <div className="flex items-center gap-2">
             {/* The unreachable hint tells the user to try again after
-                  foregrounding Termux; with focus-refetch globally off and
-                  timeout retries disabled, this button is the recovery path. */}
+                foregrounding the app; with focus-refetch globally off and
+                timeout retries disabled, this button is the recovery path. */}
             {chatOpenTimedOut && (
               <button
                 type="button"

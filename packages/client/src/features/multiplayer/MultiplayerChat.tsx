@@ -145,18 +145,7 @@ function JoinedMultiplayerChat({ chat }: { chat: Chat }) {
           <MultiplayerParticipantControls snapshot={state.snapshot} onAction={onAction} />
         </div>
       )}
-      {"MarinaraAndroidNative" in window ? (
-        <div className="space-y-3 p-4">
-          <p>{t("multiplayer.nativeUnavailable")}</p>
-          <button
-            type="button"
-            className={MULTIPLAYER_BUTTON_CLASS}
-            onClick={() => void leave().catch(() => useChatStore.getState().setActiveChatId(null))}
-          >
-            {t("multiplayer.guest.leave")}
-          </button>
-        </div>
-      ) : !enabled ? (
+      {!enabled ? (
         <p role="status" className="p-4 text-sm">
           {t(
             status.isLoading
