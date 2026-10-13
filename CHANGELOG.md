@@ -4,6 +4,8 @@ This file is the release-notes source of truth for Marinara Engine. Reuse these 
 
 ## [Unreleased]
 
+- Added a custom-branch container build and a deployment guide for preserving existing data, credentials, and rollback backups on a personal fork.
+
 ## [2.5.0]
 
 - Release notes too long for a GitHub release are trimmed at a whole entry and end with a link to the full changelog, so publishing a large release such as this one no longer fails (#7146).
