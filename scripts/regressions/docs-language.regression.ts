@@ -25,14 +25,17 @@ import { fileURLToPath } from "node:url";
 const fixtureRoot = mkdtempSync(join(tmpdir(), "marinara-docs-pack-regression-"));
 process.env.DATA_DIR = fixtureRoot;
 
-const { normalizeDocsLanguage, DEFAULT_DOCS_LANGUAGE, DOCS_LANGUAGE_LABELS, docsLanguageDirection } = await import(
-  "../../packages/shared/src/constants/docs-languages.ts"
-);
+const { normalizeDocsLanguage, DEFAULT_DOCS_LANGUAGE, DOCS_LANGUAGE_LABELS, docsLanguageDirection } =
+  await import("../../packages/shared/src/constants/docs-languages.ts");
 const { resolvePhysical, supportedDocLanguages } = await import("../../packages/server/src/routes/docs.routes.ts");
 const {
   checkDocsPackConsistency,
   docsPackManifestsMatch,
   docsPackRoot,
+  installDocsPack,
+  reconcileActiveDocsPackOnBoot,
+  readInstalledDocsPackManifest,
+  removeOtherDocsPacks,
   validateDocsPackManifest,
   validateDocsPackPath,
   verifyDocsPackHashes,
@@ -167,7 +170,10 @@ try {
     "a changed hash must trigger a refresh",
   );
   assert.equal(
-    docsPackManifestsMatch(manifestA, { language: "es", files: [...manifestA.files, { path: "new.md", sha256: sha256("c"), bytes: 1 }] }),
+    docsPackManifestsMatch(manifestA, {
+      language: "es",
+      files: [...manifestA.files, { path: "new.md", sha256: sha256("c"), bytes: 1 }],
+    }),
     false,
     "an added file must trigger a refresh",
   );
@@ -235,6 +241,45 @@ try {
       ruleBody.includes("direction: ltr"),
       `${cssRule} must force direction: ltr in CSS — the chat HTML path strips dir attributes, so the stylesheet is the only protection there`,
     );
+  }
+
+  // Shipped Chinese installs/repairs and reconciles a stored choice offline.
+  const originalFetch = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = async () => {
+    requests++;
+    throw new Error("Offline Chinese fixture");
+  };
+  try {
+    await installDocsPack("zh-hans");
+    const chineseManifest = await readInstalledDocsPackManifest("zh-hans");
+    assert.equal(chineseManifest?.files.length, 137);
+    assert.equal(await verifyDocsPackHashes("zh-hans"), true, "every bundled file must match its manifest");
+    const chineseFaq = resolvePhysical("zh-hans", ["FAQ.md"]);
+    assert.equal(chineseFaq.language, "zh-hans");
+    assert.match(readFileSync(chineseFaq.file, "utf8"), /[\u3400-\u9fff]/);
+    writeFileSync(chineseFaq.file, "broken");
+    assert.equal((await checkDocsPackConsistency("zh-hans")).complete, false);
+    await installDocsPack("zh-hans");
+    assert.equal(await verifyDocsPackHashes("zh-hans"), true, "offline repair restores the bundled bytes");
+
+    const settings = new Map<string, string>([["docs-language", JSON.stringify({ language: "zh-hans" })]]);
+    const storage = {
+      get: async (key: string) => settings.get(key) ?? null,
+      set: async (key: string, value: string) => {
+        settings.set(key, value);
+      },
+    };
+    await removeOtherDocsPacks("en");
+    await reconcileActiveDocsPackOnBoot(storage);
+    assert.equal(await verifyDocsPackHashes("zh-hans"), true, "a missing stored Chinese pack is restored on boot");
+    writeFileSync(join(docsPackRoot("zh-hans"), "manifest.json"), "broken");
+    await reconcileActiveDocsPackOnBoot(storage);
+    assert.equal(await verifyDocsPackHashes("zh-hans"), true, "boot repairs a corrupt manifest without GitHub");
+    await reconcileActiveDocsPackOnBoot(storage);
+    assert.equal(requests, 0, "Chinese installation, repair and routine restarts must never fetch");
+  } finally {
+    globalThis.fetch = originalFetch;
   }
 
   console.log(`docs-language regression passed: languages ${supported.join(", ")}; fixture pack at ${packDir}`);

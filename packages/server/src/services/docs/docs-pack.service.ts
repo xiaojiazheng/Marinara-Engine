@@ -14,6 +14,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
 import {
   APP_VERSION,
   DOCS_LANGUAGE_LABELS,
@@ -41,6 +42,7 @@ const MAX_FILES = 1000;
 const MAX_PATH_DEPTH = 6;
 const FILE_FETCH_CONCURRENCY = 6;
 const FILE_FETCH_ATTEMPTS = 3;
+const BUNDLED_CHINESE_ROOT = fileURLToPath(new URL("../../assets/language-packs/docs/zh-hans/", import.meta.url));
 
 export class DocsPackBusyError extends Error {
   constructor(public busyLanguage: string) {
@@ -205,17 +207,22 @@ export async function fetchPackBytes(url: string, maximum: number): Promise<Buff
   return Buffer.from(await response.arrayBuffer());
 }
 
+/** Both downloaded and bundled files must match their manifest before installation. */
+export function verifyPackFile(buffer: Buffer, file: DocsPackManifestFile): Buffer {
+  if (buffer.byteLength !== file.bytes) {
+    throw new Error(`Size mismatch for ${file.path}: expected ${file.bytes}, got ${buffer.byteLength}`);
+  }
+  const sha256 = createHash("sha256").update(buffer).digest("hex");
+  if (sha256 !== file.sha256) throw new Error(`Hash mismatch for ${file.path}`);
+  return buffer;
+}
+
 export async function fetchPackFile(url: string, file: DocsPackManifestFile): Promise<Buffer> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= FILE_FETCH_ATTEMPTS; attempt++) {
     try {
       const buffer = await fetchPackBytes(url, Math.min(file.bytes + 1, MAX_FILE_BYTES));
-      if (buffer.byteLength !== file.bytes) {
-        throw new Error(`Size mismatch for ${file.path}: expected ${file.bytes}, got ${buffer.byteLength}`);
-      }
-      const sha256 = createHash("sha256").update(buffer).digest("hex");
-      if (sha256 !== file.sha256) throw new Error(`Hash mismatch for ${file.path}`);
-      return buffer;
+      return verifyPackFile(buffer, file);
     } catch (err) {
       lastError = err;
       if (attempt < FILE_FETCH_ATTEMPTS) {
@@ -353,8 +360,12 @@ export function installDocsPack(language: string): Promise<void> {
 
 async function performInstall(language: string, progress: DocsPackInstallProgress): Promise<void> {
   await sweepStaleDocsPackDirs();
-  const pinnedBase = await resolvePinnedBase(docsPackBaseUrl());
-  const manifestBuffer = await fetchPackBytes(`${pinnedBase}/${language}/manifest.json`, MAX_MANIFEST_BYTES);
+  const bundled = language === "zh-hans";
+  const pinnedBase = bundled ? null : await resolvePinnedBase(docsPackBaseUrl());
+  const manifestBuffer = bundled
+    ? await readFile(join(BUNDLED_CHINESE_ROOT, "manifest.json"))
+    : await fetchPackBytes(`${pinnedBase}/${language}/manifest.json`, MAX_MANIFEST_BYTES);
+  if (manifestBuffer.byteLength > MAX_MANIFEST_BYTES) throw new Error("Documentation pack manifest is too large");
   const manifest = validateDocsPackManifest(JSON.parse(manifestBuffer.toString("utf8")), language);
   progress.filesTotal = manifest.files.length;
   progress.phase = "downloading";
@@ -366,7 +377,9 @@ async function performInstall(language: string, progress: DocsPackInstallProgres
     await Promise.all(
       Array.from({ length: Math.min(FILE_FETCH_CONCURRENCY, queue.length) }, async () => {
         for (let file = queue.shift(); file; file = queue.shift()) {
-          const buffer = await fetchPackFile(`${pinnedBase}/${language}/${file.path}`, file);
+          const buffer = bundled
+            ? verifyPackFile(await readFile(join(BUNDLED_CHINESE_ROOT, ...file.path.split("/"))), file)
+            : await fetchPackFile(`${pinnedBase}/${language}/${file.path}`, file);
           const target = assertInsideDir(temporary, join(temporary, ...file.path.split("/")));
           await mkdir(dirname(target), { recursive: true });
           await writeFile(target, buffer);
@@ -442,6 +455,31 @@ export async function reconcileActiveDocsPackOnBoot(storage: DocsPackSettingsSto
     return; // corrupt setting is the Fix button's job, not the boot path's
   }
   if (!language || language === DEFAULT_DOCS_LANGUAGE || !(language in DOCS_LANGUAGE_LABELS)) return;
+
+  // Bundled Chinese follows the shipped snapshot, including same-version Docker updates.
+  // Never resolve a GitHub ref for this language, even with an existing downloaded pack.
+  if (language === "zh-hans") {
+    try {
+      await withDocsPackMutationLock(async () => {
+        const bundled = validateDocsPackManifest(
+          JSON.parse(await readFile(join(BUNDLED_CHINESE_ROOT, "manifest.json"), "utf8")),
+          language,
+        );
+        const installed = await readInstalledDocsPackManifest(language);
+        if (
+          !installed ||
+          !docsPackManifestsMatch(installed, bundled) ||
+          !(await checkDocsPackConsistency(language)).complete
+        ) {
+          await installDocsPack(language);
+        }
+        await removeOtherDocsPacks(language);
+      });
+    } catch (err) {
+      logger.warn(err, "Could not restore bundled Chinese documentation; retrying next start");
+    }
+    return;
+  }
 
   const buildKey = await currentBuildKey();
   try {

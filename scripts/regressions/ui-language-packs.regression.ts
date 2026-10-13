@@ -49,11 +49,43 @@ try {
   assert.equal(normalizeUILanguage("ZH-hans"), "zh-Hans");
   for (const bad of ["../pl", "pl/../../private", "en", "PL", "xx"]) assert.throws(() => uiPackPath(bad));
   assert.equal(await readUIPack("pl"), null);
-  assert.deepEqual((await app.inject("/api/ui-languages")).json(), { installed: ["en"] });
+  assert.deepEqual((await app.inject("/api/ui-languages")).json(), { installed: ["en", "zh-Hans"] });
   assert.equal((await app.inject("/api/ui-languages/pl")).json(), null);
   assert.equal(requests, 0, "startup/status/local reads must never download a pack");
   assert.equal((await app.inject({ method: "POST", url: "/api/ui-languages/xx" })).statusCode, 400);
   assert.equal(requests, 0);
+
+  // A fresh data directory can select, reinstall and repair Chinese without fetch.
+  offline = true;
+  const bundledChinese = (await app.inject("/api/ui-languages/zh-Hans")).json();
+  const chinese = normalizeLocaleResource("zh-Hans", bundledChinese);
+  assert.equal(chinese.metadata.locale, "zh-Hans");
+  assert.ok(Object.keys(chinese.messages).length > 8000);
+  assert.equal(chinese.messages["achievements.definitions.helloWorld.title"], "你好，世界");
+  const chineseInstall = await app.inject({ method: "POST", url: "/api/ui-languages/zh-Hans" });
+  assert.equal(chineseInstall.statusCode, 200, chineseInstall.body);
+  await writeFile(uiPackPath("zh-Hans"), "broken");
+  assert.deepEqual(await readUIPack("zh-Hans"), bundledChinese, "corrupt cached Chinese uses the bundled fallback");
+  await writeFile(
+    uiPackPath("zh-Hans"),
+    JSON.stringify({
+      _meta: { locale: "zh-Hans", direction: "ltr" },
+      "common.actions.save": "Custom local translation",
+    }),
+  );
+  assert.equal(
+    normalizeLocaleResource("zh-Hans", await readUIPack("zh-Hans")).messages["common.actions.save"],
+    "Custom local translation",
+  );
+  await installUIPack("zh-Hans");
+  assert.deepEqual(
+    await readUIPack("zh-Hans"),
+    bundledChinese,
+    "explicit reinstall restores the verified bundled snapshot",
+  );
+  await rm(uiPackPath("zh-Hans"));
+  assert.equal(requests, 0, "Chinese reads and explicit installs must never access the network");
+  offline = false;
 
   const installResponse = await app.inject({ method: "POST", url: "/api/ui-languages/pl" });
   assert.equal(installResponse.statusCode, 200, installResponse.body);
@@ -64,7 +96,7 @@ try {
   assert.equal(loaded.messages["common.actions.save"], "Zapisz");
   assert.equal(loaded.messages["old.removedKey"], "Old translation", "stale keys are harmless at runtime");
   assert.equal(loaded.messages["new.missingKey"], undefined, "absent keys remain absent for English fallback");
-  assert.deepEqual((await app.inject("/api/ui-languages")).json(), { installed: ["en", "pl"] });
+  assert.deepEqual((await app.inject("/api/ui-languages")).json(), { installed: ["en", "pl", "zh-Hans"] });
   assert.equal(requests, 2, "reusing an installed pack remains offline");
 
   breakHash = true;

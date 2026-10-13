@@ -4,6 +4,8 @@ This file is the release-notes source of truth for Marinara Engine. Reuse these 
 
 ## [Unreleased]
 
+- Simplified Chinese UI and documentation are bundled with the app, so switching language and repairing Chinese packs works offline without downloading from GitHub.
+
 - Added a custom-branch container build and a deployment guide for preserving existing data, credentials, and rollback backups on a personal fork.
 
 ## [2.5.0]

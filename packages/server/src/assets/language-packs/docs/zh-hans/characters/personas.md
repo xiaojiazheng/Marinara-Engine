@@ -1,0 +1,185 @@
+# 用户角色：创建与编辑
+
+本指南介绍什么是用户角色、怎么创建和编辑用户角色，以及如何导入、导出、复制和删除用户角色。用户角色就是属于你自己的角色卡，Marinara Engine 靠它在聊天里代表你。
+
+## 什么是用户角色
+
+用户角色决定了你在聊天里的身份。它有名称、描述，还有其他可选的细节。Marinara 会把这些细节写进每一次提示词（Marinara Engine 发给 AI 的那段文字），让 AI 知道自己在跟谁说话。
+
+用户角色可以建很多个，全部存放在 **Personas**(用户角色) 面板里。在每个聊天中选择要使用的用户角色，或选择 **None**(无) 来不使用用户角色。本指南讲的是创建和编辑用户角色。想知道怎么给某个聊天指定用户角色，见[在聊天里选择用户角色](choosing-your-persona.md)。
+
+### {{user}} 宏
+
+宏是写在文本里的占位符，应用会在发送提示词之前把它换成真实内容。**{{user}}** 宏会替换成当前聊天所用用户角色的名称。用的就是为该聊天选择的用户角色。举个例子，如果那个用户角色叫 Alex，提示词里的 **{{user}}** 就变成 Alex。
+
+如果聊天没有选择用户角色，AI 会用通用的“User”来称呼你，同时不发送任何用户角色细节。想了解聊天如何选定用户角色，见[在聊天里选择用户角色](choosing-your-persona.md)。想进一步了解宏，见[宏](../prompts/macros.md)。
+
+## Personas 面板
+
+**Personas** 面板就是用户角色库。点击右侧边栏顶栏的人形图标打开，它和 **Lorebooks**(世界书)、**Presets**(预设)、**Connections**(连接)、**Agents**(智能体) 几个按钮排在一起。
+
+面板里有这些控件：
+
+- **Open Full Library**(打开完整库) 会打开自适应的整页 Persona Library。它和 Character Library 用的是同一套网格加预览的布局，会显示用户角色描述、卡片分区、标签、Token(模型切分文本的最小单位) 估算量。
+- **New**(新建) 用于创建用户角色。
+- **Import**(导入) 会打开 **Import Persona**(导入用户角色) 窗口。
+- **Select**(选择) 开启批量选择模式，可以一次处理多个用户角色。
+- 搜索框的占位文字是 **Search personas**，能匹配名称、描述、备注和标签。
+- 排序下拉菜单提供 **A-Z**、**Z-A**、**Newest**、**Oldest** 和 **Tokens**(估算的提示词长度)。
+- **New Folder**(新建文件夹) 用于建文件夹，方便整理用户角色。
+- 点 **Tags** 按钮可以展开用于筛选的标签列表。
+
+每一行会显示用户角色的头像、名称和一小段描述预览。鼠标悬停在某一行上会出现 **Duplicate**(复制) 和 **Delete**(删除) 操作。点击一行就能在整页的 **Persona Editor**(用户角色编辑器) 里打开这个用户角色。
+
+用户角色多到一页放不下时，底部会出现 **Load more**(加载更多) 按钮。一个用户角色都还没有的时候，面板会显示一句简短的“No personas yet”提示。
+
+## 创建用户角色
+
+1. 打开 **Personas** 面板。
+2. 点击 **New**，打开 **Create Persona**(创建用户角色) 窗口。
+3. 在 **Name** 输入框里填名称。这是唯一必填项。
+4. 点击 **Create**(创建)。
+
+新建出来的用户角色描述是空的，并会立刻在完整的 **Persona Editor** 中打开，方便继续补充。创建窗口里没法设置其他字段，剩下的内容都要之后在 **Persona Editor** 里编辑。
+
+创建用户角色后，在想使用它的聊天中选择它。
+
+## Persona Editor 页面
+
+打开一个用户角色后，聊天区域会换成整页的 **Persona Editor**。顶部有这些内容：
+
+- **Back**(返回) 箭头，用来关闭编辑器。
+- 头像图块。点击可以上传新头像。如果已经配好图像生成用的连接，这里还会多出一个带魔杖图标的 **Generate avatar**(生成头像) 按钮。
+- 名称输入框和一个备注输入框（用来写“现代 AU 版本”这类简短说明）。
+- **Save**(保存) 按钮。没有任何改动时它是灰的。
+- 顶部的图标操作：**Export persona**(导出用户角色)、**Add persona as character**(把用户角色添加为角色)、**Duplicate persona**(复制用户角色) 和 **Delete persona**(删除用户角色)。
+
+改动还没保存就想离开时，会弹出一条提示：“You have unsaved changes. Close without saving?”，并给出 **Keep editing**(继续编辑)、**Discard & close**(放弃并关闭) 和 **Save & close**(保存并关闭) 三个选择。
+
+编辑器主体有一排选项卡，顺序是：**Metadata**(元数据)、**Card**(卡片)、**Convo**(对话)、**Lorebook**、**Sprites**(立绘)、**Gallery**(图库)、**Colors**(颜色) 和 **Stats**(属性)。
+
+### Metadata 选项卡
+
+**Metadata** 选项卡放的是身份信息和库信息：
+
+- **Persona ID** 一行，旁边有 **Copy**(复制) 按钮。绝大多数情况下用不上，主要在寻求技术支持时有用。
+- 头像裁剪小组件。拖动可以调整位置，也可以缩放圆形头像的裁剪范围。
+- **Name**：用户角色的显示名称，会作为你的身份注入提示词。
+- **Creator**：这个用户角色的作者，分享出去时用于署名。
+- **Phonetic name**：可选的读音覆盖。只有语音合成（TTS）朗读用户角色名称时才用得到。TTS 就是应用把文字念出来的功能。
+- **Title / Comment**：一段私密的简短说明，显示在库里名称的下方。
+- **Version**：自由填写的版本字符串，方便记录自己的改动。默认是 **1.0**。
+- **Tags**：自由填写的标签。按 Enter 或点击 **Add**(添加) 添加一个。有标签之后会出现 **Remove All**(全部清空) 按钮。标签用于在 **Personas** 面板里筛选。
+- **Creator Notes**：一段私密的多行笔记，不会发给 AI。
+
+**Version history**(版本历史) 面板就在 **Version** 输入框下方，具体用法见下面的“版本历史”一节。
+
+### Card 选项卡
+
+**Card** 选项卡是填写用户角色核心字段的地方。每个字段都是一个大文本框，下方实时显示估算的 Token 数。顶部的跳转链接栏可以直接滚到各个分区。
+
+- **Description**：总体身份和定位。它会出现在每一次提示词里，让 AI 知道你是谁。
+- **Personality**：性情、行为方式、说话习惯和情绪特点。
+- **Backstory**：经历、出身、人际关系和关键事件。
+- **Appearance**：外貌描述、穿着，以及希望模型记住的视觉细节。
+- **Image Appearance Override**(图像专用外貌)：位于 **Appearance** 下方，是一个可选开关，默认关闭。打开后会显示第二个输入框，用来填写适合图像提示词的用户角色外貌描述。开关打开且输入框有内容时，图像提示词会用这段文字代替 **Appearance**。关闭开关或留空输入框，就会使用 **Appearance**。负责写旁白的模型始终会收到 **Appearance** 的完整内容。
+- **Scenario**：角色扮演时的默认处境或情境，用来交代用户角色从哪里开场。
+
+这些文本框支持宏。输入的引号会自动调整成应用设置的引号样式。
+
+### Convo 选项卡
+
+**Convo** 选项卡里的字段只在 Conversation(对话模式) 下生效，在 Roleplay(角色扮演) 和 Game Mode(游戏模式) 下绝不会发送。这些字段包括 **Convo Display Name**、**About Me** 和 **Convo Behavior**。由于它们和角色共用同一套机制，另有专门的指南，见 [Conversation Mode 个人资料](../conversation/profiles.md)。
+
+### Lorebook 选项卡
+
+**Lorebook** 选项卡用来给用户角色挂上世界书条目。世界书是一组世界设定条目，会在相关时补充额外背景。挂在用户角色上的条目，可以在这个用户角色参与聊天时触发。见[世界书总览](../lorebooks/overview.md)。
+
+### Sprites 选项卡
+
+**Sprites** 选项卡用来给用户角色上传立绘。立绘会在 Game Mode 和 Roleplay 中用到。它下面还有分类选项卡：**Facial Expressions**、**Full-body** 和 **Clips**。可以一次上传一张图，也可以用 **Upload Folder**(上传文件夹) 批量导入整个文件夹的 PNG 图片。立绘是共用的系统，完整说明见[角色立绘](sprites.md)。
+
+### Gallery 选项卡
+
+**Gallery** 选项卡保存挂在用户角色上的参考图和视频，下面分成 **Images** 和 **Videos** 两个子选项卡。用 **Upload Persona Images**(上传用户角色图片) 或 **Upload Persona Videos**(上传用户角色视频) 添加文件。**Videos** 子选项卡还负责管理 Conversation 模式通话功能用的视频片段。见[角色与用户角色图库](galleries.md)。
+
+### Colors 选项卡
+
+**Colors** 选项卡决定用户角色在聊天里的外观，配色作用于名称、对白和消息气泡。
+
+- **Extract Colors from Avatar**(从头像提取颜色) 会自动从头像图片里取色。没有头像时它是灰的，并显示“Upload an avatar first”。
+- **Name Display Color** 设置用户角色名称的颜色，支持 CSS 渐变。
+- **Dialogue Highlight Color** 设置引号内文字的颜色。
+- **Message Box Color** 设置用户角色聊天气泡的背景色。
+
+留空的项会沿用应用主题的默认颜色。配色和属性的完整讲解见[角色颜色与 RPG 属性](colors-and-stats.md)。
+
+### Stats 选项卡
+
+**Stats** 选项卡分成两块，两块都会送到聊天时屏幕上的属性显示区（HUD，即聊天上方的信息条）。
+
+- **Enable Persona Stats**(启用用户角色属性) 会开启饥饿、精力、心情这类需求的状态条。第一次启用时会得到 Satiety、Energy、Hygiene 和 Mood 四条初始状态条，数值都是 100，满值 100。**Persona Stats** 智能体会随着剧情推进调整这些数值。
+- **Enable RPG Attributes**(启用 RPG 属性值) 会开启 RPG 式属性和 HP。第一次启用时会得到 STR、DEX、CON、INT、WIS、CHA 六项初始属性，数值都是 10。**Character Tracker** 智能体可以根据战斗和剧情事件调整它们。
+
+这里设置的数值是新聊天的起始默认值，本身不会自动变化。想让它们自动更新，需要在聊天里启用对应的智能体。完整说明见[角色颜色与 RPG 属性](colors-and-stats.md)。
+
+安装了 Game Mode 规则集，或 Persona 仍保存其角色表时，两部分下方会出现 **Ruleset sheets**。这是 Persona 在各规则集下的初始配置，会复制到新游戏中。参见[规则集角色表](colors-and-stats.md#ruleset-sheets)。
+
+## 版本历史
+
+每次保存对用户角色字段的改动，Marinara 都会自动存一份快照。**Metadata** 选项卡上的 **Version history** 面板会按时间戳列出这些保存过的版本。
+
+对每个保存的版本可以做这些事：
+
+1. 点标题打开对比视图，和当前的用户角色作比较。
+2. 点 **Rename this saved version**(重命名这个保存的版本，铅笔图标) 修改它的卡片版本号，不会恢复内容。
+3. 点 **Restore this version**(恢复这个版本) 用该版本覆盖当前用户角色，会弹出确认窗口。
+4. 点 **Delete this saved version**(删除这个保存的版本) 把这条记录从历史里移除，当前用户角色不受影响。
+
+第一次编辑之前，面板上写的是“Previous persona states will appear here after the next edit.”
+
+面板顶部的 **Reset**(重置) 会删除所有已保存的用户角色快照，并把当前卡片版本设为 `0.0`。删掉的历史无法找回，所以 Marinara 会先要求确认。
+
+## 复制用户角色
+
+在用户角色行上点 **Duplicate**，或者点 **Persona Editor** 顶部的 **Duplicate persona** 图标，都能完整复制一份，名称为“{original name} (Copy)”。卡片字段、配色、属性和 Convo 字段全部一起复制。复制用户角色不会改变任何聊天所选的用户角色。
+
+## 删除用户角色
+
+删除单个用户角色，点它那一行的垃圾桶图标，或者点 **Persona Editor** 顶部的 **Delete persona** 图标。会弹出确认窗口。用户角色删掉之后无法撤销。
+
+一次删除多个，先在 **Personas** 面板里点 **Select**，勾选要删的用户角色，然后用选择栏里的 **Delete** 删除。如果有删除失败的，失败的项会保持勾选状态，方便重试。
+
+## 导入和导出用户角色
+
+### 导入
+
+在 **Personas** 面板里点 **Import** 打开 **Import Persona** 窗口。文件可以直接拖进来，也可以点击浏览选择，支持一次导入多个文件。可接受两种文件类型：
+
+- **.marinara** 原生打包文件。可以完整恢复用户角色细节、立绘和图库结构。
+- **.json** 文件。Marinara 导出的 JSON 能完整导入。其他工具导出的普通 JSON 文件会逐字段映射成一个新的用户角色，其中名称是必需的，其余能识别的字段有就一并读入。
+
+每个文件都会显示成功或失败的图标和一条消息，末尾还有一行汇总，说明成功了几个、失败了几个。
+
+### 导出
+
+可以点 **Persona Editor** 里的 **Export persona** 图标导出，也可以在面板的选择模式下用批量 **Export**(导出) 操作。**Export Persona**(导出用户角色) 窗口提供两种格式：
+
+- **Native**：保留全部 Marinara 用户角色细节、立绘和挂载的世界书。在两个 Marinara 安装之间搬用户角色时用这个。
+- **Compatible**：只导出普通的用户角色字段。给不认识 Marinara 格式的其他工具用。
+
+批量导出会下载一个 zip 文件，里面每个选中的用户角色各占一个文件。
+
+## 把用户角色添加为角色
+
+**Persona Editor** 顶部有一个 **Add persona as character** 图标，它会在角色库里创建一张新的角色卡。新卡片会复制用户角色的名称、描述、性格、场景、背景故事、外貌、标签、作者、版本和头像。
+
+想把以前用的用户角色改成角色来玩时，这个功能很方便。它不会删除或改动原来的用户角色。想了解怎么编辑角色，见[创建和编辑角色](creating-and-editing-characters.md)。
+
+## 相关指南
+
+- [在聊天里选择用户角色](choosing-your-persona.md)
+- [角色颜色与 RPG 属性](colors-and-stats.md)
+- [创建和编辑角色](creating-and-editing-characters.md)
+- [Conversation Mode 个人资料](../conversation/profiles.md)
+- [宏](../prompts/macros.md)

@@ -42,6 +42,7 @@ Thumbs.db
 data/
 # The in-app documentation category folder is not user data
 !docs/data/
+!packages/server/src/assets/language-packs/docs/zh-hans/data/
 packages/server/data/
 
 # Logs

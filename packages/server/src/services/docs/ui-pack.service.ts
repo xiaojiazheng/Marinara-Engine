@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { normalizeLocaleResource, normalizeUILanguage } from "@marinara-engine/shared";
 import { getDataDir } from "../../config/runtime-config.js";
 import { logger } from "../../lib/logger.js";
@@ -10,10 +11,12 @@ import {
   fetchPackBytes,
   fetchPackFile,
   resolvePinnedBase,
+  verifyPackFile,
   type DocsPackManifestFile,
 } from "./docs-pack.service.js";
 
 const MAX_PACK_BYTES = 5 * 1024 * 1024;
+const BUNDLED_UI_ROOT = fileURLToPath(new URL("../../assets/language-packs/ui/", import.meta.url));
 const installs = new Map<string, Promise<void>>();
 
 export function uiPackPath(language: string): string {
@@ -23,23 +26,26 @@ export function uiPackPath(language: string): string {
   return join(getDataDir(), "ui-packs", `${language}.json`);
 }
 
-/** Missing and corrupt local packs are normal English-fallback states, never downloads. */
+/** Local reads never download. Bundled Chinese is the fallback when its data pack is missing or corrupt. */
 export async function readUIPack(language: string): Promise<unknown | null> {
-  const path = uiPackPath(language);
-  try {
-    const root = await realpath(join(getDataDir(), "ui-packs"));
-    assertInsideDir(root, await realpath(path));
-    const info = await stat(path);
-    if (!info.isFile() || info.size > MAX_PACK_BYTES) return null;
-    const resource: unknown = JSON.parse(await readFile(path, "utf8"));
-    normalizeLocaleResource(language, resource);
-    return resource;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      logger.warn(error, "Could not read UI language pack %s; using English", language);
+  const paths = [uiPackPath(language)];
+  if (language === "zh-Hans") paths.push(join(BUNDLED_UI_ROOT, "zh-Hans.json"));
+  for (const path of paths) {
+    try {
+      const root = await realpath(dirname(path));
+      assertInsideDir(root, await realpath(path));
+      const info = await stat(path);
+      if (!info.isFile() || info.size > MAX_PACK_BYTES) throw new Error("UI language pack exceeds the file limit");
+      const resource: unknown = JSON.parse(await readFile(path, "utf8"));
+      normalizeLocaleResource(language, resource);
+      return resource;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        logger.warn(error, "Could not read UI language pack %s; trying the fallback", language);
+      }
     }
-    return null;
   }
+  return null;
 }
 
 export function uiPackManifestFile(raw: unknown, language: string): DocsPackManifestFile {
@@ -66,10 +72,16 @@ export function installUIPack(language: string): Promise<void> {
   const pending = installs.get(language);
   if (pending) return pending;
   const install = (async () => {
-    const base = `${await resolvePinnedBase(docsPackBaseUrl())}/ui`;
-    const manifest: unknown = JSON.parse((await fetchPackBytes(`${base}/manifest.json`, 1024 * 1024)).toString("utf8"));
+    const bundled = language === "zh-Hans";
+    const base = bundled ? null : `${await resolvePinnedBase(docsPackBaseUrl())}/ui`;
+    const manifestBytes = bundled
+      ? await readFile(join(BUNDLED_UI_ROOT, "manifest.json"))
+      : await fetchPackBytes(`${base}/manifest.json`, 1024 * 1024);
+    const manifest: unknown = JSON.parse(manifestBytes.toString("utf8"));
     const file = uiPackManifestFile(manifest, language);
-    const content = await fetchPackFile(`${base}/${file.path}`, file);
+    const content = bundled
+      ? verifyPackFile(await readFile(join(BUNDLED_UI_ROOT, file.path)), file)
+      : await fetchPackFile(`${base}/${file.path}`, file);
     normalizeLocaleResource(language, JSON.parse(content.toString("utf8")));
     await mkdir(join(getDataDir(), "ui-packs"), { recursive: true });
     const temporary = `${destination}.${randomUUID()}.tmp`;

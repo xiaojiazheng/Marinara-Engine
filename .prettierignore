@@ -7,3 +7,5 @@ coverage
 **/*.generated.ts
 **/*.generated.tsx
 pnpm-lock.yaml
+# Verified upstream translation snapshots: preserve bytes for manifest hashes.
+packages/server/src/assets/language-packs/
