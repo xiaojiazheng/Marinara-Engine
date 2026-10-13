@@ -89,6 +89,8 @@ test("library portraits keep their proportions in compact and full layouts", asy
       await page.screenshot({ path: testInfo.outputPath(`library-${theme}.png`), animations: "disabled" });
     }
 
+    // The library above replaced the Home surface, so re-enter the desk before using its icons.
+    await page.goto("/");
     const recentIcon = page.locator('[data-home-desktop-icon="recent"]');
     await expect(recentIcon).toBeVisible({ timeout: 30_000 });
     await recentIcon.locator("button").dblclick();

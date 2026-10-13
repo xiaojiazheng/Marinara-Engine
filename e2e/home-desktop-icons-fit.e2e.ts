@@ -93,15 +93,18 @@ test("Home desk icons: a single click selects and hover highlights, in both moti
 
   const background = () => icon.evaluate((element) => getComputedStyle(element).backgroundColor);
   const resting = await background();
-  await icon.locator("button").click();
-  await expect(icon).toHaveAttribute("data-home-desktop-icon-selected", "true");
 
   if (!testInfo.project.name.includes("mobile")) {
+    // Hover feedback on the bare desk: the cell highlights while hovered, and the desk shows through
+    // again once the pointer leaves. Asserted before the click so the selected plate cannot mask it.
     await icon.hover();
     await expect.poll(background).not.toBe(resting);
     await page.mouse.move(2, 2);
     await expect.poll(background).toBe(resting);
   }
+
+  await icon.locator("button").click();
+  await expect(icon).toHaveAttribute("data-home-desktop-icon-selected", "true");
 
   // Turning ambient motion off must not drop the selection feedback, only its transition.
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -131,9 +134,15 @@ test("Home desk icons: right-click offers View, Sort by, Refresh and Personalize
   await page.goto("/");
   const surface = page.locator('[data-component="HomeDesktopIcons"]');
   await expect(surface).toBeVisible({ timeout: 30_000 });
-
-  await surface.locator('[data-home-desktop-icon="clock"]').click({ button: "right" });
   const menu = page.locator('[data-component="HomeDesktopContextMenu"]');
+  // The four-entry menu belongs to blank desk space. The icon columns hug the left edge, so the far
+  // right of the field is empty at every desktop width.
+  const blankDeskPoint = async () => {
+    const box = (await surface.boundingBox())!;
+    return { x: box.width - 24, y: 16 };
+  };
+
+  await surface.click({ button: "right", position: await blankDeskPoint() });
   await expect(menu).toBeVisible();
   await expect(menu.getByRole("menuitemradio", { name: "Large icons" })).toBeVisible();
   await expect(menu.getByRole("menuitemradio", { name: "Medium icons" })).toHaveAttribute("aria-checked", "true");
@@ -146,14 +155,19 @@ test("Home desk icons: right-click offers View, Sort by, Refresh and Personalize
   await expect(menu).toBeHidden();
   await expect.poll(async () => (await readStoredLayout(page))?.size).toBe("small");
 
-  await surface.click({ button: "right", position: { x: 40, y: 200 } });
+  await surface.click({ button: "right", position: await blankDeskPoint() });
   await expect(menu.getByRole("menuitemradio", { name: "Small icons" })).toHaveAttribute("aria-checked", "true");
   await page.keyboard.press("Escape");
   await expect(menu).toBeHidden();
 
+  // An icon's own menu is the short Open / Refresh pair: the desk menu must not stay behind it.
+  await surface.locator('[data-home-desktop-icon="clock"]').click({ button: "right" });
+  await expect(menu.getByRole("menuitem", { name: "Open" })).toBeVisible();
+  await expect(menu.getByRole("menuitem")).toHaveCount(2);
+  await expect(menu.getByRole("menuitemradio")).toHaveCount(0);
+
   // Refresh keeps the arrangement the user dragged; it must not reset the saved cells.
   const before = await readStoredLayout(page);
-  await surface.locator('[data-home-desktop-icon="clock"]').click({ button: "right" });
   await menu.getByRole("menuitem", { name: "Refresh" }).click();
   expect((await readStoredLayout(page))?.positions).toEqual(before?.positions);
 });

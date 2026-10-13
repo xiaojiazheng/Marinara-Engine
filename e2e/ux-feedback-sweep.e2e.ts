@@ -460,7 +460,14 @@ test("UX sweep: the home character library deep link opens and scrolls its targe
         ).json()) as { id: string },
     ),
   );
+  let chatId: string | undefined;
   try {
+    // The Recent Chats window lists chat rows, so the fixture needs a chat, not only characters.
+    const chatResponse = await request.post("/api/chats", {
+      data: { name: "Recent feed fixture", mode: "roleplay", characterIds: [characters[0]!.id] },
+    });
+    expect(chatResponse.ok(), await chatResponse.text()).toBeTruthy();
+    chatId = ((await chatResponse.json()) as { id: string }).id;
     await page.goto("/");
     // The retired Home library widget card was this test's entry point; the desktop's Character Library
     // icon now owns it. The card-fit, equal-size and drag-handle assertions went with the card: there is
@@ -550,6 +557,7 @@ test("UX sweep: the home character library deep link opens and scrolls its targe
     await recentIcon.locator("button").dblclick();
     await expect(page.locator('[data-component="Modal"] [data-recent-chat-index]').first()).toBeVisible();
   } finally {
+    if (chatId) await request.delete(`/api/chats/${chatId}`);
     for (const character of characters) await request.delete(`/api/characters/${character.id}`);
   }
 });

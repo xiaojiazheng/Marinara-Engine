@@ -150,7 +150,9 @@ export function HomeDesktopIconModals({
         mobileFullscreen
       >
         {/* The compact preview keeps its own "Open Achievements" entry, which opens the full list. */}
-        <HomeAchievements compact className="!h-auto !w-full !border-0 !px-2" />
+        <div className="flex flex-col" style={SHORTCUT_SCOPE}>
+          <HomeAchievements compact className="!h-auto !w-full !border-0 !px-2" />
+        </div>
       </Modal>
     </>
   );
