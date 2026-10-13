@@ -82,6 +82,5 @@ deployment/.env
 deployment/backups/
 deployment/*.tar.gz
 
-# CodeBuddy local state; only the skills symlink entry is tracked
-/.codebuddy/*
-!/.codebuddy/skills
+# CodeBuddy local state; its skills link is created locally, never tracked
+/.codebuddy/
