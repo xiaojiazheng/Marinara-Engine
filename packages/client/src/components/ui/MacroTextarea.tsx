@@ -17,6 +17,7 @@ import { resolveSelfCardAssets } from "../../lib/card-asset-links";
 import { cn } from "../../lib/utils";
 import { formatEstimatedTokens } from "../../lib/character-token-count";
 import { handleTextareaTab } from "../../lib/textarea-editing";
+import { Z_FULLSCREEN_EDITOR } from "../../lib/z-layers";
 import { DecisionStatementNote } from "./DecisionStatementNote";
 import { Trans, useTranslation as useUiTranslation } from "react-i18next";
 
@@ -137,8 +138,9 @@ function ExpandedMacroEditor({
       <div
         data-component="ExpandedMacroEditor"
         data-macro-modal="true"
+        style={{ zIndex: Z_FULLSCREEN_EDITOR }}
         className={cn(
-          "fixed inset-0 z-[10050] flex items-center justify-center bg-black/70 p-3 pb-[max(var(--mari-safe-area-inset-bottom,env(safe-area-inset-bottom)),0.75rem)] pt-[max(env(safe-area-inset-top),0.75rem)] backdrop-blur-sm sm:p-4",
+          "fixed inset-0 flex items-center justify-center bg-black/70 p-3 pb-[max(var(--mari-safe-area-inset-bottom,env(safe-area-inset-bottom)),0.75rem)] pt-[max(env(safe-area-inset-top),0.75rem)] backdrop-blur-sm sm:p-4",
           EDITOR_MODAL_SURFACE_VARIABLES,
         )}
       >
@@ -218,8 +220,9 @@ function MacrosReferenceModal({ open, onClose }: MacrosReferenceModalProps) {
       <div
         data-component="MacroReference"
         data-macro-modal="true"
+        style={{ zIndex: Z_FULLSCREEN_EDITOR }}
         className={cn(
-          "fixed inset-0 z-[10050] flex items-center justify-center bg-black/70 p-3 pb-[max(var(--mari-safe-area-inset-bottom,env(safe-area-inset-bottom)),0.75rem)] pt-[max(env(safe-area-inset-top),0.75rem)] backdrop-blur-sm sm:p-4",
+          "fixed inset-0 flex items-center justify-center bg-black/70 p-3 pb-[max(var(--mari-safe-area-inset-bottom,env(safe-area-inset-bottom)),0.75rem)] pt-[max(env(safe-area-inset-top),0.75rem)] backdrop-blur-sm sm:p-4",
           EDITOR_MODAL_SURFACE_VARIABLES,
         )}
       >

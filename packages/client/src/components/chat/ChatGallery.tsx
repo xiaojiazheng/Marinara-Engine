@@ -42,6 +42,7 @@ import { buildCardAssetMarkdown, dispatchCardAssetInsert } from "../../lib/card-
 import { showConfirmDialog } from "../../lib/app-dialogs";
 import { cn, copyToClipboard } from "../../lib/utils";
 import { downloadUrlToDevice, shouldUseIosImageShare } from "../../lib/file-download";
+import { Z_LIGHTBOX } from "../../lib/z-layers";
 import {
   ChatImageLightbox,
   ChatVideoLightbox,
@@ -1276,7 +1277,8 @@ export function ChatGallery({
         createPortal(
           <div
             data-chat-floating-panel
-            className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 backdrop-blur-sm max-md:pt-[env(safe-area-inset-top)]"
+            style={{ zIndex: Z_LIGHTBOX }}
+            className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm max-md:pt-[env(safe-area-inset-top)]"
           >
             <div className="mx-4 rounded-xl bg-[var(--background)] p-5 shadow-2xl ring-1 ring-[var(--border)]">
               <p className="mb-4 text-sm font-medium">{localizeUi("ui.chat.chatgallery.deleteThisImage")}</p>

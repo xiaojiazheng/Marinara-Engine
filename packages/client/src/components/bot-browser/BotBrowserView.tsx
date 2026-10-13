@@ -39,6 +39,7 @@ import { parsePngCharacterCard } from "../../lib/png-parser";
 import { useUIStore } from "../../stores/ui.store";
 import { toast } from "sonner";
 import { cn } from "../../lib/utils";
+import { Z_MENU } from "../../lib/z-layers";
 import { scopeChatMessageCss } from "../../lib/chat-message-css";
 import {
   containsChatHtml,
@@ -2187,12 +2188,14 @@ export function BotBrowserView() {
                 <button
                   type="button"
                   aria-label={localizeUi("ui.botBrowser.botbrowserview.closeProviderMenu")}
-                  className="fixed inset-0 z-[9998] cursor-default"
+                  style={{ zIndex: Z_MENU }}
+                  className="fixed inset-0 cursor-default"
                   onClick={() => setSourceOpen(false)}
                 />
                 <div
-                  className="mari-chrome-token-scope mari-chrome-selection-bar mari-chrome-selection-bar--opaque fixed z-[9999] min-w-[180px] overflow-y-auto shadow-xl"
+                  className="mari-chrome-token-scope mari-chrome-selection-bar mari-chrome-selection-bar--opaque fixed min-w-[180px] overflow-y-auto shadow-xl"
                   style={{
+                    zIndex: Z_MENU,
                     left: sourceMenuPosition.left,
                     top: sourceMenuPosition.top,
                     width: sourceMenuPosition.width,
@@ -2906,7 +2909,8 @@ export function BotBrowserView() {
       {/* ═══ DataCat NSFW Warning ═══ */}
       {pendingDatacatSwitch && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center"
+          style={{ zIndex: Z_MENU }}
+          className="fixed inset-0 flex items-center justify-center"
           onClick={(e) => {
             if (e.target === e.currentTarget) setPendingDatacatSwitch(false);
           }}
@@ -2986,7 +2990,8 @@ function LoginModal({
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center"
+      style={{ zIndex: Z_MENU }}
+      className="fixed inset-0 flex items-center justify-center"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

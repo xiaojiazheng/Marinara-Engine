@@ -5,6 +5,7 @@ import { Download, Pin, X } from "lucide-react";
 import type { GeneratedSceneVideo } from "@marinara-engine/shared";
 import type { ChatImage } from "../../hooks/use-gallery";
 import { useGalleryStore } from "../../stores/gallery.store";
+import { Z_LIGHTBOX } from "../../lib/z-layers";
 import { ImageDownloadButton } from "../ui/ImageDownloadButton";
 import { ImagePromptPanel } from "./ImagePromptPanel";
 import { useTranslation as useUiTranslation } from "react-i18next";
@@ -76,7 +77,8 @@ export function ChatImageLightbox({
   return createPortal(
     <div
       data-chat-floating-panel
-      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 max-md:pt-[env(safe-area-inset-top)]"
+      style={{ zIndex: Z_LIGHTBOX }}
+      className="fixed inset-0 flex items-center justify-center bg-black/80 max-md:pt-[env(safe-area-inset-top)]"
       role="dialog"
       aria-modal="true"
       aria-label={localizeUi("ui.chat.chatimagelightbox.imagePreview")}
@@ -174,7 +176,8 @@ export function ChatVideoLightbox({
   return createPortal(
     <div
       data-chat-floating-panel
-      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 max-md:pt-[env(safe-area-inset-top)]"
+      style={{ zIndex: Z_LIGHTBOX }}
+      className="fixed inset-0 flex items-center justify-center bg-black/80 max-md:pt-[env(safe-area-inset-top)]"
       role="dialog"
       aria-modal="true"
       aria-label={localizeUi("ui.chat.chatvideolightbox.videoPreview")}

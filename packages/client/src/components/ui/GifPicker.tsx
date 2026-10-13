@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { Search, Loader2, ImageOff, ExternalLink } from "lucide-react";
 import { useTranslation as useUiTranslation } from "react-i18next";
 import { rememberRecentMedia, useRecentMedia } from "../../hooks/use-recent-media";
+import { Z_MENU } from "../../lib/z-layers";
 
 interface GifResult {
   id: string;
@@ -356,8 +357,9 @@ export function GifPicker({ open, onClose, onSelect, anchorRef, containerRef, em
   return createPortal(
     <div
       ref={panelRef}
-      className="fixed z-[9999] flex h-[26rem] w-96 max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-xl border border-foreground/10 bg-[var(--card)] shadow-xl"
+      className="fixed flex h-[26rem] w-96 max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-xl border border-foreground/10 bg-[var(--card)] shadow-xl"
       style={{
+        zIndex: Z_MENU,
         bottom: pos.bottom,
         ...(pos.right != null ? { right: pos.right } : {}),
         ...(pos.left != null ? { left: pos.left } : {}),

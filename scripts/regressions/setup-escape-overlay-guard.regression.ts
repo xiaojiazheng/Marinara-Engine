@@ -1,12 +1,14 @@
 // Escape must dismiss the TOPMOST thing during game setup, and only that.
 //
-// The legacy Experience setup panel draws its own full-page shell rather than a `Modal`, so it listens
-// for Escape on `window`. `Modal` takes Escape from a `document` listener and does NOT stop propagation,
-// so the same press keeps bubbling to `window`. The malformed-JSON repair dialog is mounted over setup
-// on purpose — a failed opening has to stay repairable — so without a guard one Escape press closes that
-// dialog AND dismisses the setup behind it, discarding the player's answers and, on a chat that is still
-// empty, deleting the chat. Nothing in typecheck or lint can see that: both listeners are individually
-// correct, and the collision only exists at dispatch time.
+// `Modal` takes Escape from a `document` listener and does NOT stop propagation, so one press reaches
+// every listener that shares it. A screen that draws its own full-page shell therefore has to stand
+// down while a dialog is stacked above it. The malformed-JSON repair dialog is mounted over setup on
+// purpose — a failed opening has to stay repairable — so without that guard one Escape press closes the
+// dialog AND dismisses the setup behind it, discarding the player's answers and, on a chat that is
+// still empty, deleting the chat. Nothing in typecheck or lint can see that: both listeners are
+// individually correct, and the collision only exists at dispatch time. The legacy Experience setup
+// panel used to be exactly that second listener; it renders `Modal` now, so its half of the pin became
+// a "must not grow a listener again" assertion.
 //
 // The same registry also settles Escape between two stacked `Modal`s, which each install their own
 // `document` listener: only the topmost registration may act on a press, or a confirm opened over a
@@ -99,19 +101,20 @@ assert.match(
   "Modal's Escape handler must act only when its own registration is the topmost open overlay",
 );
 
-// The legacy panel is the only setup screen with its own `window` Escape listener; the wizard has none,
-// so there is nothing to pin there.
+// The legacy panel was the only setup screen with its own `window` Escape listener. It draws Modal's
+// window shell now, so the pin flips: it must take Escape from the overlay stack, and must not install
+// a second key listener that could dismiss it out from under a stacked dialog.
 const dialogPath = "packages/client/src/components/game/LegacyExperienceSetupDialog.tsx";
 const dialogSource = readSource(dialogPath);
-const escapeCheck = dialogSource.indexOf('event.key !== "Escape"');
-assert.ok(
-  escapeCheck >= 0,
-  `${dialogPath} should early-return out of its keydown handler on anything but Escape, so the overlay guard sits beside that check`,
-);
 assert.match(
-  dialogSource.slice(Math.max(0, escapeCheck - 200), escapeCheck + 200),
-  /event\.key !== "Escape" \|\| isModalOverlayOpen\(\)/u,
-  `${dialogPath} must stand down while a Modal is stacked above it, or one Escape press closes both`,
+  dialogSource,
+  /<Modal open onClose=\{onCancelSetup\}/u,
+  `${dialogPath} should draw Modal's window shell instead of a hand-rolled full-page overlay`,
+);
+assert.doesNotMatch(
+  dialogSource,
+  /window\.addEventListener\(\s*"keydown"/u,
+  `${dialogPath} must not install its own window keydown listener now that Modal owns Escape`,
 );
 
 console.log("Escape dismisses the topmost dialog only: never a dialog beneath another, never the setup underneath.");

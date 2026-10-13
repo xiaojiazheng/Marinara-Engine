@@ -983,7 +983,7 @@ interface UIState {
   rpNotificationSound: boolean;
   gameNotificationSound: boolean;
   notificationSoundsOnlyWhenUnfocused: boolean;
-  notificationPosition: "top" | "bottom";
+  notificationPosition: "top" | "bottom" | "bottom-right";
   chatWizardDefaults: Partial<Record<ChatWizardMode, ChatWizardDefaults>>;
   conversationBrowserNotifications: boolean;
   conversationMobileNotifications: boolean;
@@ -1302,7 +1302,7 @@ interface UIState {
   setRpNotificationSound: (v: boolean) => void;
   setGameNotificationSound: (v: boolean) => void;
   setNotificationSoundsOnlyWhenUnfocused: (v: boolean) => void;
-  setNotificationPosition: (v: "top" | "bottom") => void;
+  setNotificationPosition: (v: "top" | "bottom" | "bottom-right") => void;
   setChatWizardDefaults: (mode: ChatWizardMode, defaults: ChatWizardDefaults | null) => void;
   setConversationBrowserNotifications: (v: boolean) => void;
   setConversationMobileNotifications: (v: boolean) => void;
@@ -2036,7 +2036,7 @@ export const useUIStore = create<UIState>()(
         rpNotificationSound: true,
         gameNotificationSound: true,
         notificationSoundsOnlyWhenUnfocused: false,
-        notificationPosition: "top",
+        notificationPosition: "bottom-right",
         chatWizardDefaults: {},
         conversationBrowserNotifications: false,
         conversationMobileNotifications: false,
@@ -2998,7 +2998,10 @@ export const useUIStore = create<UIState>()(
         setRpNotificationSound: (v) => set({ rpNotificationSound: v }),
         setGameNotificationSound: (v) => set({ gameNotificationSound: v }),
         setNotificationSoundsOnlyWhenUnfocused: (v) => set({ notificationSoundsOnlyWhenUnfocused: v }),
-        setNotificationPosition: (v) => set({ notificationPosition: v === "bottom" ? "bottom" : "top" }),
+        setNotificationPosition: (v) =>
+          set({
+            notificationPosition: v === "bottom-right" ? "bottom-right" : v === "bottom" ? "bottom" : "top",
+          }),
         setChatWizardDefaults: (mode, defaults) =>
           set((state) => {
             const next = { ...state.chatWizardDefaults };

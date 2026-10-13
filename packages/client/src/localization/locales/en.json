@@ -3033,6 +3033,7 @@
   "settings.notifications.gameMode": "Game mode",
   "settings.notifications.mobileApp": "Mobile app",
   "settings.notifications.position.bottom": "Bottom",
+  "settings.notifications.position.bottomRight": "Bottom right",
   "settings.notifications.position.help": "Choose where error messages and other notifications appear.",
   "settings.notifications.position.label": "Notification position",
   "settings.notifications.position.top": "Top",
@@ -11915,10 +11916,13 @@
   "window.controls.close": "Close window",
   "window.controls.lock": "Lock window",
   "window.controls.lockHint": "Stop this window from moving or resizing, and keep its button in place.",
+  "window.controls.maximize": "Maximize window",
+  "window.controls.minimize": "Minimize window",
   "window.controls.move": "Move window with the arrow keys",
   "window.controls.pin": "Pin window",
   "window.controls.pinHint": "Keep this window open when you click elsewhere.",
   "window.controls.resize": "Resize window with the arrow keys",
+  "window.controls.restore": "Restore window",
   "window.controls.unlockHint": "Let this window move and resize, and its button move again.",
   "window.controls.unpinHint": "Let this window close when you click elsewhere."
 }

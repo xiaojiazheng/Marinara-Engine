@@ -15,6 +15,7 @@ import { useConversationCustomEmojis } from "../../hooks/use-conversation-custom
 import { useChatStore } from "../../stores/chat.store";
 import type { AvatarCrop } from "@marinara-engine/shared";
 import { cn, getAvatarCropStyle } from "../../lib/utils";
+import { Z_CARD_POPOUT } from "../../lib/z-layers";
 import { parseChatMetadata } from "../../lib/chat-display";
 import { renderInlineWithCustomEmojis } from "../../lib/custom-emoji-render";
 import { EmojiPicker } from "../ui/EmojiPicker";
@@ -317,12 +318,14 @@ export function AboutMeViewerModal({
 
   return createPortal(
     <div
-      // Inline z-index (Tailwind didn't emit an arbitrary z-[9990]); far above chat UI.
+      // Inline z-index from `Z_CARD_POPOUT`: a one-off Tailwind class would never be emitted
+      // (that is what forced the inline value originally), and the theme-facing `mari-card-css`
+      // className must not be the only carrier of the tier.
       // `mari-card-css` recreates the card-CSS scope root here (the popout portals to
       // body, outside the chat area), so a card's/persona's custom CSS can theme it.
       // Desktop: transparent (Discord-style, no dim). Mobile: dim behind the sheet.
       className={cn("mari-card-css fixed inset-0", isMobile && "bg-black/60")}
-      style={{ zIndex: 9990 }}
+      style={{ zIndex: Z_CARD_POPOUT }}
       data-component="AboutMeProfilePopout"
       // Click outside closes, but NOT while editing (protects the draft; use
       // Cancel / Save / Escape / ✕). On mobile only the strip above the sheet is

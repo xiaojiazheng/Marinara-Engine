@@ -218,6 +218,44 @@
 
 <a id="styling-messages-input-boxes-and-chat-controls"></a>
 
+## 为模态窗口设置样式
+
+应用里的每个对话框——设置面板、游戏设置向导、桌面图标打开的窗口——都由同一个组件 `Modal` 绘制。`chrome="window"` 时它是一个 Windows 11 窗口：亚克力表面、共享的窗口圆角，以及带三键的标题栏。只等回答、无需管理的确认框则通过 `chrome="dialog"` 保留朴素的标题加关闭栏。
+
+| 部分 | 类名 |
+| --- | --- |
+| 窗口表面（两种 chrome 都用） | `.mari-modal-panel` |
+| 窗口后面的暗色遮罩 | `.mari-modal-backdrop` |
+| Windows 11 外壳、它的标题栏、标题与 16px 图标 | `.mari-win11-window`、`.mari-win11-window__titlebar`、`.mari-win11-window__title`、`.mari-win11-window__title-icon` |
+| 标题栏按钮 | `.mari-win11-window__control`，关闭键另有 `--close` |
+| 可滚动的内容区 | `.mari-win11-window__body` |
+
+两个数据属性可以让主题区分这两种标题栏，并重绘这些按钮：
+
+- `data-modal-chrome` 在面板上为 `"window"` 或 `"dialog"`。
+- `data-modal-control` 标识每个标题栏按钮：`"minimize"`、`"maximize"` 或 `"close"`。最小化和最大化只是外壳的形状、并非承诺——模态窗口没有可折叠或还原的窗口状态——所以它们是惰性的：`aria-disabled="true"` 且 `tabindex="-1"`。低于 `sm` 断点时标题栏只渲染关闭键，这些惰性按钮根本不在 DOM 里。
+
+浮动窗口是另一套外壳：它们使用 `.mari-window…` 和 `[data-window-control]`，见上文 **设置聊天窗口和抽屉的样式**。模态窗口的表面、边框、阴影和圆角使用与任务栏相同的令牌（`--marinara-home-acrylic-surface`、`--marinara-home-acrylic-border`、`--marinara-home-acrylic-shadow`、`--marinara-win11-radius`），因此重绘 Home 外壳的主题也会重绘这些窗口。
+
+```css
+/* 重绘窗口标题栏，并给按钮换成主题色。 */
+.mari-win11-window .mari-win11-window__titlebar {
+  background: var(--card);
+}
+
+.mari-win11-window [data-modal-control="close"]:hover {
+  background: #c42b1c;
+  color: #ffffff;
+}
+
+/* 确认框保留朴素标题栏，因此按 chrome 定位它。 */
+.mari-modal-panel[data-modal-chrome="dialog"] {
+  border-radius: var(--radius);
+}
+```
+
+启用聊天控件主题后，这三个窗口按钮归该聊天主题的规则管辖。这是有意为之：被主题化的聊天应当拥有自己的窗口外壳。
+
 ## 为消息、输入框和聊天控件设置样式
 
 三个 **Apply preset** 开关也能让自定义主题把组件设计应用到聊天的其他区域。主题可以用以下变量覆盖各部分的样式。如果不想自己写 CSS，可以让 Professor Mari 创建一套风格一致的聊天主题。

@@ -3912,7 +3912,9 @@ test("Character Chat actions reuse mode selection and seed the chosen setup wiza
     expect(gameChatId).not.toBeNull();
     createdChatIds.add(gameChatId!);
 
-    const gameWizard = page.locator('[data-component="GameSetupWizard"]');
+    // The wizard draws Modal's window shell now, so its footer's Next/Back and the title bar's close
+    // key live outside the body marker; root on the window that owns the marker.
+    const gameWizard = page.locator('[data-component="Modal"]:has([data-component="GameSetupWizard"])');
     await expect(gameWizard).toBeVisible({ timeout: 30_000 });
     await gameWizard.getByRole("button", { name: "Next", exact: true }).click();
     await expect(gameWizard.getByRole("heading", { name: "World", exact: true })).toBeVisible();

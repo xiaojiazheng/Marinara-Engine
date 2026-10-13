@@ -25,10 +25,11 @@ export const CHAT_SETTINGS_BUTTON_ID = "chat-settings-button";
 export const TRACKER_WINDOW_ID = "trackers";
 /** The Tracker Panel: its button's place, and runtime visibility independent of the chat's preference. */
 export const TRACKER_PANEL_BUBBLE_ID = "tracker-panel";
-/** Above the chat HUD (z-40/50), below menus (9000+), modals (10000) and the Help overlay (10050). */
-export const FLOATING_WINDOW_Z_BASE = 70;
-/** Phone bubbles: above the chat, below the phone overlays (menus at 45-50, sheets at 70) that cover it. */
-export const PHONE_BUBBLE_Z_INDEX = 44;
+/**
+ * Floating-window and phone-bubble tiers now live in `lib/z-layers.ts` with the rest of the
+ * stacking table; re-exported here so existing importers keep the same names and values.
+ */
+export { Z_FLOATING_WINDOW as FLOATING_WINDOW_Z_BASE, Z_PHONE_BUBBLE as PHONE_BUBBLE_Z_INDEX } from "../lib/z-layers";
 
 interface FloatingWindowState {
   /** Remembered layouts; only windows the user moved, resized, pinned or locked. */

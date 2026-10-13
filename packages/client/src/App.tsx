@@ -27,6 +27,7 @@ import { ChibiProfessorMariEasterEgg } from "./components/ui/ChibiProfessorMariE
 import { CsrfOriginWarningBanner } from "./components/diagnostics/CsrfOriginWarningBanner";
 import { AgentUpdatePrompter } from "./components/agents/AgentUpdatePrompter";
 import { Toaster, toast } from "sonner";
+import { CircleCheck, CircleX, Info, TriangleAlert } from "lucide-react";
 import {
   getDefaultAppAccentColor,
   getDefaultAppBackgroundColor,
@@ -112,6 +113,29 @@ const ACCENT_RGB_GRADIENT_STOP_MS = 6_000;
 const CUSTOM_CURSOR_RECOLOR_SCROLL_FREEZE_MS = 360;
 const TOAST_DURATION_MS = 6_000;
 const TOAST_VISIBLE_LIMIT = 3;
+// The settings offer a Windows 11 bottom-right corner plus the two centered positions.
+const NOTIFICATION_POSITIONS = {
+  "bottom-right": "bottom-right",
+  bottom: "bottom-center",
+  top: "top-center",
+} as const;
+// A Win11 notification sits above the taskbar, never over it: the Home shell's strip is
+// --marinara-taskbar-height tall, so the bottom offset pays that back plus a small gap.
+// The top offset keeps the clearance the centered position always had. Sonner swaps to its own
+// --mobile-offset-* pair below 600px, so the same box is handed to both props.
+const TOAST_OFFSET = {
+  bottom: "calc(var(--marinara-taskbar-height, 3rem) + 0.75rem)",
+  left: "1.25rem",
+  right: "1.25rem",
+  top: "4rem",
+};
+// Monoline Lucide glyphs, matching the rest of the Windows 11 shell chrome.
+const TOAST_ICONS = {
+  success: <CircleCheck size="1rem" aria-hidden="true" />,
+  error: <CircleX size="1rem" aria-hidden="true" />,
+  warning: <TriangleAlert size="1rem" aria-hidden="true" />,
+  info: <Info size="1rem" aria-hidden="true" />,
+};
 const THEME_ACCENT_PULSE_VARIABLE = "--marinara-theme-accent-pulse";
 const THEME_ACCENT_PULSE_SOURCE_VARIABLE = "--marinara-theme-accent-pulse-source";
 const THEME_ACCENT_PULSE_ENABLED_VALUES = new Set(["1", "true", "yes", "on", "enabled", "enable", "pulse"]);
@@ -1220,20 +1244,20 @@ export function App() {
         }}
       >
         <Toaster
-          position={notificationPosition === "bottom" ? "bottom-center" : "top-center"}
-          swipeDirections={["left", "right", notificationPosition === "bottom" ? "bottom" : "top"]}
-          offset="4rem"
+          className="mari-win11-toaster"
+          position={NOTIFICATION_POSITIONS[notificationPosition]}
+          swipeDirections={["left", "right", notificationPosition === "top" ? "top" : "bottom"]}
+          offset={TOAST_OFFSET}
+          mobileOffset={TOAST_OFFSET}
           theme={theme}
           closeButton
           duration={TOAST_DURATION_MS}
           visibleToasts={TOAST_VISIBLE_LIMIT}
+          icons={TOAST_ICONS}
           toastOptions={{
-            style: {
-              background: "var(--card)",
-              border: "1px solid var(--marinara-chat-chrome-panel-border)",
-              color: "var(--foreground)",
-              userSelect: "text",
-              WebkitUserSelect: "text",
+            classNames: {
+              toast: "mari-win11-toast",
+              actionButton: "mari-win11-toast__action",
             },
           }}
         />

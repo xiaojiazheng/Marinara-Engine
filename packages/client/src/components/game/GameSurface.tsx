@@ -123,6 +123,7 @@ import { isGenerationSendBlocked } from "../../lib/generation-stream-policy";
 import { showConfirmDialog } from "../../lib/app-dialogs";
 import { CHAT_FLOATING_UI_DISMISS_EVENT } from "../../lib/chat-floating-ui-events";
 import { cn, generateClientId } from "../../lib/utils";
+import { Z_WINDOW_TOP } from "../../lib/z-layers";
 import {
   filterAudioGenerationConnections,
   filterLanguageGenerationConnections,
@@ -11502,7 +11503,10 @@ function GameSurfaceComponent({
       <>
         <Suspense
           fallback={
-            <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-[var(--background)]/90">
+            <div
+              style={{ zIndex: Z_WINDOW_TOP }}
+              className="fixed inset-0 flex items-center justify-center bg-[var(--background)]/90"
+            >
               <Loader2 size={20} className="animate-spin text-[var(--primary)]" />
             </div>
           }

@@ -640,7 +640,9 @@ test("Translator defaults wait for edits, survive reload, and apply only to futu
       const { useChatStore } = await import("/src/stores/chat.store.ts" as string);
       useChatStore.getState().setActiveChatId(id);
     }, gameChatId);
-    const wizard = page.locator('[data-component="GameSetupWizard"]');
+    // The wizard draws Modal's window shell now, so its footer's Next/Back live outside the body
+    // marker; root on the window that owns the marker.
+    const wizard = page.locator('[data-component="Modal"]:has([data-component="GameSetupWizard"])');
     await expect(wizard).toBeVisible();
     await wizard.getByRole("button", { name: "Next", exact: true }).click();
     await expect(wizard.getByRole("heading", { name: "World", exact: true })).toBeVisible();
@@ -1128,7 +1130,7 @@ test("Notification position is selectable, moves errors, and survives reload", a
     .first()
     .click();
   await expect(selector).toBeFocused();
-  await expect(selector).toHaveValue("top");
+  await expect(selector).toHaveValue("bottom-right");
   await selector.selectOption("bottom");
   const error = async () => {
     await prepareViteFixtureDependencies(page, "/src/App.tsx");

@@ -24,6 +24,7 @@ import {
 } from "../../hooks/use-game-assets";
 import { ContextMenu, type ContextMenuItem } from "../ui/ContextMenu";
 import { cn } from "../../lib/utils";
+import { Z_MENU } from "../../lib/z-layers";
 import { toast } from "sonner";
 
 import { FolderTree } from "./FolderTree";
@@ -951,8 +952,8 @@ export function GameAssetsBrowserView({
           <div
             data-chat-floating-panel
             ref={folderSelectionMenuRef}
-            className="fixed z-[10002] w-72 rounded-lg border border-[var(--border)] bg-[var(--card)] py-1 shadow-xl"
-            style={{ left: folderSelectionMenu.x, top: folderSelectionMenu.y }}
+            className="fixed w-72 rounded-lg border border-[var(--border)] bg-[var(--card)] py-1 shadow-xl"
+            style={{ zIndex: Z_MENU, left: folderSelectionMenu.x, top: folderSelectionMenu.y }}
           >
             {(() => {
               const status = getFolderSelectionStatus(folderSelectionMenu.node);

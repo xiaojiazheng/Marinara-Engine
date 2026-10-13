@@ -10,6 +10,7 @@ import {
   usePersonalExtensionContributions,
 } from "../../lib/personal-extension-contributions";
 import { cn } from "../../lib/utils";
+import { Z_EXTENSION_MENU } from "../../lib/z-layers";
 import { PersonalExtensionContributionIcon } from "../extensions/PersonalExtensionContributionIcon";
 
 const TOPBAR_CONTRIBUTION_CLASS =
@@ -138,7 +139,8 @@ export function PersonalExtensionContributionsMenu() {
       ref={menuRef}
       role="menu"
       aria-label={t("extensions.contributions.menuLabel")}
-      className="mari-chrome-token-scope fixed right-2 top-[calc(env(safe-area-inset-top)+3rem)] z-[2147482000] max-h-[70vh] w-[min(20rem,calc(100vw-1rem))] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--popover)] p-2 text-[var(--popover-foreground)] shadow-2xl"
+      style={{ zIndex: Z_EXTENSION_MENU }}
+      className="mari-chrome-token-scope fixed right-2 top-[calc(env(safe-area-inset-top)+3rem)] max-h-[70vh] w-[min(20rem,calc(100vw-1rem))] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--popover)] p-2 text-[var(--popover-foreground)] shadow-2xl"
     >
       <div className="flex items-center gap-2 px-2.5 pb-2 pt-1">
         <Puzzle aria-hidden="true" className="text-[var(--primary)]" size={15} />

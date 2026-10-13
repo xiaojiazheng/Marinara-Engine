@@ -8,6 +8,7 @@ import { useChatStore } from "../../stores/chat.store";
 import { useTrackAchievement } from "../../hooks/use-achievements";
 import { docsLanguageKeys, useDocsLanguage, type DocsLanguageStatus } from "../../hooks/use-docs-language";
 import { api } from "../../lib/api-client";
+import { Z_GUIDE } from "../../lib/z-layers";
 import { motion, AnimatePresence } from "framer-motion";
 import { BookOpen, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
@@ -728,7 +729,7 @@ function OnboardingTutorialInner() {
   ) : undefined;
 
   return (
-    <div className="mari-chrome-token-scope pointer-events-none fixed inset-0 z-[9999]">
+    <div style={{ zIndex: Z_GUIDE }} className="mari-chrome-token-scope pointer-events-none fixed inset-0">
       {/* Pulsing highlight rings around the current target elements */}
       {!isMobileViewport &&
         spotlightRects.map((rect) => (

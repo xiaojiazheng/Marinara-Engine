@@ -21,6 +21,7 @@ import {
   setPersonalExtensionContributionDispatcher,
 } from "../../lib/personal-extension-contributions";
 import { fetchForPersonalExtension } from "../../lib/personal-extension-traffic";
+import { Z_EXTENSION_PANEL } from "../../lib/z-layers";
 import { useChatStore } from "../../stores/chat.store";
 
 type ActiveClientExtension = {
@@ -128,7 +129,7 @@ function sizeSandboxPanel(iframe: HTMLIFrameElement, width?: number, height?: nu
     boxShadow: "0 16px 48px rgba(0,0,0,0.4)",
     background: "transparent",
     overflow: "hidden",
-    zIndex: "2147483000",
+    zIndex: String(Z_EXTENSION_PANEL),
     colorScheme: "normal",
   });
 }

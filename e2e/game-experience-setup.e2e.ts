@@ -120,7 +120,10 @@ async function mountWizard(page: Page, testInfo: TestInfo, options: WizardMountO
       multiplayerPlayers: options.multiplayerPlayers,
     },
   );
-  const wizard = page.locator('[data-component="GameSetupWizard"]');
+  // The wizard draws Modal's window shell now, so its title bar and pinned footer sit outside the
+  // `[data-component="GameSetupWizard"]` body marker. Root on the window that owns that marker, and
+  // keep reaching for the body itself where the assertion is about the body element.
+  const wizard = page.locator('[data-component="Modal"]:has([data-component="GameSetupWizard"])');
   await expect(wizard).toBeVisible();
   return wizard;
 }
@@ -421,13 +424,15 @@ for (const isNewGame of [true, false]) {
       await expect(legacy.getByText("Legacy package setup fixture", { exact: true })).toBeVisible();
       await expect(legacy).toHaveCSS("opacity", "1");
       await page.screenshot({ path: testInfo.outputPath("setup-imported-legacy-experience.png") });
+      // The panel draws Modal's window shell: tab order starts in the title bar, so the close key is the
+      // entry point, Tab walks forward into the body's Back control and Shift+Tab walks back out.
       await expect(legacy.getByRole("button", { name: "Close setup", exact: true })).toBeFocused();
-      await page.keyboard.press("Shift+Tab");
-      await expect(legacy.getByRole("button", { name: "Back", exact: true })).toBeFocused();
       await page.keyboard.press("Tab");
+      await expect(legacy.getByRole("button", { name: "Back", exact: true })).toBeFocused();
+      await page.keyboard.press("Shift+Tab");
       await expect(legacy.getByRole("button", { name: "Close setup", exact: true })).toBeFocused();
       await legacy.getByRole("button", { name: "Back", exact: true }).click();
-      await expect(wizard).toBeFocused();
+      await expect(wizard.locator('[data-component="GameSetupWizard"]')).toBeFocused();
       await expect(wizard.getByText(/The saved Experience is unavailable/u)).toHaveCount(0);
       await wizard.getByRole("button", { name: "Show", exact: true }).click();
       await wizard.getByRole("switch", { name: "Setup fixture", exact: true }).click();

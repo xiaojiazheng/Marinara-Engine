@@ -38,6 +38,7 @@ import {
   requestChatHelp,
 } from "../../lib/chat-help-events";
 import { getChatHelpTargets, type ChatHelpTargetDefinition, type ChatHelpTargetId } from "../../lib/chat-help-targets";
+import { Z_HELP_OVERLAY } from "../../lib/z-layers";
 import { orderChatTools, useChatToolsMenuStore } from "../../stores/chat-tools-menu.store";
 import { useFloatingWindowStore } from "../../stores/floating-window.store";
 import { useUIStore } from "../../stores/ui.store";
@@ -863,10 +864,8 @@ export function ChatHelpOverlay({
       aria-modal="true"
       aria-label={t("chat.help.overlayLabel")}
       tabIndex={-1}
-      className={cn(
-        "mari-chrome-token-scope fixed inset-0 z-[10050] outline-none",
-        mobile ? "cursor-default" : "cursor-pointer",
-      )}
+      style={{ zIndex: Z_HELP_OVERLAY }}
+      className={cn("mari-chrome-token-scope fixed inset-0 outline-none", mobile ? "cursor-default" : "cursor-pointer")}
       onPointerDown={mobile ? undefined : dismiss}
     >
       <svg className="pointer-events-none fixed inset-0 h-full w-full" aria-hidden="true">

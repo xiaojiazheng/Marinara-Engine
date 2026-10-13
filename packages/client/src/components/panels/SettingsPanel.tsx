@@ -3816,11 +3816,20 @@ function GeneralSettings() {
           <span>{localizeUi("settings.notifications.position.label")}</span>
           <select
             value={notificationPosition}
-            onChange={(event) => setNotificationPosition(event.target.value === "bottom" ? "bottom" : "top")}
+            onChange={(event) =>
+              setNotificationPosition(
+                event.target.value === "bottom-right"
+                  ? "bottom-right"
+                  : event.target.value === "bottom"
+                    ? "bottom"
+                    : "top",
+              )
+            }
             className="w-full rounded-lg bg-[var(--secondary)] px-3 py-2 ring-1 ring-[var(--border)]"
           >
             <option value="top">{localizeUi("settings.notifications.position.top")}</option>
             <option value="bottom">{localizeUi("settings.notifications.position.bottom")}</option>
+            <option value="bottom-right">{localizeUi("settings.notifications.position.bottomRight")}</option>
           </select>
           <span className="text-[var(--muted-foreground)]">{localizeUi("settings.notifications.position.help")}</span>
         </label>

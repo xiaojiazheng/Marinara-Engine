@@ -41,6 +41,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn, copyToClipboard } from "../../lib/utils";
+import { Z_PANEL_OVERLAY } from "../../lib/z-layers";
 import { showConfirmDialog } from "../../lib/app-dialogs";
 import {
   lorebookKeys,
@@ -739,8 +740,9 @@ export function LorebookEntryRow({
               ref={statusMenuRef}
               role="menu"
               aria-label={localizeUi("ui.lorebooks.lorebookentryrow.chooseEntryType")}
-              className="fixed z-[120] rounded-lg border border-[var(--border)] bg-[var(--popover)] p-1 text-[var(--popover-foreground)] shadow-xl ring-1 ring-[var(--border)]"
+              className="fixed rounded-lg border border-[var(--border)] bg-[var(--popover)] p-1 text-[var(--popover-foreground)] shadow-xl ring-1 ring-[var(--border)]"
               style={{
+                zIndex: Z_PANEL_OVERLAY,
                 left: statusMenuPosition.left,
                 top: statusMenuPosition.top,
                 width: statusMenuPosition.width,

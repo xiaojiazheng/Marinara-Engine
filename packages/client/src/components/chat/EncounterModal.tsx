@@ -26,6 +26,7 @@ import { useEncounterStore } from "../../stores/encounter.store";
 import { useEncounter } from "../../hooks/use-encounter";
 import { useLorebooks } from "../../hooks/use-lorebooks";
 import { showConfirmDialog } from "../../lib/app-dialogs";
+import { Z_PANEL_OVERLAY } from "../../lib/z-layers";
 import { cn } from "../../lib/utils";
 import type { CombatPartyMember, CombatEnemy, CombatAttack, NarrativeStyle, Lorebook } from "@marinara-engine/shared";
 import { Translation, useTranslation as useUiTranslation } from "react-i18next";
@@ -175,7 +176,8 @@ function TargetSelection({ attackType, enemies, party, onSelect, onCancel }: Tar
   const backdropDismiss = useBackdropDismiss(onCancel);
   return (
     <motion.div
-      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm max-md:pt-[env(safe-area-inset-top)]"
+      style={{ zIndex: Z_PANEL_OVERLAY }}
+      className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm max-md:pt-[env(safe-area-inset-top)]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -341,7 +343,8 @@ function EncounterConfig() {
 
   return (
     <motion.div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm max-md:pt-[env(safe-area-inset-top)]"
+      style={{ zIndex: Z_PANEL_OVERLAY }}
+      className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm max-md:pt-[env(safe-area-inset-top)]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -776,7 +779,8 @@ function EncounterModalInner() {
       {/* Main Combat Modal */}
       {active && (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-center justify-center max-md:pt-[env(safe-area-inset-top)]"
+          style={{ zIndex: Z_PANEL_OVERLAY }}
+          className="fixed inset-0 flex items-center justify-center max-md:pt-[env(safe-area-inset-top)]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -960,7 +964,10 @@ class EncounterErrorBoundary extends Component<{ children: ReactNode; onReset: (
       return (
         <Translation>
           {(t) => (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center max-md:pt-[env(safe-area-inset-top)]">
+            <div
+              style={{ zIndex: Z_PANEL_OVERLAY }}
+              className="fixed inset-0 flex items-center justify-center max-md:pt-[env(safe-area-inset-top)]"
+            >
               <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
               <div className="relative flex max-w-md flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-gray-950 p-8 shadow-2xl">
                 <AlertTriangle size="2.5rem" className="text-red-400" />

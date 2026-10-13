@@ -21,6 +21,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { cn } from "../../../lib/utils";
+import { Z_MENU } from "../../../lib/z-layers";
 import { toast } from "sonner";
 import { useTTSConfig, useUpdateTTSConfig, useTTSModels, useTTSVoices } from "../../../hooks/use-tts";
 import { useCharacters } from "../../../hooks/use-characters";
@@ -632,8 +633,9 @@ function TtsSearchableSelect({
         createPortal(
           <div
             ref={panelRef}
-            className="fixed z-[10001] flex overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--background)] p-1.5 shadow-2xl shadow-black/40"
+            className="fixed flex overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--background)] p-1.5 shadow-2xl shadow-black/40"
             style={{
+              zIndex: Z_MENU,
               left: position?.left ?? -9999,
               top: position?.top ?? -9999,
               width: position?.width ?? 0,

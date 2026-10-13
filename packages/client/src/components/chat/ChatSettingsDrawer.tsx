@@ -113,6 +113,7 @@ import {
   resolveScopedRegexMode,
 } from "@marinara-engine/shared";
 import { cn, getAvatarCropStyle } from "../../lib/utils";
+import { Z_PANEL_OVERLAY } from "../../lib/z-layers";
 import { showAlertDialog, showConfirmDialog, showPromptDialog } from "../../lib/app-dialogs";
 import { HelpTooltip } from "../ui/HelpTooltip";
 import { MacroTextarea } from "../ui/MacroTextarea";
@@ -10286,7 +10287,8 @@ export function ChatSettingsDrawer({
           aria-modal="true"
           aria-labelledby="chat-settings-greeting-title"
           aria-describedby="chat-settings-greeting-description"
-          className="fixed inset-0 z-[95] flex items-center justify-center bg-black/60 max-md:pt-[env(safe-area-inset-top)]"
+          style={{ zIndex: Z_PANEL_OVERLAY }}
+          className="fixed inset-0 flex items-center justify-center bg-black/60 max-md:pt-[env(safe-area-inset-top)]"
           onClick={(event) => {
             if (event.target === event.currentTarget) setFirstMesConfirm(null);
           }}

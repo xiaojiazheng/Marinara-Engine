@@ -32,6 +32,7 @@ import { useTranslation } from "react-i18next";
 import { useUIStore } from "../../stores/ui.store";
 import { useChatStore } from "../../stores/chat.store";
 import { cn } from "../../lib/utils";
+import { Z_MENU } from "../../lib/z-layers";
 import { SpotifyMiniPlayer } from "../spotify/SpotifyMiniPlayer";
 import { YouTubePlayer } from "../chat/YouTubePlayer";
 import { LocalMusicPlayer } from "../chat/LocalMusicPlayer";
@@ -649,8 +650,9 @@ function TopbarMoreMenu({
         maxHeight: `calc(100dvh - ${menuTop + 12}px)`,
         backgroundColor: "var(--background)",
         backgroundImage: "linear-gradient(var(--card), var(--card))",
+        zIndex: Z_MENU,
       }}
-      className="mari-chrome-token-scope fixed right-[max(0.5rem,env(safe-area-inset-right))] z-[9000] w-[min(16.5rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-xl border border-[var(--marinara-chat-chrome-panel-border)] p-1.5 text-[var(--foreground)] shadow-2xl"
+      className="mari-chrome-token-scope fixed right-[max(0.5rem,env(safe-area-inset-right))] w-[min(16.5rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-xl border border-[var(--marinara-chat-chrome-panel-border)] p-1.5 text-[var(--foreground)] shadow-2xl"
     >
       {items.map((item) => (
         <button
