@@ -89,6 +89,7 @@ import { useApplyRegex } from "../../hooks/use-apply-regex";
 import { getDefaultChatTextColor, useUIStore } from "../../stores/ui.store";
 import { useChatStore } from "../../stores/chat.store";
 import { hasActiveTextSelection } from "../../lib/text-selection";
+import { Z_MENU } from "../../lib/z-layers";
 import { parseChatMetadata } from "../../lib/chat-display";
 import { useTranslate } from "../../hooks/use-translate";
 import { api } from "../../lib/api-client";
@@ -501,11 +502,11 @@ function HideFromAIAction({
         createPortal(
           <div
             ref={menuRef}
-            style={position}
+            style={{ ...position, zIndex: Z_MENU }}
             role="menu"
             aria-label={localizeUi("ui.chat.hidefromaiaction.chooseWhichCharactersCannotSeeThisMessage")}
             className={cn(
-              "marinara-chat-popover mari-chat-style-surface mari-chat-action-panel fixed z-[9999] flex max-h-36 w-max max-w-[min(22rem,calc(100vw-1rem))] flex-wrap items-center gap-1.5 overflow-x-hidden overflow-y-auto rounded-xl border border-[var(--marinara-chat-chrome-panel-border)] bg-[var(--marinara-chat-chrome-panel-bg)] p-2 shadow-xl",
+              "marinara-chat-popover mari-chat-style-surface mari-chat-action-panel fixed flex max-h-36 w-max max-w-[min(22rem,calc(100vw-1rem))] flex-wrap items-center gap-1.5 overflow-x-hidden overflow-y-auto rounded-xl border border-[var(--marinara-chat-chrome-panel-border)] bg-[var(--marinara-chat-chrome-panel-bg)] p-2 shadow-xl",
             )}
           >
             <button
@@ -616,11 +617,11 @@ function ConversationStartAction({
         createPortal(
           <div
             ref={menuRef}
-            style={position}
+            style={{ ...position, zIndex: Z_MENU }}
             role="menu"
             aria-label={localizeUi("ui.chat.conversationstartaction.chooseWhoStartsHere")}
             className={cn(
-              "marinara-chat-popover mari-chat-style-surface mari-chat-action-panel fixed z-[9999] flex max-h-36 w-max max-w-[min(22rem,calc(100vw-1rem))] flex-wrap items-center gap-1.5 overflow-x-hidden overflow-y-auto rounded-xl border border-[var(--marinara-chat-chrome-panel-border)] bg-[var(--marinara-chat-chrome-panel-bg)] p-2 shadow-xl",
+              "marinara-chat-popover mari-chat-style-surface mari-chat-action-panel fixed flex max-h-36 w-max max-w-[min(22rem,calc(100vw-1rem))] flex-wrap items-center gap-1.5 overflow-x-hidden overflow-y-auto rounded-xl border border-[var(--marinara-chat-chrome-panel-border)] bg-[var(--marinara-chat-chrome-panel-bg)] p-2 shadow-xl",
             )}
           >
             <button
@@ -4762,11 +4763,11 @@ function MessageAudioMenu({
         createPortal(
           <div
             ref={menuRef}
-            style={position}
+            style={{ ...position, zIndex: Z_MENU }}
             role="dialog"
             aria-label={label}
             className={cn(
-              "marinara-chat-popover mari-chat-style-surface mari-chat-action-panel fixed z-[9999] flex max-w-[calc(100vw-1.5rem)] flex-row flex-wrap items-center gap-1 rounded-lg border p-1.5 shadow-xl",
+              "marinara-chat-popover mari-chat-style-surface mari-chat-action-panel fixed flex max-w-[calc(100vw-1.5rem)] flex-row flex-wrap items-center gap-1 rounded-lg border p-1.5 shadow-xl",
               dark
                 ? "border-[var(--marinara-chat-chrome-panel-border)] bg-[var(--marinara-chat-chrome-panel-bg)] text-[var(--marinara-chat-chrome-panel-title)] shadow-black/30"
                 : "border-[var(--border)] bg-[var(--popover)] text-[var(--popover-foreground)] shadow-black/20",

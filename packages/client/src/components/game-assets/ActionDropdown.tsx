@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ContextMenuItem } from "../ui/ContextMenu";
 import { cn } from "../../lib/utils";
+import { Z_MENU } from "../../lib/z-layers";
 
 /**
  * Fixed-position dropdown menu rendered via portal.
@@ -65,8 +66,8 @@ export function ActionDropdown({
       data-chat-floating-panel
       ref={ref}
       role="menu"
-      className="fixed z-[10002] min-w-[10rem] rounded-lg border border-[var(--border)] bg-[var(--card)] py-1 shadow-xl"
-      style={{ left: position.left, top: position.top }}
+      className="fixed min-w-[10rem] rounded-lg border border-[var(--border)] bg-[var(--card)] py-1 shadow-xl"
+      style={{ zIndex: Z_MENU, left: position.left, top: position.top }}
     >
       {items.map((item, i) => (
         <button

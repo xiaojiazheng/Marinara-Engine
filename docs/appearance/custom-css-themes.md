@@ -212,6 +212,44 @@ Set a variable in `:root` to change every window, or on a selector to change one
 }
 ```
 
+## Styling modal windows
+
+Every app dialog — settings sections, the game setup wizard, the window a desktop icon opens — is drawn by one component, `Modal`. With `chrome="window"` it is a Windows 11 window: an acrylic surface, the shared window corner, and a title bar holding the window keys. A confirmation that is answered rather than managed keeps the plain title-and-close bar instead, through `chrome="dialog"`.
+
+| Part | Class |
+| --- | --- |
+| The window surface, in both chromes | `.mari-modal-panel` |
+| The dimmed area behind the window | `.mari-modal-backdrop` |
+| The Windows 11 shell, its title bar, title and 16px icon | `.mari-win11-window`, `.mari-win11-window__titlebar`, `.mari-win11-window__title`, `.mari-win11-window__title-icon` |
+| The title bar keys | `.mari-win11-window__control`, with `--close` on the close key |
+| The scrollable body | `.mari-win11-window__body` |
+
+Two data attributes let a theme tell the two bars apart and repaint the keys:
+
+- `data-modal-chrome` is `"window"` or `"dialog"` on the panel.
+- `data-modal-control` names each title bar key: `"minimize"`, `"maximize"` or `"close"`. Minimize and maximize are the shell's shape rather than a promise — a modal has no window state to collapse or restore — so they are inert: `aria-disabled="true"` and `tabindex="-1"`. Below the `sm` breakpoint the title bar renders the close key alone, so the inert keys are not in the DOM at all.
+
+Floating windows are the other shell: they use `.mari-window…` and `[data-window-control]`, as described in **Styling chat windows and drawers** above. The modal surface, border, shadow and corner read the same tokens as the taskbar (`--marinara-home-acrylic-surface`, `--marinara-home-acrylic-border`, `--marinara-home-acrylic-shadow`, `--marinara-win11-radius`), so a theme that repaints the Home shell repaints these windows too.
+
+```css
+/* Repaint a window's title bar and give its keys a theme colour. */
+.mari-win11-window .mari-win11-window__titlebar {
+  background: var(--card);
+}
+
+.mari-win11-window [data-modal-control="close"]:hover {
+  background: #c42b1c;
+  color: #ffffff;
+}
+
+/* A confirmation keeps the plain bar, so target it by its chrome. */
+.mari-modal-panel[data-modal-chrome="dialog"] {
+  border-radius: var(--radius);
+}
+```
+
+When a chat-widget theme is enabled, the three window keys fall under that chat theme's rules. That is intentional: a themed chat owns its own window chrome.
+
 ## Styling messages, input boxes and chat controls
 
 The three **Apply preset** switches also let a custom theme use the widget design in the rest of the chat. A theme can override each part with the variables below. Ask Professor Mari for a matching chat theme if you would rather not write CSS yourself.

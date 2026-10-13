@@ -7,6 +7,7 @@ import { cn } from "../../lib/utils";
 import { rememberRecentMedia, useRecentMedia } from "../../hooks/use-recent-media";
 import { EMOJI_CATEGORIES, EMOJI_SEARCH_NAMES } from "../../lib/emoji-catalog.generated";
 import { EMOJI_KEYWORDS, matchesEmojiQuery } from "../../lib/emoji-search";
+import { Z_MENU } from "../../lib/z-layers";
 import { useTranslation as useUiTranslation } from "react-i18next";
 import { Search } from "lucide-react";
 
@@ -1008,10 +1009,11 @@ export function EmojiPicker({
       ref={panelRef}
       data-emoji-picker
       className={cn(
-        "fixed z-[9999] flex h-[22rem] w-[21rem] max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-xl border border-foreground/10 bg-[var(--card)] shadow-xl",
+        "fixed flex h-[22rem] w-[21rem] max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-xl border border-foreground/10 bg-[var(--card)] shadow-xl",
         popupClassName,
       )}
       style={{
+        zIndex: Z_MENU,
         ...(pos.top != null ? { top: pos.top } : {}),
         ...(pos.left != null ? { left: pos.left } : {}),
         ...(pos.right != null ? { right: pos.right } : {}),

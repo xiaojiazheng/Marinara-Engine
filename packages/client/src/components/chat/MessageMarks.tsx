@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { useUpdateMessageExtra } from "../../hooks/use-chats";
 import { ApiError } from "../../lib/api-client";
 import { cn } from "../../lib/utils";
+import { Z_MENU } from "../../lib/z-layers";
 import { SettingsSwitch } from "../panels/settings/SettingControls";
 import { MESSAGE_ACTION_ICON_SIZE, MessageActionButton, useMessageActionMenu } from "./MessageActionButton";
 
@@ -34,7 +35,7 @@ export type MessageNoteSharing = {
 };
 
 const POPOVER_CLASS =
-  "marinara-chat-popover mari-chat-style-surface mari-chat-action-panel fixed z-[9999] max-h-[calc(var(--mari-visual-viewport-height,100dvh)-1rem)] w-[min(18rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-xl border border-[var(--marinara-chat-chrome-panel-border)] bg-[var(--marinara-chat-chrome-panel-bg)] p-2 text-[var(--marinara-chat-chrome-panel-text)] shadow-xl";
+  "marinara-chat-popover mari-chat-style-surface mari-chat-action-panel fixed max-h-[calc(var(--mari-visual-viewport-height,100dvh)-1rem)] w-[min(18rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-xl border border-[var(--marinara-chat-chrome-panel-border)] bg-[var(--marinara-chat-chrome-panel-bg)] p-2 text-[var(--marinara-chat-chrome-panel-text)] shadow-xl";
 const MENU_ROW_CLASS =
   "mari-chat-style-control flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-[var(--marinara-chat-chrome-highlight-bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--marinara-chat-chrome-focus-ring)] disabled:pointer-events-none disabled:opacity-50";
 const FIELD_CLASS =
@@ -125,7 +126,7 @@ export function MessageMarksAction({
           <div
             ref={menuRef}
             data-chat-floating-panel
-            style={position}
+            style={{ ...position, zIndex: Z_MENU }}
             role="dialog"
             aria-label={localizeUi("ui.chat.messagemarks.menuTitle")}
             className={POPOVER_CLASS}
@@ -334,7 +335,7 @@ export function MessageMarkIndicators({ message, className }: { message: Markabl
               <div
                 ref={menuRef}
                 data-chat-floating-panel
-                style={position}
+                style={{ ...position, zIndex: Z_MENU }}
                 role="note"
                 className={POPOVER_CLASS}
                 onClick={(event) => event.stopPropagation()}

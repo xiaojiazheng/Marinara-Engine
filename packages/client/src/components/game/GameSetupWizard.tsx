@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
 import {
+  Gamepad2,
   Wand2,
   ArrowRight,
   ArrowLeft,
@@ -65,13 +66,8 @@ import {
   ROLEPLAY_PARAMETER_DEFAULTS,
   type EditableGenerationParameters,
 } from "../ui/GenerationParametersEditor";
-import {
-  NEUTRAL_PANEL_HEADER,
-  NEUTRAL_PANEL_SCROLL_AREA,
-  NEUTRAL_PANEL_SHELL,
-  NEUTRAL_PANEL_SUBTITLE,
-  NEUTRAL_PANEL_TITLE,
-} from "../ui/neutral-surface-styles";
+import { Modal } from "../ui/Modal";
+import { NEUTRAL_PANEL_SCROLL_AREA, NEUTRAL_PANEL_SUBTITLE } from "../ui/neutral-surface-styles";
 import {
   createDefaultGameHudWidget,
   GameWidgetFileControls,
@@ -286,11 +282,6 @@ const GAME_SETUP_GHOST_BUTTON_CLASS =
   "flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--foreground)]";
 const GAME_SETUP_PRIMARY_BUTTON_CLASS =
   "flex items-center gap-1 rounded-lg bg-[var(--primary)] px-4 py-1.5 text-xs font-medium text-[var(--primary-foreground)] transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50";
-const GAME_SETUP_WIZARD_PANEL_CLASS = cn(
-  NEUTRAL_PANEL_SHELL,
-  "pointer-events-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden sm:max-h-[min(90dvh,44rem)]",
-);
-
 const GAME_SETUP_STEPS = [
   {
     key: "connection",
@@ -1592,41 +1583,163 @@ export function GameSetupWizard({
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-[10000] bg-black/45 backdrop-blur-[2px]"
-        onClick={isLoading ? undefined : onCancel}
-      />
-      <div className="fixed inset-0 z-[10001] flex items-center justify-center p-3 pointer-events-none max-md:pt-[max(0.75rem,env(safe-area-inset-top))] max-md:pb-[max(0.75rem,var(--mari-safe-area-inset-bottom,env(safe-area-inset-bottom)))] sm:p-4">
+      {/* The wizard draws Modal's Windows 11 window shell, so it shares one acrylic surface, one title
+          bar and one overlay-stack entry with every other window. `contentClassName` neutralises the
+          body's own padding and scroll because the scroll region below is the wizard's own — the step
+          transition animates inside it, and the footer keeps its own pinned row. */}
+      <Modal
+        open
+        onClose={onCancel}
+        title={localizeUi("navigation.chatSidebar.new.game")}
+        titleIcon={<Gamepad2 size="1rem" />}
+        chrome="window"
+        width={adjustGameAssetsOpen ? "max-w-5xl" : "max-w-lg"}
+        closeDisabled={isLoading}
+        closeLabel={localizeUi("ui.game.gamesetupwizard.closeSetup")}
+        // The wizard owns the focus entry for its own body: the step it lands on is where the player
+        // reads from, and the legacy Experience panel restores focus to the same element on Back.
+        initialFocusRef={panelRef}
+        contentClassName="!overflow-hidden !p-0 flex flex-col"
+        footer={
+          <div className="shrink-0 border-t border-[var(--border)]/70 px-5 py-3">
+            {isLoading && (
+              <div className="mb-3">
+                <div className="flex items-center justify-between gap-3 text-[0.6875rem]">
+                  <span className="font-medium text-[var(--foreground)]" role="status" aria-live="polite">
+                    {isDraftingMap
+                      ? localizeUi("ui.game.gamesetupwizard.theWorldIsReadyNowDraftingItsMapFor")
+                      : isLinkingSharedWorld
+                        ? localizeUi("ui.game.gamesetupwizard.theGameIsReadyNowLinkingItsSharedWorld")
+                        : localizeUi("ui.game.gamesetupwizard.holdOnTightTheGameIsBeingGeneratedRight")}
+                  </span>
+                  <span aria-hidden="true" className="shrink-0 tabular-nums text-[var(--muted-foreground)]">
+                    {generationElapsedSeconds}
+                    {localizeUi("ui.noodle.stageprofileview.s")}
+                  </span>
+                </div>
+                <div
+                  className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--muted)]/60"
+                  role="progressbar"
+                  aria-label={
+                    isDraftingMap
+                      ? localizeUi("ui.game.gamesetupwizard.draftingHierarchicalWorldMap")
+                      : isLinkingSharedWorld
+                        ? localizeUi("ui.game.gamesetupwizard.linkingSharedWorld")
+                        : localizeUi("ui.game.gamesetupwizard.generatingGameWorld")
+                  }
+                >
+                  <motion.div
+                    className="h-full w-2/5 rounded-full bg-[var(--primary)]"
+                    animate={prefersReducedMotion ? { x: 0 } : { x: ["-110%", "260%"] }}
+                    transition={
+                      prefersReducedMotion ? undefined : { duration: 1.35, ease: [0.16, 1, 0.3, 1], repeat: Infinity }
+                    }
+                  />
+                </div>
+              </div>
+            )}
+            <div className="mb-3 flex items-center justify-center gap-1.5">
+              {steps.map((item, i) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  aria-label={localizeUi("ui.game.gamesetupwizard.goToValue1", { value1: item.title })}
+                  aria-current={i === step ? "step" : undefined}
+                  disabled={isLoading || i >= step}
+                  onClick={() => {
+                    if (i < step) setStep(i);
+                  }}
+                  className={cn(
+                    "h-1.5 rounded-full transition-all duration-300 disabled:cursor-default",
+                    i === step
+                      ? "w-5 bg-[var(--primary)]"
+                      : i < step
+                        ? "w-3 bg-[var(--primary)]/45 hover:bg-[var(--primary)]/70"
+                        : "w-1.5 bg-[var(--muted-foreground)]/25",
+                  )}
+                />
+              ))}
+            </div>
+
+            {step === steps.length - 1 && canStartMessage && (
+              <p className="mb-3 text-center text-[0.6875rem] text-[var(--destructive)]">{canStartMessage}</p>
+            )}
+
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={step === 0 ? onCancel : () => setStep(step - 1)}
+                disabled={isLoading}
+                className={cn(GAME_SETUP_GHOST_BUTTON_CLASS, "disabled:cursor-wait disabled:opacity-40")}
+              >
+                <ArrowLeft size={14} />
+                {step === 0 ? localizeUi("chat.delete.dialog.cancel") : localizeUi("ui.noodle.noodlerframe.back")}
+              </button>
+
+              {step < steps.length - 1 ? (
+                <button
+                  type="button"
+                  onClick={() => setStep(step + 1)}
+                  disabled={isLoading}
+                  className={GAME_SETUP_PRIMARY_BUTTON_CLASS}
+                >
+                  {localizeUi("onboarding.actions.next")}
+                  <ArrowRight size={14} />
+                </button>
+              ) : (
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={handleExportSetup}
+                    disabled={isLoading}
+                    className={cn(GAME_SETUP_GHOST_BUTTON_CLASS, "disabled:cursor-wait disabled:opacity-40")}
+                  >
+                    <Download size={14} />
+                    {localizeUi("ui.game.gamesetupsummary.downloadSetup")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleComplete}
+                    disabled={isLoading || !canStart}
+                    className={GAME_SETUP_PRIMARY_BUTTON_CLASS}
+                    title={canStartMessage ?? undefined}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        {isDraftingMap
+                          ? localizeUi("ui.game.gamesetupwizard.draftingMap")
+                          : isLinkingSharedWorld
+                            ? localizeUi("ui.game.gamesetupwizard.linkingWorld")
+                            : localizeUi("ui.game.gamesetupwizard.generatingWorld")}
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 size={14} />
+                        {localizeUi(
+                          multiplayerPlayers ? "multiplayer.game.review" : "ui.game.gamesurfacecomponent.startGame",
+                        )}
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        }
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep.key}
             ref={panelRef}
             tabIndex={-1}
             data-component="GameSetupWizard"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="game-setup-wizard-title"
             initial={{ opacity: 0, y: 12, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -12, scale: 0.97 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className={cn(GAME_SETUP_WIZARD_PANEL_CLASS, adjustGameAssetsOpen && "max-w-5xl")}
+            className="min-h-0 flex flex-1 flex-col"
           >
-            <div className={cn(NEUTRAL_PANEL_HEADER, "flex shrink-0 items-center justify-between")}>
-              <h3 id="game-setup-wizard-title" className={NEUTRAL_PANEL_TITLE}>
-                {localizeUi("navigation.chatSidebar.new.game")}
-              </h3>
-              <button
-                type="button"
-                onClick={onCancel}
-                disabled={isLoading}
-                className="rounded-lg p-1.5 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--foreground)] disabled:cursor-wait disabled:opacity-40"
-                aria-label={localizeUi("ui.game.gamesetupwizard.closeSetup")}
-              >
-                <X size="0.875rem" />
-              </button>
-            </div>
-
             <div
               className={cn(NEUTRAL_PANEL_SCROLL_AREA, "min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4")}
             >
@@ -3891,135 +4004,9 @@ export function GameSetupWizard({
                 )}
               </div>
             </div>
-
-            <div className="shrink-0 border-t border-[var(--border)]/70 px-5 py-3">
-              {isLoading && (
-                <div className="mb-3">
-                  <div className="flex items-center justify-between gap-3 text-[0.6875rem]">
-                    <span className="font-medium text-[var(--foreground)]" role="status" aria-live="polite">
-                      {isDraftingMap
-                        ? localizeUi("ui.game.gamesetupwizard.theWorldIsReadyNowDraftingItsMapFor")
-                        : isLinkingSharedWorld
-                          ? localizeUi("ui.game.gamesetupwizard.theGameIsReadyNowLinkingItsSharedWorld")
-                          : localizeUi("ui.game.gamesetupwizard.holdOnTightTheGameIsBeingGeneratedRight")}
-                    </span>
-                    <span aria-hidden="true" className="shrink-0 tabular-nums text-[var(--muted-foreground)]">
-                      {generationElapsedSeconds}
-                      {localizeUi("ui.noodle.stageprofileview.s")}
-                    </span>
-                  </div>
-                  <div
-                    className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--muted)]/60"
-                    role="progressbar"
-                    aria-label={
-                      isDraftingMap
-                        ? localizeUi("ui.game.gamesetupwizard.draftingHierarchicalWorldMap")
-                        : isLinkingSharedWorld
-                          ? localizeUi("ui.game.gamesetupwizard.linkingSharedWorld")
-                          : localizeUi("ui.game.gamesetupwizard.generatingGameWorld")
-                    }
-                  >
-                    <motion.div
-                      className="h-full w-2/5 rounded-full bg-[var(--primary)]"
-                      animate={prefersReducedMotion ? { x: 0 } : { x: ["-110%", "260%"] }}
-                      transition={
-                        prefersReducedMotion ? undefined : { duration: 1.35, ease: [0.16, 1, 0.3, 1], repeat: Infinity }
-                      }
-                    />
-                  </div>
-                </div>
-              )}
-              <div className="mb-3 flex items-center justify-center gap-1.5">
-                {steps.map((item, i) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    aria-label={localizeUi("ui.game.gamesetupwizard.goToValue1", { value1: item.title })}
-                    aria-current={i === step ? "step" : undefined}
-                    disabled={isLoading || i >= step}
-                    onClick={() => {
-                      if (i < step) setStep(i);
-                    }}
-                    className={cn(
-                      "h-1.5 rounded-full transition-all duration-300 disabled:cursor-default",
-                      i === step
-                        ? "w-5 bg-[var(--primary)]"
-                        : i < step
-                          ? "w-3 bg-[var(--primary)]/45 hover:bg-[var(--primary)]/70"
-                          : "w-1.5 bg-[var(--muted-foreground)]/25",
-                    )}
-                  />
-                ))}
-              </div>
-
-              {step === steps.length - 1 && canStartMessage && (
-                <p className="mb-3 text-center text-[0.6875rem] text-[var(--destructive)]">{canStartMessage}</p>
-              )}
-
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={step === 0 ? onCancel : () => setStep(step - 1)}
-                  disabled={isLoading}
-                  className={cn(GAME_SETUP_GHOST_BUTTON_CLASS, "disabled:cursor-wait disabled:opacity-40")}
-                >
-                  <ArrowLeft size={14} />
-                  {step === 0 ? localizeUi("chat.delete.dialog.cancel") : localizeUi("ui.noodle.noodlerframe.back")}
-                </button>
-
-                {step < steps.length - 1 ? (
-                  <button
-                    type="button"
-                    onClick={() => setStep(step + 1)}
-                    disabled={isLoading}
-                    className={GAME_SETUP_PRIMARY_BUTTON_CLASS}
-                  >
-                    {localizeUi("onboarding.actions.next")}
-                    <ArrowRight size={14} />
-                  </button>
-                ) : (
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={handleExportSetup}
-                      disabled={isLoading}
-                      className={cn(GAME_SETUP_GHOST_BUTTON_CLASS, "disabled:cursor-wait disabled:opacity-40")}
-                    >
-                      <Download size={14} />
-                      {localizeUi("ui.game.gamesetupsummary.downloadSetup")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleComplete}
-                      disabled={isLoading || !canStart}
-                      className={GAME_SETUP_PRIMARY_BUTTON_CLASS}
-                      title={canStartMessage ?? undefined}
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 size={14} className="animate-spin" />
-                          {isDraftingMap
-                            ? localizeUi("ui.game.gamesetupwizard.draftingMap")
-                            : isLinkingSharedWorld
-                              ? localizeUi("ui.game.gamesetupwizard.linkingWorld")
-                              : localizeUi("ui.game.gamesetupwizard.generatingWorld")}
-                        </>
-                      ) : (
-                        <>
-                          <Wand2 size={14} />
-                          {localizeUi(
-                            multiplayerPlayers ? "multiplayer.game.review" : "ui.game.gamesurfacecomponent.startGame",
-                          )}
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
           </motion.div>
         </AnimatePresence>
-      </div>
+      </Modal>
       {spatialTemplatePickerOpen && (
         <CapabilityElement
           packageId="hierarchical-maps"

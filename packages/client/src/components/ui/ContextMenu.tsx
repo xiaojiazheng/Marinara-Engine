@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../../lib/utils";
+import { Z_MENU } from "../../lib/z-layers";
 
 export interface ContextMenuItem {
   label: string;
@@ -90,7 +91,7 @@ export function ContextMenu({
     <div
       ref={ref}
       role="menu"
-      style={{ position: "fixed", left: pos.left, top: pos.top, zIndex: 9999 }}
+      style={{ position: "fixed", left: pos.left, top: pos.top, zIndex: Z_MENU }}
       className="max-h-[calc(100dvh-0.5rem)] min-w-[12rem] overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--card)] py-1 shadow-xl animate-fade-in-up"
       onContextMenu={(e) => e.preventDefault()}
     >

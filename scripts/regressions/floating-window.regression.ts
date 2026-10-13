@@ -359,8 +359,18 @@ for (const variable of variables) {
 }
 assert.match(
   globals,
-  /\[data-marinara-chat-chrome-accent-mode="gradient"\] \.marinara-chat-popover:not\(\.mari-window\)/u,
+  /\[data-marinara-chat-chrome-accent-mode="gradient"\] \.marinara-chat-popover:not\([^)]*\.mari-window[^)]*\)/u,
   "gradient chrome must not override the window variables",
+);
+assert.match(
+  globals,
+  /\[data-marinara-chat-chrome-accent-mode="gradient"\] \.marinara-chat-popover:not\([^)]*\.mari-win11-window[^)]*\)/u,
+  "the gradient popover rule must not repaint the Win11 window shell",
+);
+assert.match(
+  globals,
+  /:where\(\[data-marinara-chat-chrome-accent-mode="gradient"\]\) \.mari-win11-window\.mari-chat-style-surface \{/u,
+  "the Win11 window's chat-surface paint must stay below the chat theme's specificity",
 );
 assert.match(
   globals,

@@ -5,6 +5,7 @@ import { ChevronUp, ChevronDown, Layers, ListChecks, Loader2, Trash2, X } from "
 import type { PeekPromptData } from "./chat-area.types";
 import type { LocalSpriteVisualSettings } from "./local-sprite-visual-settings";
 import { cn } from "../../lib/utils";
+import { Z_MENU } from "../../lib/z-layers";
 import { Modal } from "../ui/Modal";
 import { NEUTRAL_PANEL_SHELL } from "../ui/neutral-surface-styles";
 import { type ChatToolbarFloatingPanelAnchor } from "./ChatToolbarControls";
@@ -155,9 +156,10 @@ function MultiSelectBar({
   return (
     <div
       data-component="MessageMultiSelectBar"
+      style={{ zIndex: Z_MENU }}
       className={cn(
         NEUTRAL_PANEL_SHELL,
-        "mari-chat-style-surface mari-chat-action-panel mari-chrome-token-scope fixed bottom-[max(1rem,var(--mari-safe-area-inset-bottom,env(safe-area-inset-bottom)))] left-1/2 z-50 flex w-[min(30rem,calc(100vw-1.5rem))] -translate-x-1/2 flex-col gap-2 p-3",
+        "mari-chat-style-surface mari-chat-action-panel mari-chrome-token-scope fixed bottom-[max(1rem,var(--mari-safe-area-inset-bottom,env(safe-area-inset-bottom)))] left-1/2 flex w-[min(30rem,calc(100vw-1.5rem))] -translate-x-1/2 flex-col gap-2 p-3",
       )}
     >
       <span className="text-center text-xs font-medium text-[var(--marinara-chat-chrome-panel-muted)]">

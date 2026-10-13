@@ -1,5 +1,9 @@
 import { useEffect, type RefObject } from "react";
 
+// Every clause also drops `tabindex="-1"` and `aria-disabled` controls. The Windows 11 title bar's
+// minimize/maximize keys are exactly that — inert buttons kept in the DOM for the shell's shape — so
+// without the exclusions the first match inside a window-chrome modal is a dead key, and both the
+// dialog's initial focus and the Tab wrap-around would land on it instead of a usable control.
 const FOCUSABLE_SELECTOR = [
   "button:not([disabled])",
   "[href]",
@@ -7,7 +11,9 @@ const FOCUSABLE_SELECTOR = [
   "select:not([disabled])",
   "textarea:not([disabled])",
   "[tabindex]:not([tabindex='-1'])",
-].join(",");
+]
+  .map((selector) => `${selector}:not([tabindex='-1']):not([aria-disabled='true'])`)
+  .join(",");
 
 function restoreDialogFocus(restoreFocusRef: RefObject<HTMLElement | null> | undefined, fallback: HTMLElement | null) {
   window.requestAnimationFrame(() => (restoreFocusRef?.current ?? fallback)?.focus());

@@ -55,6 +55,8 @@ export function AppDialogRenderer() {
       title={getDialogTitle(dialog.kind, dialog.title)}
       width="max-w-sm"
       chatFloatingPanel
+      // A confirmation is answered, not managed: it keeps the title-and-close bar.
+      chrome="dialog"
       panelClassName={dialog.chatStyle ? "mari-chat-style-surface mari-chat-action-panel" : undefined}
     >
       <div className="space-y-4">

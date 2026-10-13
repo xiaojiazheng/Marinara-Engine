@@ -1,6 +1,6 @@
-import { type CSSProperties } from "react";
+import { type CSSProperties, type ReactNode } from "react";
 import { APP_VERSION, type AchievementEvent } from "@marinara-engine/shared";
-import { ExternalLink } from "lucide-react";
+import { BookOpen, Clock3, ExternalLink, Heart, MessageCircle, Sparkles, Trophy } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { HomeAchievements } from "../chat/HomeAchievements";
 import { HomeCalendarBody, useHomeCalendarClock } from "../chat/HomeClockCalendar";
@@ -24,10 +24,25 @@ const ENGINE_RELEASE_URL = `https://github.com/Pasta-Devs/Marinara-Engine/releas
 const SHORTCUT_SCOPE = { "--home-module-accent": "var(--primary)" } as CSSProperties;
 
 /**
- * The acrylic windows a desktop icon opens: recent chats, What's New, Learn, Community, and the clock.
- * The remaining icons act directly on the shell (character library, Professor Mari, agent catalog,
- * achievements), so they need no window here.
+ * The acrylic windows a desktop icon opens: recent chats, What's New, Learn, Community, the clock, and
+ * the achievements preview. The remaining icons act directly on the shell (character library,
+ * Professor Mari, agent catalog), so they need no window here.
+ *
+ * Every window draws Modal's Windows 11 shell — `chrome="window"`, spelled out per window even though
+ * it is the default — so the six windows share one surface, corner and shadow definition (§26) with
+ * the §24 taskbar instead of carrying window-local styles.
  */
+
+/** Each window repeats the glyph of the desk icon that opened it, at the title bar's 16px. */
+const TITLE_ICONS = {
+  recent: <MessageCircle size="1rem" />,
+  "whats-new": <Sparkles size="1rem" />,
+  learn: <BookOpen size="1rem" />,
+  community: <Heart size="1rem" />,
+  clock: <Clock3 size="1rem" />,
+  achievements: <Trophy size="1rem" />,
+} as const satisfies Record<HomeDesktopIconWindowId, ReactNode>;
+
 export function HomeDesktopIconModals({
   openWindowId,
   onClose,
@@ -44,6 +59,8 @@ export function HomeDesktopIconModals({
         open={openWindowId === "recent"}
         onClose={onClose}
         title={t("home.desktop.window.recentChats")}
+        titleIcon={TITLE_ICONS.recent}
+        chrome="window"
         width="max-w-4xl"
         mobileFullscreen
       >
@@ -54,6 +71,8 @@ export function HomeDesktopIconModals({
         open={openWindowId === "whats-new"}
         onClose={onClose}
         title={t("home.whatsNew.title", { version: APP_VERSION })}
+        titleIcon={TITLE_ICONS["whats-new"]}
+        chrome="window"
         width="max-w-2xl"
       >
         <p className="text-sm leading-relaxed text-[var(--muted-foreground)]">{t("home.whatsNew.description")}</p>
@@ -71,6 +90,8 @@ export function HomeDesktopIconModals({
         open={openWindowId === "learn"}
         onClose={onClose}
         title={t("home.learn.title")}
+        titleIcon={TITLE_ICONS.learn}
+        chrome="window"
         width="max-w-2xl"
         mobileFullscreen
       >
@@ -100,6 +121,8 @@ export function HomeDesktopIconModals({
         open={openWindowId === "community"}
         onClose={onClose}
         title={t("home.community.title")}
+        titleIcon={TITLE_ICONS.community}
+        chrome="window"
         width="max-w-2xl"
         mobileFullscreen
       >
@@ -134,6 +157,8 @@ export function HomeDesktopIconModals({
         open={openWindowId === "clock"}
         onClose={onClose}
         title={t("home.clock.title")}
+        titleIcon={TITLE_ICONS.clock}
+        chrome="window"
         width="max-w-xl"
         mobileFullscreen
       >
@@ -146,6 +171,8 @@ export function HomeDesktopIconModals({
         open={openWindowId === "achievements"}
         onClose={onClose}
         title={t("home.achievements.title")}
+        titleIcon={TITLE_ICONS.achievements}
+        chrome="window"
         width="max-w-4xl"
         mobileFullscreen
       >

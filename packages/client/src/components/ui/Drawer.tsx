@@ -21,6 +21,7 @@ import { createPortal } from "react-dom";
 import { ChevronDown, ExternalLink, Undo2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/utils";
+import { Z_DRAG_GHOST } from "../../lib/z-layers";
 import {
   clampWindowGeometry,
   getDrawerWindowId,
@@ -332,8 +333,8 @@ export function Drawer({
           <div
             aria-hidden="true"
             data-outside={ghost.outside ? "true" : "false"}
-            className="mari-drawer-ghost pointer-events-none fixed z-[9500] flex max-w-72 items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold"
-            style={{ left: ghost.x, top: ghost.y - WINDOW_HEADER_PX / 2 }}
+            className="mari-drawer-ghost pointer-events-none fixed flex max-w-72 items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold"
+            style={{ zIndex: Z_DRAG_GHOST, left: ghost.x, top: ghost.y - WINDOW_HEADER_PX / 2 }}
           >
             {icon && <span className="mari-drawer__icon">{icon}</span>}
             <span className="truncate">{title}</span>
