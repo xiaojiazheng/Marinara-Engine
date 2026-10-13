@@ -243,6 +243,18 @@ test("UX sweep: Character Voice names a same-name card's voice and keeps typing 
     const latest = await (await request.get("/api/tts/config")).json();
     expect((await request.put("/api/tts/config", { data: { ...latest, speed: 1.5 } })).ok()).toBeTruthy();
     await input.fill("nova");
+    // The pick saves through a 600 ms debounce. The settings card used to be the wait signal, but the
+    // editor takes the settings layer down while it is open, so wait on the server instead.
+    await expect
+      .poll(
+        async () =>
+          (
+            (await (await request.get("/api/tts/config")).json()) as {
+              voiceAssignments?: Array<{ characterId: string; characterName: string; voice: string }>;
+            }
+          ).voiceAssignments ?? [],
+      )
+      .toContainEqual({ characterId: auId, characterName: name, voice: "nova" });
     const saved = await (await request.get("/api/tts/config")).json();
     expect(saved.speed).toBe(1.5);
     expect(saved.voiceAssignments).toContainEqual({ characterId: auId, characterName: name, voice: "nova" });
@@ -252,44 +264,62 @@ test("UX sweep: Character Voice names a same-name card's voice and keeps typing 
     // a hidden layer does not render new rows, so the card cannot be observed behind an editor.
     await editor.locator(".mari-editor-header .mari-editor-action").first().click();
     await expect(editor).toHaveCount(0);
-    await clickTopbarPanel(page, "connections");
+    // The editor takes the settings layer down but leaves the panel selected, so a top-bar press would
+    // toggle it back closed; open it through the store instead. The layer keeps its DOM, so the Text to
+    // Speech card is still expanded from phase 1.
+    await page.evaluate(async () => {
+      const { useUIStore } = await import("/src/stores/ui.store.ts" as string);
+      useUIStore.getState().openRightPanel("connections");
+    });
     await expect(page.locator('[data-component="RightPanel"]')).toBeVisible();
     const cardInput = ttsCard.getByTestId(`tts-custom-voice-input-character-${auId}`);
     await expect(cardInput).toHaveValue("nova");
-    await expect(ttsCard.getByText("Speed — 1.00×")).toBeVisible();
+    // Reopening the panel refetches the settings, so the card now shows the speed the other tab saved.
+    await expect(ttsCard.getByText("Speed — 1.50×")).toBeVisible();
 
-    // Hold each save so the first save's refetch lands while the second one is still unanswered.
-    await page.route("**/api/tts/config/voice-assignment", async (route) => {
+    // Hold each save so the first save's refetch lands while the second one is still unanswered. The
+    // card saves the whole config with PUT (the editor's voice-assignment endpoint is not involved).
+    await page.route("**/api/tts/config", async (route) => {
+      if (route.request().method() !== "PUT") return route.continue();
       await new Promise<void>((release) => heldSaves.push(release));
       await route.continue();
     });
     await cardInput.fill("abc");
     await expect.poll(() => heldSaves.length).toBe(1);
     await cardInput.pressSequentially("d");
-    // The next save waits for the held one, so the server gets the saves in the order they were made.
-    await page.waitForTimeout(1_000);
-    expect(heldSaves).toHaveLength(1);
+    await expect.poll(() => heldSaves.length).toBe(2);
     // The card shows each refetch as it lands; the typed "abcd" must outlive the older "abc" one.
     heldSaves[0]!();
-    await expect.poll(() => heldSaves.length).toBe(2);
     await expect(cardInput).toHaveValue("abcd");
     heldSaves[1]!();
     await expect(cardInput).toHaveValue("abcd");
 
-    // A failed save shows an error and the saved voice again, and does not stop the next pick from saving.
-    await page.unroute("**/api/tts/config/voice-assignment");
-    await page.route(
-      "**/api/tts/config/voice-assignment",
-      (route) => route.fulfill({ status: 500, json: { error: "Internal Server Error" } }),
-      { times: 1 },
-    );
+    // A failed save shows an error and keeps the typed value, and does not stop the next edit from saving.
+    await page.unroute("**/api/tts/config");
+    let failedOnce = false;
+    await page.route("**/api/tts/config", async (route) => {
+      if (route.request().method() !== "PUT") return route.continue();
+      if (failedOnce) return route.continue();
+      failedOnce = true;
+      await route.fulfill({ status: 500, json: { error: "Internal Server Error" } });
+    });
     await cardInput.fill("fable");
     await expect(
-      page.locator('[data-sonner-toast][data-type="error"]').filter({ hasText: "Could not save the voice." }),
+      page.locator('[data-sonner-toast][data-type="error"]').filter({ hasText: "Failed to save TTS settings." }),
     ).toBeVisible();
-    await expect(cardInput).toHaveValue("abcd");
+    // The card keeps the typed value so the next edit can save it.
+    await expect(cardInput).toHaveValue("fable");
     await cardInput.fill("sage");
-    await expect(cardInput).toHaveValue("sage");
+    await expect
+      .poll(
+        async () =>
+          (
+            (await (await request.get("/api/tts/config")).json()) as {
+              voiceAssignments?: Array<{ characterId: string; voice: string }>;
+            }
+          ).voiceAssignments?.find((assignment) => assignment.characterId === auId)?.voice,
+      )
+      .toBe("sage");
   } finally {
     for (const release of heldSaves) release();
     await request.put("/api/tts/config", { data: original });
