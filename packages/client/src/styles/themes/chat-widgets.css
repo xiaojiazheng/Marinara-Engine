@@ -35,8 +35,6 @@
   --mari-widget-frame-inner-clip: initial;
   --mari-widget-frame-inset: initial;
   --mari-widget-frame-shadow: initial;
-  --mari-widget-crest: initial;
-  --mari-widget-crest-content: initial;
   --mari-widget-ornament-content: initial;
   --mari-widget-isolation: initial;
   --mari-widget-drawer-margin: initial;
@@ -56,7 +54,6 @@
   --mari-widget-shadow: initial;
   --mari-widget-filter: initial;
   --mari-widget-header-padding: initial;
-  --mari-widget-crest-height: initial;
 }
 
 [data-chat-widget-preset="dottore"] {
@@ -71,9 +68,6 @@
   --mari-widget-font-preset: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
   --mari-widget-header-bg: linear-gradient(110deg, transparent 35%, oklch(0.7 0.08 235 / 0.14));
   --mari-widget-header-padding: 0.75rem 1.75rem;
-  --mari-widget-crest-height: 2.5rem;
-  --mari-widget-crest: url("/images/chat-widgets/dottore-crest.svg");
-  --mari-widget-crest-content: "";
   --mari-widget-ornament-content: "";
   --mari-widget-isolation: isolate;
   --mari-widget-drawer-margin: 0 0.625rem;
@@ -114,9 +108,6 @@
     oklch(0.7 0.08 275 / 0.1)
   );
   --mari-widget-header-padding: 0.75rem 1.75rem;
-  --mari-widget-crest-height: 1.75rem;
-  --mari-widget-crest: url("/images/chat-widgets/mari-primogem.svg");
-  --mari-widget-crest-content: "";
   --mari-widget-ornament-content: "";
   --mari-widget-isolation: isolate;
   --mari-widget-drawer-margin: 0 0.625rem;
@@ -174,9 +165,13 @@
   /* Blur must use the same polygon as the paint, not the rectangular root. */
   --mari-widget-shell-backdrop-filter: none;
   --mari-widget-header-shell-bg: transparent;
-  /* A rectangular box shadow leaves bright wedges outside the cut corners. */
+  /* A rectangular box shadow leaves bright wedges outside the cut corners, and it cannot follow a
+     clip-path — so the shadow is suppressed and re-expressed as a drop-shadow. A window reads the
+     `--mari-window-*` chain (§4a2), so both halves must be supplied on that chain too. */
   --mari-widget-shadow: none;
+  --mari-window-shadow: none;
   --mari-widget-filter: drop-shadow(0 12px 16px rgb(0 0 0 / 0.25));
+  --mari-window-filter: drop-shadow(0 12px 16px rgb(0 0 0 / 0.25));
   --mari-widget-shell-border: transparent;
   --mari-widget-frame-content: "";
   --mari-widget-isolation: isolate;
@@ -246,102 +241,49 @@
 }
 
 @layer components {
+  /* Structure only: every window and the popped-out drawer preview. Nothing here reads a
+     --mari-widget-* key — the frame's shape and material are the shell's, not the palette's. */
   .mari-window,
+  .mari-drawer-ghost {
+    isolation: isolate;
+  }
+
+  /* The public hook is declared on the bare root so it stays valid for every window: a dialog or a
+     shell pane reads `--mari-window-font-family` too (the docs and Professor Mari tell users to set
+     it). It deliberately does NOT read the preset/option tokens — those reach the chat windows only,
+     in the rule below. */
+  .mari-window {
+    font-family: var(--mari-window-font-family, inherit);
+  }
+
+  /* Preset and option lettering reach the chat windows and nothing else: `data-detached` is the marker
+     that <FloatingWindow> renders this window (the shell panes, the centre surfaces and the dialogs go
+     through <WindowShell> and carry no such attribute). It is a presence test on purpose — the value is
+     "false" for most floating windows and only "true" for the popped-out drawer, so testing the value
+     would silently drop the font from the chat settings, tracker and control windows. This is a RENDERER
+     marker, not `data-window-shell-chrome` (which records a role); and lettering is content typography
+     rather than window chrome, which is the bar, the keys, the acrylic surface and the geometry. */
+  .mari-window[data-detached] {
+    font-family: var(
+      --mari-window-font-family,
+      var(--mari-widget-font-override, var(--mari-widget-font-preset, inherit))
+    );
+  }
+
+  /* A drawer and the preview shown while it is dragged keep the same chain: the preview is portalled
+     outside the window it will land in, so it cannot inherit, and a preview that lettered differently
+     from the drawer it stands for would be a lie. Same value as before, written instead of inherited. */
+  .mari-drawer,
   .mari-drawer-ghost {
     font-family: var(
       --mari-window-font-family,
       var(--mari-widget-font-override, var(--mari-widget-font-preset, inherit))
     );
-    isolation: var(--mari-widget-custom-isolation, var(--mari-widget-isolation, auto));
-    filter: var(--mari-widget-filter, none);
-  }
-
-  /* Clip only the painted frame, never the root: resize handles, focus rings
-     and the phone button's expanded hit target must remain outside it. */
-  .mari-window::before,
-  .mari-window::after {
-    content: var(--mari-widget-custom-border-content, var(--mari-widget-frame-content, none));
-    position: absolute;
-    inset: -1px;
-    z-index: -2;
-    background: var(
-      --mari-window-border,
-      var(--mari-widget-custom-border, var(--mari-widget-gold, var(--marinara-chat-chrome-panel-border)))
-    );
-    border-radius: inherit;
-    clip-path: var(--mari-widget-frame-clip, none);
-    pointer-events: none;
-  }
-
-  .mari-window::after {
-    inset: var(--mari-widget-frame-inset, 1px);
-    clip-path: var(--mari-widget-frame-inner-clip, none);
-    z-index: -1;
-    background: var(
-      --mari-window-bg,
-      var(--mari-widget-custom-background, var(--mari-widget-bg, var(--marinara-chat-chrome-panel-bg)))
-    );
-    box-shadow: var(--mari-widget-frame-shadow, none);
-  }
-
-  /* Resolve the public blur hook at the painted element so per-window themes
-     work too. Rounded frames keep their original single blur on the root. */
-  :root:is([data-chat-widget-shape="cut-corner"], [data-chat-widget-preset="dottore"][data-chat-widget-shape="preset"])
-    .mari-window:not([data-chat-widget-preview] *)::after,
-  [data-chat-widget-preview]:is(
-      [data-chat-widget-shape="cut-corner"],
-      [data-chat-widget-preset="dottore"][data-chat-widget-shape="preset"]
-    )
-    .mari-window::after {
-    -webkit-backdrop-filter: var(--mari-window-backdrop-filter, blur(12px));
-    backdrop-filter: var(--mari-window-backdrop-filter, blur(12px));
   }
 
   .mari-window__header {
     position: relative;
-    isolation: var(--mari-widget-custom-isolation, var(--mari-widget-isolation, auto));
-  }
-
-  /* A cut frame needs cut header paint too, without clipping its crest,
-     focus ring or controls. Custom header backgrounds use the same boundary. */
-  .mari-window__header::before {
-    content: var(--mari-widget-frame-content, none);
-    position: absolute;
-    inset: 7px 7px 0;
-    z-index: -1;
-    background: var(
-      --mari-window-header-bg,
-      var(--mari-widget-custom-background, var(--mari-widget-header-bg, transparent))
-    );
-    /* Seven pixels on each side already clear the 14px outer cut. */
-    pointer-events: none;
-  }
-
-  .mari-window__header::after {
-    content: var(--mari-widget-crest-content, none);
-    position: absolute;
-    width: 2rem;
-    height: var(--mari-widget-crest-height, 2rem);
-    left: calc(50% - 1rem);
-    top: calc(var(--mari-widget-crest-height, 2rem) * -0.55);
-    background: var(--mari-window-ornament, var(--mari-widget-crest)) center / contain no-repeat;
-    pointer-events: none;
-  }
-
-  /* Phone panels, menus and compact mobile windows keep the crest inside the
-     title bar beside the title, clear of the actions on the right. */
-  .mari-window:is([data-presentation="sheet"], [data-presentation="menu"], [data-header-ornament="inline"])
-    .mari-window__header::after {
-    left: 0.25rem;
-    top: calc(50% - 1rem);
-    width: 1.25rem;
-    height: 2rem;
-  }
-
-  /* Keep scrolling content inside the decorative inner frame. The root stays
-     unclipped so its resize handles and title crest remain accessible. */
-  .mari-window__body {
-    margin: var(--mari-widget-body-inset, 0);
+    isolation: isolate;
   }
 
   .mari-drawer {
@@ -561,22 +503,10 @@
   .mari-widget-style-preview__window {
     min-height: 5.5rem;
     font-size: 0.625rem;
-    --mari-window-header-padding: 0.625rem 0.5rem;
     --mari-drawer-header-padding: 0.5rem 0.25rem;
     --mari-widget-drawer-margin: 0;
   }
 
-  [data-chat-widget-preview][data-chat-widget-preset="dottore"] .mari-widget-style-preview__window,
-  [data-chat-widget-preview][data-chat-widget-preset="mari"] .mari-widget-style-preview__window {
-    --mari-window-header-padding: 0.625rem 1rem;
-  }
-
-  .mari-widget-style-preview .mari-window__header::after {
-    width: 1rem;
-    height: 1.5rem;
-    left: calc(50% - 0.5rem);
-    top: -0.875rem;
-  }
 }
 
 /* Title icons can carry utility colors; custom button colors must still reach them. */

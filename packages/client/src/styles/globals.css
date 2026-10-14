@@ -59,8 +59,6 @@
    23.  Game Mode .......................... game session, combat UI
    24.  Home Shell — Windows 11 Taskbar ... taskbar acrylic + pinned entries
    25.  Home Shell — Windows 11 Desktop ... desktop icon field feedback
-   26.  Windows 11 Window Shell ........... modal acrylic + title bar controls
-                                            ([data-modal-chrome] / [data-modal-control])
    27.  Windows 11 Notifications .......... acrylic toast cards (sonner)
 
    QUICK CUSTOMIZATION GUIDE
@@ -651,19 +649,17 @@
   color: var(--marinara-chat-chrome-button-text-active);
 }
 
-/* Windows take these colours from --mari-window-* so custom themes can override them.
-   A Windows 11 window (Modal chrome="window") paints its own shell surface instead (§26 /
-   neutral-surface-styles.ts): this rule would outrank that skin, and that window is acrylic, not a chat
-   panel. Naming the window variant keeps the dialog variant's chain exactly as it was. */
-[data-marinara-chat-chrome-accent-mode="gradient"] .marinara-chat-popover:not(.mari-window, .mari-win11-window) {
+/* Windows take their paint from --mari-window-* (§4a2), so the gradient accent must leave them alone:
+   this rule only repaints the chat popovers that are not windows. */
+[data-marinara-chat-chrome-accent-mode="gradient"] .marinara-chat-popover:not(.mari-window) {
   border-color: var(--marinara-chat-chrome-panel-border);
   background: var(--marinara-chat-chrome-panel-bg);
 }
 
-/* A Windows 11 window that opts into a chat surface keeps the paint the rule above gives it. `:where()`
-   holds the specificity at (0,2,0) on purpose: the chat widget's own paint must stay the winner, so its
-   colour only moves with the options the user turned on (see chat-widget-surfaces.css). */
-:where([data-marinara-chat-chrome-accent-mode="gradient"]) .mari-win11-window.mari-chat-style-surface {
+/* A window that opts into a chat surface keeps the chat-panel paint this section gives it. `:where()`
+   holds the specificity low on purpose: the chat widget's own paint must stay the winner, so its colour
+   only moves with the options the user turned on (see chat-widget-surfaces.css). */
+:where([data-marinara-chat-chrome-accent-mode="gradient"]) .mari-window.mari-chat-style-surface {
   border-color: var(--marinara-chat-chrome-panel-border);
   background: var(--marinara-chat-chrome-panel-bg);
 }
@@ -722,7 +718,7 @@
                 .mari-window-snap-guide (the line shown while a bubble snaps)
    Attributes:  [data-window="<id>"], [data-drawer="<id>"], [data-pinned],
                 [data-locked], [data-detached], [data-presentation="window|sheet"],
-                [data-window-control="pin|lock|close"], [data-edge],
+                [data-window-control="pin|lock|close|put-back"], [data-edge],
                 [data-minimized="true"] with [data-window] on a bubble, [data-axis="x|y"]
                 on a snap guide,
                 [data-drawer-control="pop-out"], [data-drawer-host="<id>"] and
@@ -730,9 +726,12 @@
                 (data-window="drawer:<host id>:<drawer id>"), [data-dragging]
                 on a drawer being dragged, [data-outside] on its preview, and
                 [data-drop-target] on a window a drawer will dock back into.
-                Modal windows are the other shell: their panel carries
-                [data-modal-chrome="window|dialog"] and their title bar keys carry
-                [data-modal-control="minimize|maximize|close"], documented in §26
+                Shell windows carry [data-window-shell-variant="fixed|maximized|floating|sheet"]
+                and [data-window-shell-chrome="window|dialog"]: the two side panes, a
+                centre-area surface and every dialog render through <WindowShell>, so a dialog is
+                the same frame as any other window and differs only in what it means. The surface is
+                painted for every `.mari-window`, so these two attributes have no CSS consumer: they
+                are the JS and spec markers of what a window is
    Variables:   set them on :root (every window) or on a selector such as
                 [data-window="chat-settings"]. Unset, each falls back to the
                 theme token shown, read where the window or drawer is drawn.
@@ -746,7 +745,6 @@
      --mari-window-header-bg            transparent
      --mari-window-header-text          var(--marinara-chat-chrome-panel-title)
      --mari-window-header-border        var(--marinara-chat-chrome-panel-divider)
-     --mari-window-header-padding       0.625rem 0.75rem
      --mari-window-control-color        var(--marinara-chat-chrome-panel-muted)
      --mari-window-control-color-hover  var(--marinara-chat-chrome-panel-text)
      --mari-window-control-bg-hover     var(--marinara-chat-chrome-highlight-bg)
@@ -754,6 +752,8 @@
      --mari-window-control-bg-active    var(--marinara-chat-chrome-highlight-bg)
      --mari-window-control-radius       var(--radius)
      --mari-window-control-gap          0.125rem
+     --mari-window-control-close-bg-hover    oklch(0.55 0.19 27) (the OS red)
+     --mari-window-control-close-color-hover #ffffff
      --mari-window-focus-ring           var(--marinara-chat-chrome-focus-ring)
      --mari-window-resize-handle-size   0.5rem
      --mari-window-bubble-size          2rem
@@ -778,38 +778,15 @@
      --mari-drawer-body-padding-inline  1rem
      --mari-drawer-body-padding-bottom  0.75rem
    ───────────────────────────────────────────── */
-/* In the components layer, so Tailwind classes passed to <FloatingWindow> or <Drawer> (className,
-   bodyClassName…) override these defaults; custom theme CSS, which is not layered, overrides both. */
+/* In the components layer, so Tailwind classes passed to <FloatingWindow>, <Drawer> or <WindowShell>
+   (className, bodyClassName…) override these defaults; custom theme CSS, which is not layered,
+   overrides both.
+   The `.mari-window` block below only bridges the custom palette's field options to the field chrome.
+   It must not paint: the window surface has exactly one paint point, the §4a2 rule further down. */
 @layer components {
   .mari-window {
     --mari-widget-field-option-bg: var(--mari-widget-custom-background-solid);
     --mari-widget-field-option-text: var(--mari-widget-custom-text-solid);
-    border: var(--mari-window-border-width, 1px) solid
-      var(
-        --mari-widget-shell-border,
-        var(
-          --mari-window-border,
-          var(--mari-widget-custom-border-solid, var(--mari-widget-border, var(--marinara-chat-chrome-panel-border)))
-        )
-      );
-    border-radius: var(--mari-window-radius, var(--mari-widget-radius, calc(var(--radius) + 0.25rem)));
-    background: var(
-      --mari-widget-shell-bg,
-      var(
-        --mari-window-bg,
-        var(--mari-widget-custom-background, var(--mari-widget-bg, var(--marinara-chat-chrome-panel-bg)))
-      )
-    );
-    color: var(
-      --mari-window-text,
-      var(--mari-widget-custom-text-solid, var(--mari-widget-text, var(--marinara-chat-chrome-panel-text)))
-    );
-    box-shadow: var(
-      --mari-window-shadow,
-      var(--mari-widget-shadow, var(--mari-widget-frame-shadow, 0 25px 50px -12px rgb(0 0 0 / 0.4)))
-    );
-    -webkit-backdrop-filter: var(--mari-widget-shell-backdrop-filter, var(--mari-window-backdrop-filter, blur(12px)));
-    backdrop-filter: var(--mari-widget-shell-backdrop-filter, var(--mari-window-backdrop-filter, blur(12px)));
   }
 
   .mari-window__header {
@@ -821,10 +798,13 @@
     border-top-left-radius: inherit;
     border-top-right-radius: inherit;
     background: var(
-      --mari-widget-header-shell-bg,
-      var(--mari-window-header-bg, var(--mari-widget-custom-background, var(--mari-widget-header-bg, transparent)))
+      --mari-window-header-bg,
+      var(--mari-widget-custom-background, var(--mari-widget-header-bg, transparent))
     );
-    padding: var(--mari-window-header-padding, var(--mari-widget-header-padding, 0.625rem 0.75rem));
+    /* Structure, not theme: the default bar padding. A real title bar's flush-right spacing and its
+       32px height are written on the bar itself (WindowTitleBar / the shell rule below), so a
+       simulated preview without keys keeps an even padding instead of inheriting an asymmetric one. */
+    padding: 0.625rem 0.75rem;
   }
 
   .mari-window__header:focus-visible {
@@ -885,6 +865,65 @@
         --mari-window-control-color-hover,
         var(--mari-widget-custom-border-solid, var(--mari-widget-text, var(--marinara-chat-chrome-panel-text)))
       );
+    }
+  }
+
+  /* ── The one window surface ──
+     Every window — the two side panes, a centre-area surface, every dialog and every chat window —
+     renders as `.mari-window` and is painted here, once. The order of the chain below is the priority:
+     a --mari-window-* knob the theme sets wins, then the theme's colour classes, then the Windows 11
+     acrylic the Home shell uses. The frame's structure — the title bar's height, the keys' size and
+     place — is the shell's, not the theme's, so it is written literally. Theme CSS is not layered and
+     overrides all of this: do not move these declarations to change the paint priority. */
+  .mari-window,
+  .mari-drawer-ghost {
+    border-width: var(--mari-window-border-width, 1px);
+    border-style: solid;
+    border-color: var(
+      --mari-window-border,
+      var(--mari-widget-custom-border-solid, var(--mari-widget-border, var(--marinara-home-acrylic-border)))
+    );
+    border-radius: var(--mari-window-radius, var(--marinara-win11-radius, 0.5rem));
+    background: var(
+      --mari-window-bg,
+      var(--mari-widget-custom-background, var(--mari-widget-bg, var(--marinara-home-acrylic-surface)))
+    );
+    color: var(
+      --mari-window-text,
+      var(--mari-widget-custom-text-solid, var(--mari-widget-text, var(--marinara-chat-chrome-panel-text)))
+    );
+    box-shadow: var(--mari-window-shadow, var(--marinara-home-acrylic-shadow));
+    /* A cut frame cannot use a rectangular shadow (it would show outside the corners), so the shell also
+       exposes a filter slot: a shape block suppresses the shadow and supplies a drop-shadow here. */
+    filter: var(--mari-window-filter, none);
+    -webkit-backdrop-filter: var(--mari-window-backdrop-filter, blur(20px) saturate(1.3));
+    backdrop-filter: var(--mari-window-backdrop-filter, blur(20px) saturate(1.3));
+  }
+
+  /* A window's title bar is 32px tall. Structure, not theme: the height is the shell's. */
+  .mari-window > .mari-window__header {
+    min-height: 2rem;
+  }
+
+  .mari-window .mari-window__control {
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--mari-window-control-radius, 0.5rem);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    /* Windows 11 fills the close key with its red; the shared hover paint stays underneath. */
+    .mari-window__control--close:hover {
+      background-color: var(--mari-window-control-close-bg-hover, oklch(0.55 0.19 27));
+      color: var(--mari-window-control-close-color-hover, #ffffff);
+    }
+  }
+
+  /* Touch keeps the same keys, at the target size §18 asks for. */
+  @media (pointer: coarse) {
+    .mari-window .mari-window__control {
+      width: calc(2rem + 0.25rem);
+      height: calc(2rem + 0.25rem);
     }
   }
 
@@ -1199,25 +1238,9 @@
     opacity: 0.5;
   }
 
+  /* The preview while a drawer is dragged out: the window's own chain paints it
+     (see the `.mari-window, .mari-drawer-ghost` rule above), only the fade is its own. */
   .mari-drawer-ghost {
-    border: var(--mari-window-border-width, 1px) solid
-      var(
-        --mari-window-border,
-        var(--mari-widget-custom-border-solid, var(--mari-widget-border, var(--marinara-chat-chrome-panel-border)))
-      );
-    border-radius: var(--mari-window-radius, var(--mari-widget-radius, calc(var(--radius) + 0.25rem)));
-    background: var(
-      --mari-window-bg,
-      var(--mari-widget-custom-background, var(--mari-widget-bg, var(--marinara-chat-chrome-panel-bg)))
-    );
-    color: var(
-      --mari-window-header-text,
-      var(--mari-widget-custom-text-solid, var(--mari-widget-accent, var(--marinara-chat-chrome-panel-title)))
-    );
-    box-shadow: var(
-      --mari-window-shadow,
-      var(--mari-widget-shadow, var(--mari-widget-frame-shadow, 0 25px 50px -12px rgb(0 0 0 / 0.4)))
-    );
     opacity: 0.6;
   }
 
@@ -4041,8 +4064,8 @@ html[data-marinara-effects-paused="true"] .mari-home-desktop-icon {
 }
 
 /* Window key feedback is decoration too: the colour change stays, the fade does not. */
-html[data-marinara-reduced-effects="true"] .mari-win11-window__control,
-html[data-marinara-effects-paused="true"] .mari-win11-window__control {
+html[data-marinara-reduced-effects="true"] .mari-window__control,
+html[data-marinara-effects-paused="true"] .mari-window__control {
   transition: none;
 }
 
@@ -8421,103 +8444,6 @@ html.mari-home-desktop-drag-active,
 html.mari-home-desktop-drag-active * {
   cursor: grabbing !important;
   user-select: none !important;
-}
-
-/* ─────────────────────────────────────────────
-   26. WINDOWS 11 WINDOW SHELL
-   The window every <Modal chrome="window"> draws: an acrylic surface, the --marinara-win11-radius
-   corner (8px at the default 16px root, from the §2 tokens) and a 32px title bar whose keys sit at the
-   right. Surface and radius stay in the shell's own Tailwind utilities: a border-radius rule here would
-   be unlayered and would outrank `max-sm:rounded-none` on a full-screen phone window.
-   Below `max-sm` the window renders the close key alone (Modal.tsx decides that in JS, so
-   the narrow title bar has no inert keys in the DOM).
-   <Modal chrome="dialog"> keeps the plain title-and-close bar that app confirmations use.
-   Surfaces read the --marinara-home-acrylic-* / --marinara-taskbar-* tokens in §2/§3.
-
-   Classes:     .mari-win11-window, .mari-win11-window__titlebar, .mari-win11-window__title,
-                .mari-win11-window__title-icon, .mari-win11-window__controls,
-                .mari-win11-window__control, .mari-win11-window__control--close,
-                .mari-win11-window__body
-   Attributes:  [data-modal-chrome="window|dialog"] and
-                [data-modal-control="minimize|maximize|close"] on the title bar keys.
-                Floating windows keep their own [data-window-control] set in §4a2.
-   ───────────────────────────────────────────── */
-.mari-win11-window {
-  --mari-win11-window-titlebar-height: 2rem;
-  --mari-win11-window-control-size: 2rem;
-}
-
-.mari-win11-window__titlebar {
-  min-height: var(--mari-win11-window-titlebar-height, 2rem);
-  padding: 0 0 0 0.75rem;
-  gap: 0.5rem;
-}
-
-.mari-win11-window__title {
-  flex: 1 1 auto;
-  min-width: 0;
-  text-align: left;
-}
-
-.mari-win11-window__title-icon {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  color: var(--marinara-chat-chrome-accent);
-}
-
-.mari-win11-window__title-icon svg {
-  width: 1rem;
-  height: 1rem;
-}
-
-/* When a chat-widget theme is enabled, the three window controls fall under the chat theme's
-   rules — this is intentional. */
-.mari-win11-window__control {
-  display: inline-flex;
-  width: var(--mari-win11-window-control-size, 2rem);
-  height: var(--mari-win11-window-control-size, 2rem);
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.5rem;
-  color: var(--marinara-chat-chrome-panel-muted);
-  transition:
-    background-color 140ms ease,
-    color 140ms ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .mari-win11-window__control:hover {
-    background-color: var(--marinara-taskbar-hover);
-    color: var(--marinara-chat-chrome-panel-text);
-  }
-
-  /* Windows 11 paints the close key red on hover. */
-  .mari-win11-window__control--close:hover {
-    background-color: oklch(0.55 0.19 27);
-    color: #fff;
-  }
-}
-
-.mari-win11-window__control:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--marinara-chat-chrome-focus-ring);
-}
-
-/* Unlike a floating window's body, this one scrolls, so it only takes the shell's
-   bottom corners: clipping its content would clip the scroll area itself. */
-.mari-win11-window__body {
-  border-bottom-left-radius: inherit;
-  border-bottom-right-radius: inherit;
-}
-
-/* Touch keeps the same keys, at the target size §18 asks for. */
-@media (pointer: coarse) {
-  .mari-win11-window__control {
-    width: calc(var(--mari-win11-window-control-size, 2rem) + 0.25rem);
-    height: calc(var(--mari-win11-window-control-size, 2rem) + 0.25rem);
-  }
 }
 
 /* ─────────────────────────────────────────────

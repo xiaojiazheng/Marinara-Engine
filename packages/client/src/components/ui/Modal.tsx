@@ -2,17 +2,18 @@
 // Reusable animated modal shell
 // Uses CSS animations instead of framer-motion to
 // avoid double-animation under React.StrictMode.
+//
+// The window itself is the shared <WindowShell>, so a dialog is the same acrylic frame, title bar and
+// close key as every other window. `chrome` only says what the window means: a `dialog` is answered
+// rather than managed, so it renders no key beyond close — and neither does a `window`, which has no
+// second state either.
 // ──────────────────────────────────────────────
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import { Minus, Square, X } from "lucide-react";
-import {
-  NEUTRAL_PANEL_HEADER,
-  NEUTRAL_PANEL_SCROLL_AREA,
-  NEUTRAL_PANEL_SHELL,
-  NEUTRAL_PANEL_TITLE,
-  WIN11_WINDOW_PANEL_SHELL,
-} from "./neutral-surface-styles";
+import { NEUTRAL_PANEL_SCROLL_AREA, NEUTRAL_SURFACE_VARIABLES } from "./neutral-surface-styles";
+import { WindowBackdrop } from "../window/WindowBackdrop";
+import { WindowShell } from "../window/WindowShell";
+import { WindowTitleBar } from "../window/WindowTitleBar";
 import { useDialogFocusScope } from "../../hooks/use-dialog-focus-scope";
 import { useMatchMedia } from "../../hooks/use-match-media";
 import { useBackdropDismiss } from "../../hooks/use-backdrop-dismiss";
@@ -45,12 +46,11 @@ interface ModalProps {
   /** Let drag hit-testing reach content behind the modal while keeping the panel interactive. */
   dragThrough?: boolean;
   /**
-   * Shell chrome. "window" (default) is a Windows 11 window: an acrylic surface with a
-   * 32px title bar holding the window keys. "dialog" keeps the plain title-and-close bar
-   * for confirmations, which are answered rather than managed.
+   * What the window means. A `dialog` (default `window`) is answered rather than managed: confirmations
+   * and prompts keep the same acrylic frame and close key as every other window.
    */
   chrome?: "window" | "dialog";
-  /** 16px icon shown before the title in a "window" title bar. */
+  /** 16px icon shown before the title in the title bar. */
   titleIcon?: ReactNode;
   /**
    * Accessible name for the close key. A caller whose window answers a narrower question than the
@@ -64,14 +64,8 @@ interface ModalProps {
   footer?: ReactNode;
 }
 
-// Tailwind's `max-sm`: below it the title bar and one key are all a phone-width window fits.
-const NARROW_TITLEBAR_QUERY = "(max-width: 39.99rem)";
-// Window keys (globals.css §26): geometry, hover feedback and the red close hover.
-const WINDOW_CONTROL_CLASS = "mari-win11-window__control";
-const WINDOW_CLOSE_CONTROL_CLASS = "mari-win11-window__control mari-win11-window__control--close";
-// The dialog bar keeps the neutral panel close button it always had.
-const DIALOG_CLOSE_CLASS =
-  "flex shrink-0 items-center justify-center rounded-lg p-1.5 text-[var(--marinara-chat-chrome-panel-muted)] transition-colors max-md:h-9 max-md:w-9 [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:w-9 hover:bg-[var(--marinara-chat-chrome-highlight-bg-hover)] hover:text-[var(--marinara-chat-chrome-highlight-text)] disabled:cursor-wait disabled:opacity-40";
+/** The `sm` breakpoint: below it a `mobileFullscreen` window fills the viewport as a sheet. */
+const NARROW_WINDOW_QUERY = "(max-width: 39.99rem)";
 
 export function Modal({
   open,
@@ -98,9 +92,9 @@ export function Modal({
   const { t: localizeUi } = useUiTranslation();
   const localize = useLocalizedUiText();
   const localizedTitle = localize(title);
-  const isWindowChrome = chrome === "window";
-  // A 320px title bar holds the title and one key, so a narrow window renders Close only.
-  const narrowTitlebar = useMatchMedia(NARROW_TITLEBAR_QUERY);
+  // A full-screen phone window is the shell's `sheet` variant; every other window is the centred one.
+  const narrowWindow = useMatchMedia(NARROW_WINDOW_QUERY);
+  const sheetWindow = mobileFullscreen && narrowWindow;
   const closeLabelText =
     closeLabel === undefined
       ? localizeUi("ui.ui.modal.value1Value2", { value1: localize("Close"), value2: localizedTitle })
@@ -234,9 +228,8 @@ export function Modal({
       {...backdropDismiss}
     >
       {/* Backdrop */}
-      <div
-        data-backdrop-dismiss-surface="true"
-        className="mari-modal-backdrop absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+      <WindowBackdrop
+        className="mari-modal-backdrop bg-black/55 backdrop-blur-[2px]"
         style={{
           opacity: isEntering ? 1 : 0,
           transition: "opacity 150ms ease-out",
@@ -244,11 +237,24 @@ export function Modal({
       />
 
       {/* Panel */}
-      <div
-        ref={panelRef}
+      <WindowShell
+        surfaceRef={panelRef}
+        variant={sheetWindow ? "sheet" : "fixed"}
+        chrome={chrome}
         tabIndex={-1}
-        data-modal-chrome={chrome}
-        className={`mari-modal-panel ${isWindowChrome ? WIN11_WINDOW_PANEL_SHELL : NEUTRAL_PANEL_SHELL} relative flex w-full flex-col ${dragThrough ? "pointer-events-auto" : ""} ${width} max-h-[calc(100dvh-1.5rem)] sm:max-h-[min(90dvh,52rem)]${
+        titleBar={
+          <WindowTitleBar
+            title={localizedTitle}
+            icon={titleIcon}
+            onClose={onClose}
+            closeLabel={closeLabelText}
+            closeDisabled={closeDisabled}
+          />
+        }
+        bodyClassName={`overflow-y-auto overscroll-contain px-5 py-4 ${NEUTRAL_PANEL_SCROLL_AREA} ${contentClassName ?? ""}`}
+        bodyRef={contentRef}
+        footer={footer}
+        className={`mari-modal-panel marinara-chat-popover animate-message-in ${NEUTRAL_SURFACE_VARIABLES} relative flex w-full ${dragThrough ? "pointer-events-auto" : ""} ${width} max-h-[calc(100dvh-1.5rem)] sm:max-h-[min(90dvh,52rem)]${
           mobileFullscreen
             ? " max-sm:h-full max-sm:max-h-none max-sm:max-w-none max-sm:rounded-none max-sm:border-0 max-sm:pt-[env(safe-area-inset-top)] max-sm:pb-[var(--mari-safe-area-inset-bottom,env(safe-area-inset-bottom))]"
             : ""
@@ -261,70 +267,8 @@ export function Modal({
           transition: "opacity 150ms ease-out, transform 150ms ease-out",
         }}
       >
-        {/* Header. A window title bar keeps its keys as direct children of the header row:
-            the chat-widget themes paint action-window header buttons through
-            `.mari-chat-action-panel > .marinara-chat-popover__header > button`
-            (styles/themes/chat-widget-surfaces.css), so a wrapper group would drop them. */}
-        <div
-          className={`${NEUTRAL_PANEL_HEADER} ${
-            isWindowChrome ? "mari-win11-window__titlebar mari-win11-window__controls " : ""
-          }shrink-0 flex items-center justify-between`}
-        >
-          <h2 className={`${NEUTRAL_PANEL_TITLE}${isWindowChrome ? " mari-win11-window__title" : ""}`}>
-            {isWindowChrome && titleIcon ? <span className="mari-win11-window__title-icon">{titleIcon}</span> : null}
-            {isWindowChrome ? <span className="min-w-0 truncate">{localizedTitle}</span> : localizedTitle}
-          </h2>
-          {isWindowChrome && !narrowTitlebar ? (
-            <>
-              {/* Minimize and maximize are the shell's shape, not a promise: the modal has no
-                  window state to collapse or restore, so both keys are inert. */}
-              <button
-                type="button"
-                data-modal-control="minimize"
-                aria-disabled="true"
-                tabIndex={-1}
-                aria-label={localizeUi("window.controls.minimize")}
-                title={localizeUi("window.controls.minimize")}
-                className={WINDOW_CONTROL_CLASS}
-              >
-                <Minus size="1rem" />
-              </button>
-              <button
-                type="button"
-                data-modal-control="maximize"
-                aria-disabled="true"
-                tabIndex={-1}
-                aria-label={localizeUi("window.controls.maximize")}
-                title={localizeUi("window.controls.maximize")}
-                className={WINDOW_CONTROL_CLASS}
-              >
-                <Square size="1rem" />
-              </button>
-            </>
-          ) : null}
-          <button
-            type="button"
-            data-modal-control={isWindowChrome ? "close" : undefined}
-            onClick={onClose}
-            disabled={closeDisabled}
-            aria-label={closeLabelText}
-            title={isWindowChrome ? closeLabelText : undefined}
-            className={isWindowChrome ? WINDOW_CLOSE_CONTROL_CLASS : DIALOG_CLOSE_CLASS}
-          >
-            <X size="1rem" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div
-          ref={contentRef}
-          className={`${isWindowChrome ? "mari-win11-window__body " : ""}min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 ${NEUTRAL_PANEL_SCROLL_AREA} ${contentClassName ?? ""}`}
-        >
-          {children}
-        </div>
-
-        {footer ? <div className="shrink-0">{footer}</div> : null}
-      </div>
+        {children}
+      </WindowShell>
     </div>,
     document.body,
   );

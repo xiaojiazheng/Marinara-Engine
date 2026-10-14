@@ -401,7 +401,24 @@ test.describe("Pop-out drawers on desktop", () => {
       // Past the window's edge it pops out, with its title bar where it was dropped.
       // High enough that the popped-out window fits below its title bar without being moved up.
       const drop = { x: settingsBox.x - 260, y: settingsBox.y + 160 };
-      await drag(page, centre(headerBox), drop);
+      // The drag is inlined so it can be observed in flight: the preview that follows the pointer letters
+      // exactly like the drawer it stands for. (The preview is portalled outside the window it will land
+      // in, so it cannot inherit that lettering — it has to declare the same chain.) The wait is on the
+      // preview's own `[data-outside="true"]` marker rather than a timeout, and the expectation compares
+      // the two elements instead of a copied font string, so it holds under any preset.
+      const drawer = settings.locator('[data-drawer="chat-name"]');
+      const grab = centre(headerBox);
+      await page.mouse.move(grab.x, grab.y);
+      await page.mouse.down();
+      await page.mouse.move(drop.x, drop.y, { steps: 12 });
+      const ghost = page.locator('.mari-drawer-ghost[data-outside="true"]');
+      await expect(ghost).toHaveCount(1);
+      const [ghostFont, drawerFont] = await Promise.all([
+        ghost.evaluate((element) => getComputedStyle(element).fontFamily),
+        drawer.evaluate((element) => getComputedStyle(element).fontFamily),
+      ]);
+      expect(ghostFont, "the drag preview letters like the drawer it previews").toBe(drawerFont);
+      await page.mouse.up();
       const popped = page.locator(`.mari-window[data-window="${CHAT_NAME_WINDOW}"]`);
       await settle(popped);
       await expect(popped).toHaveAttribute("data-pinned", "false");

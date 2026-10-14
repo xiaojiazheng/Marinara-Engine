@@ -117,7 +117,6 @@ type PendingAgentImport = {
 type PendingRulesetImport = { definition: RulesetDefinition; rulesetId: string; text: string };
 const AGENT_GRADIENT_SURFACE =
   "mari-panel-gradient-surface mari-panel-gradient--agents text-[var(--mari-panel-gradient-text)]";
-const AGENT_GRADIENT_BUTTON = "mari-panel-gradient-button mari-panel-gradient--agents";
 
 function isJsonRecord(value: unknown): value is JsonRecord {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -1241,48 +1240,53 @@ export function AgentsPanel() {
         onChange={(event) => void handleRulesetFileSelected(event)}
       />
 
-      <button
-        type="button"
-        onClick={() => openAgentCatalog()}
-        className="mari-chrome-control mari-chrome-control--primary w-full text-xs"
-      >
-        <Sparkles size="0.875rem" />
-        {localizeUi("ui.agents.agentcatalogview.downloadAgents")}
-      </button>
-
-      <div className="flex gap-2">
+      <div role="toolbar" className="flex items-center gap-1.5">
         <button
-          onClick={handleCreateAgent}
-          className={cn("flex-1 text-xs", AGENT_GRADIENT_BUTTON)}
-          title={localizeUi("ui.lorebooks.lorebookassignmentsection.new")}
+          type="button"
+          onClick={() => openAgentCatalog()}
+          className="mari-chrome-control mari-chrome-control--primary shrink-0 px-3 text-xs"
         >
-          <Plus size="0.8125rem" />
+          <Sparkles size="0.875rem" />
+          <span className="truncate">{localizeUi("ui.agents.agentcatalogview.downloadAgents")}</span>
+        </button>
+        <div role="separator" className="mx-0.5 h-5 w-px shrink-0 bg-[var(--border)]" />
+        <button
+          type="button"
+          onClick={handleCreateAgent}
+          className="mari-chrome-control h-10 w-10 shrink-0 p-0 text-xs"
+          title={localizeUi("ui.lorebooks.lorebookassignmentsection.new")}
+          aria-label={localizeUi("ui.lorebooks.lorebookassignmentsection.new")}
+        >
+          <Plus size="0.875rem" />
         </button>
         <button
           type="button"
           onClick={() => void chooseAgentImportSource()}
           aria-disabled={!agentImportsEnabled || agentImportPolicyLoading}
           className={cn(
-            "mari-chrome-control mari-chrome-control--primary flex-1 text-xs",
+            "mari-chrome-control h-10 w-10 shrink-0 p-0 text-xs",
             (!agentImportsEnabled || agentImportPolicyLoading) && "cursor-not-allowed grayscale opacity-45",
           )}
           title={agentImportsEnabled ? localizeUi("ui.panels.agentspanel.importAgents") : agentImportsDisabledHelp}
+          aria-label={localizeUi("ui.panels.agentspanel.importAgents")}
         >
-          <Download size="0.8125rem" />
+          <Download size="0.875rem" />
         </button>
         <button
+          type="button"
           onClick={() => {
             if (selectionMode) exitSelectionMode();
             else setSelectionMode(true);
           }}
           disabled={selectableAgents.length === 0}
           className={cn(
-            "mari-chrome-control mari-chrome-control--primary flex-1 text-xs",
+            "mari-chrome-control h-10 w-10 shrink-0 p-0 text-xs",
             selectionMode && "mari-chrome-control--selected",
           )}
           title={localizeUi("ui.panels.agentspanel.selectAgents")}
+          aria-label={localizeUi("ui.panels.agentspanel.selectAgents")}
         >
-          <Check size="0.8125rem" />
+          <Check size="0.875rem" />
         </button>
       </div>
 
@@ -1298,11 +1302,11 @@ export function AgentsPanel() {
       )}
 
       {!isLoading && !rulesetsLoading && !hasInstalledAgents && installedRulesets.length === 0 && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-10 text-center">
-          <span className="mari-panel-gradient-surface mari-panel-gradient--agents flex h-12 w-12 items-center justify-center rounded-2xl">
-            <Sparkles size="1.25rem" />
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--primary)]/10 text-[var(--primary)]">
+            <Sparkles size="1.375rem" />
           </span>
-          <p className="max-w-[16rem] text-sm font-medium text-[var(--muted-foreground)]">
+          <p className="max-w-[18rem] text-sm leading-relaxed text-[var(--muted-foreground)]">
             {localizeUi("ui.panels.agentspanel.noAgentsInstalledYetClickDownloadAgentsToAdd")}
           </p>
         </div>

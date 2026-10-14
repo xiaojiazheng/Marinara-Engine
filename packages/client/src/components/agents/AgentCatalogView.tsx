@@ -36,6 +36,7 @@ import { useUIStore } from "../../stores/ui.store";
 import { AgentArtwork } from "./AgentArtwork";
 import { AgentModeFilter, type AgentModeFilterValue } from "./AgentModeFilter";
 import { CustomAgentRepositoriesModal } from "./CustomAgentRepositoriesModal";
+import { WindowTitleBar } from "../window/WindowTitleBar";
 import { useTranslation as useUiTranslation } from "react-i18next";
 
 const CATEGORY_SECTIONS = [
@@ -147,7 +148,12 @@ function packageModes(packageId: string): readonly CatalogMode[] {
   return OFFICIAL_PACKAGE_MODES[packageId] ?? [];
 }
 
-export function AgentCatalogView() {
+/**
+ * `windowTitleBar` is set on desktop, where the catalog is a Windows 11 window of its own: the window
+ * title bar carries the title and the close control, so the content keeps only its summary and
+ * toolbar. Mobile keeps the full header, because its full-screen sheet has no window chrome.
+ */
+export function AgentCatalogView({ windowTitleBar = false }: { windowTitleBar?: boolean } = {}) {
   const { t: localizeUi } = useUiTranslation();
   const closeAgentCatalog = useUIStore((state) => state.closeAgentCatalog);
   const initialPackageId = useUIStore((state) => state.agentCatalogInitialPackageId);
@@ -389,23 +395,40 @@ export function AgentCatalogView() {
       data-component="AgentCatalogView"
       className="mari-chrome-token-scope flex h-full min-h-0 flex-col overflow-hidden bg-[var(--background)]"
     >
+      {windowTitleBar && (
+        <WindowTitleBar
+          iconTile
+          title={localizeUi("ui.agents.agentcatalogview.downloadAgents")}
+          subtitle={localizeUi("ui.agents.agentcatalogview.agentLibrary")}
+          icon={<Sparkles size="0.875rem" />}
+          iconClassName="mari-panel-gradient-surface mari-panel-gradient--agents"
+          onClose={closeAgentCatalog}
+          closeLabel={localizeUi("capabilities.actions.backToAgents")}
+        />
+      )}
       <header className="relative z-10 flex shrink-0 items-center gap-3 border-b border-[var(--border)]/50 bg-[var(--card)]/90 px-3 py-2 backdrop-blur-md md:px-6 md:py-3">
-        <button
-          type="button"
-          onClick={closeAgentCatalog}
-          className="mari-chrome-control h-9 w-9 shrink-0 rounded-xl p-0 md:h-10 md:w-10"
-          title={localizeUi("capabilities.actions.backToAgents")}
-          aria-label={localizeUi("capabilities.actions.backToAgents")}
-        >
-          <ArrowLeft size="1rem" />
-        </button>
+        {!windowTitleBar && (
+          <button
+            type="button"
+            onClick={closeAgentCatalog}
+            className="mari-chrome-control h-9 w-9 shrink-0 rounded-xl p-0 md:h-10 md:w-10"
+            title={localizeUi("capabilities.actions.backToAgents")}
+            aria-label={localizeUi("capabilities.actions.backToAgents")}
+          >
+            <ArrowLeft size="1rem" />
+          </button>
+        )}
         <div className="min-w-0 flex-1">
-          <p className="text-[0.625rem] font-semibold uppercase tracking-[0.24em] text-[var(--muted-foreground)]">
-            {localizeUi("ui.agents.agentcatalogview.agentLibrary")}
-          </p>
-          <h1 className="truncate text-base font-semibold text-[var(--foreground)] md:text-xl">
-            {localizeUi("ui.agents.agentcatalogview.downloadAgents")}
-          </h1>
+          {!windowTitleBar && (
+            <>
+              <p className="text-[0.625rem] font-semibold uppercase tracking-[0.24em] text-[var(--muted-foreground)]">
+                {localizeUi("ui.agents.agentcatalogview.agentLibrary")}
+              </p>
+              <h1 className="truncate text-base font-semibold text-[var(--foreground)] md:text-xl">
+                {localizeUi("ui.agents.agentcatalogview.downloadAgents")}
+              </h1>
+            </>
+          )}
           <p className="truncate text-xs text-[var(--muted-foreground)]">
             {localizeUi("ui.agents.agentcatalogview.catalogSummary", {
               availableCount: catalog.data?.packages.length ?? 0,

@@ -3,7 +3,21 @@
 // ──────────────────────────────────────────────
 import { useState, useMemo, useCallback, useRef, useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Check, Folder, Upload, Pencil, Info, FileText, Move, Copy, Minus, RotateCcw, Trash2, X } from "lucide-react";
+import {
+  Check,
+  Folder,
+  Upload,
+  Pencil,
+  Info,
+  FileText,
+  Image as ImageIcon,
+  Move,
+  Copy,
+  Minus,
+  RotateCcw,
+  Trash2,
+  X,
+} from "lucide-react";
 import {
   useGameAssetTree,
   useCreateGameAssetFolder,
@@ -23,6 +37,7 @@ import {
   type TreeNode,
 } from "../../hooks/use-game-assets";
 import { ContextMenu, type ContextMenuItem } from "../ui/ContextMenu";
+import { WindowTitleBar } from "../window/WindowTitleBar";
 import { cn } from "../../lib/utils";
 import { Z_MENU } from "../../lib/z-layers";
 import { toast } from "sonner";
@@ -85,10 +100,13 @@ export function GameAssetsBrowserView({
   embedded = false,
   onClose,
   selectFoldersByDefault = false,
+  windowTitleBar = false,
 }: {
   embedded?: boolean;
   onClose?: () => void;
   selectFoldersByDefault?: boolean;
+  /** Renders the window's own title bar; the shell around it carries the frame (AppShell passes it on desktop). */
+  windowTitleBar?: boolean;
 } = {}) {
   const { t: localizeUi } = useUiTranslation();
   const { data: tree, isLoading } = useGameAssetTree();
@@ -705,6 +723,17 @@ export function GameAssetsBrowserView({
 
   return (
     <div className={cn("flex h-full flex-col", embedded ? "bg-transparent" : "bg-[var(--background)]")}>
+      {/* The window's own title bar; a browser with no close action renders no close key. */}
+      {windowTitleBar && (
+        <WindowTitleBar
+          iconTile
+          title={localizeUi("game.toolbar.assets")}
+          icon={<ImageIcon size="0.875rem" />}
+          iconClassName="mari-panel-gradient-surface mari-panel-gradient--browser"
+          onClose={closeAction}
+          closeLabel={localizeUi("ui.gameAssets.toolbar.closeAssets")}
+        />
+      )}
       {/* Toolbar */}
       <Toolbar
         breadcrumb={breadcrumb}

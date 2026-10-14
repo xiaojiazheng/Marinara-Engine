@@ -161,10 +161,22 @@ export interface GameSetupRememberedText {
   preferences: string;
 }
 
-export const SIDEBAR_WIDTH_MIN = 240;
-export const SIDEBAR_WIDTH_MAX = 480;
-export const RIGHT_PANEL_WIDTH_MIN = 280;
-export const RIGHT_PANEL_WIDTH_MAX = 520;
+/**
+ * Shared width range for the two desktop shell panes (chat list and right panel), which render as
+ * Windows 11 style centered windows (`ShellOverlayPopover`). The range is the WinUI window range
+ * rather than a docked-column range: below `*_MIN` the window reads as a skinny drawer instead of a
+ * Windows 11 window (the WinUI `ContentDialog` reference width is 548px). `AppShell` clamps the one
+ * shared slider value to the overlap of both ranges.
+ */
+export const SIDEBAR_WIDTH_MIN = 520;
+export const SIDEBAR_WIDTH_MAX = 760;
+export const RIGHT_PANEL_WIDTH_MIN = 520;
+export const RIGHT_PANEL_WIDTH_MAX = 760;
+/** Fresh-install window width for both shell panes: inside the range above, no wider than a WinUI dialog. */
+export const DEFAULT_PANEL_WIDTH = 560;
+/** Overlap of the two ranges — the width `AppShell` clamps both desktop panes to. */
+export const SHARED_PANE_WIDTH_MIN = Math.max(SIDEBAR_WIDTH_MIN, RIGHT_PANEL_WIDTH_MIN);
+export const SHARED_PANE_WIDTH_MAX = Math.min(SIDEBAR_WIDTH_MAX, RIGHT_PANEL_WIDTH_MAX);
 export const TRACKER_PANEL_SIZE_PROFILE_WIDTHS: Record<TrackerPanelSizeProfile, number> = {
   compact: 280,
   standard: 340,
@@ -1836,9 +1848,9 @@ export const useUIStore = create<UIState>()(
         // The chat list is a modal layer now, so it starts closed: a fresh install opens on the chat,
         // not behind an overlay. A persisted value still wins (see `pickPersistedUIState`).
         sidebarOpen: false,
-        sidebarWidth: 320,
+        sidebarWidth: DEFAULT_PANEL_WIDTH,
         rightPanelOpen: false,
-        rightPanelWidth: 320,
+        rightPanelWidth: DEFAULT_PANEL_WIDTH,
         rightPanel: "chat" as Panel,
         trackerPanelEnabled: true,
         trackerPanelOpen: false,
@@ -3185,6 +3197,18 @@ export const useUIStore = create<UIState>()(
         };
       }),
       migrate: (persisted: any, version: number) => {
+        // v101 -> v102: the shell panes became Windows 11 style windows, so a width stored under the
+        // old docked-column range (240-520) would keep the pane narrow. Keep the stored value when it
+        // is already a window width; otherwise move it inside the new range.
+        if (version <= 101) {
+          for (const key of ["sidebarWidth", "rightPanelWidth"] as const) {
+            const width = Number(persisted[key]);
+            persisted[key] = Math.max(
+              SHARED_PANE_WIDTH_MIN,
+              Math.min(SHARED_PANE_WIDTH_MAX, Number.isFinite(width) ? width : DEFAULT_PANEL_WIDTH),
+            );
+          }
+        }
         if (version <= 99) {
           persisted.imageCharacterSheetWidth ??= persisted.imageBackgroundWidth ?? 1280;
           persisted.imageCharacterSheetHeight ??= persisted.imageBackgroundHeight ?? 720;

@@ -193,24 +193,29 @@ for (const [preset, theme] of [
         useUIStore.getState().setChatWidgetPreset(selected);
       }, preset);
       await expect(page.locator("html")).toHaveAttribute("data-chat-widget-preset", preset);
-      expect(await appearance(characterPopup)).toEqual(baseline);
+      // Observable round trip: the interval does contain the preset write above — on purpose. With all
+      // three axes off the preset must be invisible on the popup, so the rendered appearance equals the
+      // pre-switch `baseline` even though the preset dimension itself still differs. The comparison is
+      // the contract itself, so it is not "fixed" here the way a per-axis assertion is.
+      const themed = await appearance(characterPopup);
+      expect(themed).toEqual(baseline);
 
       await application(page, ["font"]);
       const lettering = await appearance(characterPopup);
-      expect(lettering.font).not.toBe(baseline.font);
-      expect({ ...lettering, font: baseline.font }).toEqual(baseline);
+      expect(lettering.font).not.toBe(themed.font);
+      expect({ ...lettering, font: themed.font }).toEqual(themed);
       await application(page, ["shape"]);
       const shape = await appearance(characterPopup);
-      expect(shape.font).toBe(baseline.font);
-      expect(shape.background).toBe(baseline.background);
-      expect(shape.image).toBe(baseline.image);
-      expect([shape.radius, shape.clip]).not.toEqual([baseline.radius, baseline.clip]);
+      expect(shape.font).toBe(themed.font);
+      expect(shape.background).toBe(themed.background);
+      expect(shape.image).toBe(themed.image);
+      expect([shape.radius, shape.clip]).not.toEqual([themed.radius, themed.clip]);
       await application(page, ["colors"]);
       const colors = await appearance(characterPopup);
-      expect(colors.font).toBe(baseline.font);
-      expect(colors.radius).toBe(baseline.radius);
-      expect(colors.clip).toBe(baseline.clip);
-      expect(colors.background).not.toBe(baseline.background);
+      expect(colors.font).toBe(themed.font);
+      expect(colors.radius).toBe(themed.radius);
+      expect(colors.clip).toBe(themed.clip);
+      expect(colors.background).not.toBe(themed.background);
       await application(page, ["font", "shape", "colors"]);
       const styled = await appearance(characterPopup);
       expect(styled.font).toBe(lettering.font);
@@ -399,6 +404,10 @@ for (const [preset, theme] of [
       await application(page, []);
       await showChat(page, fixture.chats[0]!);
       await characterTrigger.click();
+      // Observable round trip across BOTH dimensions: this returns from the styled/other-chat state to
+      // the first chat with every axis off, so the rendered appearance must equal the pre-switch
+      // `baseline` again even though the preset dimension still differs. It is kept on `baseline` (not
+      // re-pointed at a same-preset reference) because the chat dimension is part of what it claims.
       expect(await appearance(characterPopup)).toEqual(baseline);
     } catch (error) {
       const path = info.outputPath("input-popup-failure.png");

@@ -33,16 +33,22 @@ const SETTINGS = "RightPanelDesktop";
 const SETTINGS_PANE = "RightPanel";
 
 /**
- * Shared width ceiling: `AppShell` clamps the one slider value to the overlap of the two pane ranges,
- * so the settings pane's own 520px maximum can no longer be reached.
+ * Shared width ceiling: `AppShell` clamps the one slider value to the overlap of the two pane ranges
+ * (`SHARED_PANE_WIDTH_MAX` in `ui.store.ts`), so neither pane's own maximum is reachable on its own.
  */
-const SHARED_WIDTH_MAX = 480;
+const SHARED_WIDTH_MAX = 760;
+/** Shared width floor, for the same reason: the desktop pane is a Windows 11 window, never a strip. */
+const SHARED_WIDTH_MIN = 520;
+/** Window width inside the shared range, used to prove a stored width is still honored verbatim. */
+const STORED_WIDTH = 600;
 
 type UiStoreModule = {
   useUIStore: {
     getState: () => {
       openRightPanel: (panel: string) => void;
       setSidebarOpen: (open: boolean) => void;
+      openCharacterLibrary: () => void;
+      closeCharacterLibrary: () => void;
     };
   };
 };
@@ -207,7 +213,7 @@ test.describe("desktop shell popover geometry", () => {
   }, testInfo) => {
     desktopOnly(testInfo);
     await page.setViewportSize({ width: 1440, height: 900 });
-    await seed(page, { sidebarWidth: 360, rightPanelWidth: 360 });
+    await seed(page, { sidebarWidth: STORED_WIDTH, rightPanelWidth: STORED_WIDTH });
     await page.goto("/");
 
     await chatsToggle(page).click();
@@ -232,19 +238,19 @@ test.describe("desktop shell popover geometry", () => {
         return Math.abs(box.y + box.height / 2 - regionCentreY);
       })
       .toBeLessThanOrEqual(1);
-    expect(Math.abs((await surface(page, CHATS).boundingBox())!.width - 360)).toBeLessThanOrEqual(1);
+    expect(Math.abs((await surface(page, CHATS).boundingBox())!.width - STORED_WIDTH)).toBeLessThanOrEqual(1);
 
     // Both layers take that one persisted value, so the settings pane is the same width.
     await openPanelFromStore(page, "settings");
     await expect(popover(page, SETTINGS)).toHaveAttribute("aria-hidden", "false");
     await waitForStableBox(surface(page, SETTINGS));
-    expect(Math.abs((await surface(page, SETTINGS).boundingBox())!.width - 360)).toBeLessThanOrEqual(1);
+    expect(Math.abs((await surface(page, SETTINGS).boundingBox())!.width - STORED_WIDTH)).toBeLessThanOrEqual(1);
   });
 
   test("a persisted width outside the shared range is clamped for both layers", async ({ page }, testInfo) => {
     desktopOnly(testInfo);
     await page.setViewportSize({ width: 1440, height: 900 });
-    await seed(page, { sidebarWidth: 520, rightPanelWidth: 520 });
+    await seed(page, { sidebarWidth: SHARED_WIDTH_MAX + 200, rightPanelWidth: SHARED_WIDTH_MAX + 200 });
     await page.goto("/");
 
     await chatsToggle(page).click();
@@ -263,6 +269,30 @@ test.describe("desktop shell popover geometry", () => {
       .toBeLessThanOrEqual(1);
   });
 
+  // The panes are Windows 11 style windows, so a width stored under the old docked-column range
+  // (240-320) must not keep them looking like a strip: the floor is part of the geometry contract.
+  test("a persisted width below the window floor is raised for both layers", async ({ page }, testInfo) => {
+    desktopOnly(testInfo);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await seed(page, { sidebarWidth: 320, rightPanelWidth: 320 });
+    await page.goto("/");
+
+    await chatsToggle(page).click();
+    await expect(popover(page, CHATS)).toHaveAttribute("aria-hidden", "false");
+    await waitForStableBox(surface(page, CHATS));
+    await expect
+      .poll(async () => Math.abs((await surface(page, CHATS).boundingBox())!.width - SHARED_WIDTH_MIN))
+      .toBeLessThanOrEqual(1);
+
+    await setSidebarOpenFromStore(page, false);
+    await openPanelFromStore(page, "settings");
+    await expect(popover(page, SETTINGS)).toHaveAttribute("aria-hidden", "false");
+    await waitForStableBox(surface(page, SETTINGS));
+    await expect
+      .poll(async () => Math.abs((await surface(page, SETTINGS).boundingBox())!.width - SHARED_WIDTH_MIN))
+      .toBeLessThanOrEqual(1);
+  });
+
   test("the chat area keeps the shell width and is never squeezed compact by a layer", async ({ page }, testInfo) => {
     desktopOnly(testInfo);
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -272,7 +302,11 @@ test.describe("desktop shell popover geometry", () => {
 
     const readWidths = async () => {
       const [centre, shell] = await Promise.all([center(page).boundingBox(), appShell(page).boundingBox()]);
-      return { centre: centre!.width, shell: shell!.width, compact: await center(page).getAttribute("data-center-compact") };
+      return {
+        centre: centre!.width,
+        shell: shell!.width,
+        compact: await center(page).getAttribute("data-center-compact"),
+      };
     };
     const before = await readWidths();
     expect(Math.abs(before.centre - before.shell)).toBeLessThanOrEqual(1);
@@ -288,7 +322,9 @@ test.describe("desktop shell popover geometry", () => {
 });
 
 test.describe("desktop shell popover interaction", () => {
-  test("the backdrop is present, a press on it closes the layer and gives the chat back", async ({ page }, testInfo) => {
+  test("the backdrop is present, a press on it closes the layer and gives the chat back", async ({
+    page,
+  }, testInfo) => {
     desktopOnly(testInfo);
     await page.setViewportSize({ width: 1440, height: 900 });
     await seed(page);
@@ -490,5 +526,99 @@ test.describe("mobile shell stays on the drawer", () => {
     await chatsToggle(page).tap();
     await expect(page.locator(`[data-component="${CHATS}"]`)).toBeVisible();
     await expect(page.locator(`[data-component="${SETTINGS}"]`)).toHaveCount(0);
+  });
+});
+
+/**
+ * The centre-area surfaces (every editor, the card library, the agent catalog and the two browsers)
+ * are Windows 11 windows on desktop: they float on a dimmed backdrop under the top bar instead of
+ * replacing the page, so the shell behind them and the top bar both stay where they are. Mobile keeps
+ * its own full-screen sheet. The gutter below is the shell's `maximized` variant (`m-2`).
+ */
+const WINDOW_GUTTER = 8;
+
+async function openCardLibrary(page: Page) {
+  await page.evaluate(async () => {
+    const module = (await import("/src/stores/ui.store.ts" as string)) as UiStoreModule;
+    module.useUIStore.getState().openCharacterLibrary();
+  });
+}
+
+test.describe("desktop centre-area surfaces", () => {
+  test("a surface opens as a window on a backdrop, not as a page", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name.includes("mobile"), "The window presentation is desktop-only.");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await seed(page);
+    await page.goto("/");
+
+    const centerArea = center(page);
+    const surfaceWindow = page.locator('[data-component="DetailEditor"]');
+    // The shell's backdrop is shared with the two `ShellOverlayPopover` layers, which are mounted while
+    // closed; this one is the centre area's, so scope the locator to the area it dims.
+    const windowBackdrop = centerArea.locator('[data-component="ShellWindowBackdrop"]');
+    await expect(surfaceWindow).toHaveCount(0);
+    await expect(windowBackdrop).toHaveCount(0);
+
+    await openCardLibrary(page);
+    await expect(surfaceWindow).toBeVisible();
+    await waitForStableBox(surfaceWindow);
+
+    const [centerBox, topbarBox, windowBox, backdropBox] = [
+      (await centerArea.boundingBox())!,
+      (await topbar(page).boundingBox())!,
+      (await surfaceWindow.boundingBox())!,
+      (await windowBackdrop.boundingBox())!,
+    ];
+    const areaTop = topbarBox.y + topbarBox.height;
+    // The window is the centre area inset by the gutter on every side: it is a window, not the page.
+    expect(Math.abs(windowBox.x - (centerBox.x + WINDOW_GUTTER))).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(windowBox.x + windowBox.width - (centerBox.x + centerBox.width - WINDOW_GUTTER)),
+    ).toBeLessThanOrEqual(1);
+    expect(Math.abs(windowBox.y - (areaTop + WINDOW_GUTTER))).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(windowBox.y + windowBox.height - (centerBox.y + centerBox.height - WINDOW_GUTTER)),
+    ).toBeLessThanOrEqual(1);
+    // The backdrop covers exactly the area the window floats on, and the window is what a press inside
+    // it reaches; a press in the gutter reaches the backdrop instead, so the page behind stays inert.
+    expect(Math.abs(backdropBox.y - areaTop)).toBeLessThanOrEqual(1);
+    expect(
+      await page.evaluate(() => {
+        const rect = document.querySelector('[data-component="DetailEditor"]')!.getBoundingClientRect();
+        const node = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+        return Boolean(node?.closest('[data-component="DetailEditor"]'));
+      }),
+    ).toBe(true);
+    expect(
+      await page.evaluate(() => {
+        const rect = document.querySelector('[data-component="CenterContent"]')!.getBoundingClientRect();
+        return document
+          .elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height - 2)
+          ?.getAttribute("data-component");
+      }),
+    ).toBe("ShellWindowBackdrop");
+    // The top bar is never part of the window area, so it keeps working while a window is up.
+    await expect(chatsToggle(page)).toBeVisible();
+
+    // The window carries the shared Windows 11 title bar: the title, and the close control that closes it.
+    const titleBar = page.locator('[data-component="WindowTitleBar"]');
+    await expect(titleBar).toBeVisible();
+    // The window owns the title, so the content no longer repeats it: exactly one such heading.
+    await expect(titleBar.getByRole("heading", { name: "Browse your characters" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Browse your characters" })).toHaveCount(1);
+
+    await titleBar.getByRole("button", { name: "Close library" }).click();
+    await expect(surfaceWindow).toHaveCount(0);
+    await expect(windowBackdrop).toHaveCount(0);
+  });
+
+  test("the sheet stays full-screen on mobile, with no window backdrop", async ({ page }, testInfo) => {
+    test.skip(!testInfo.project.name.includes("mobile"), "The sheet presentation is mobile-only.");
+    await seed(page);
+    await page.goto("/");
+
+    await openCardLibrary(page);
+    await expect(page.locator('[data-component="MobileDetailSheet"]')).toBeVisible();
+    await expect(center(page).locator('[data-component="ShellWindowBackdrop"]')).toHaveCount(0);
   });
 });

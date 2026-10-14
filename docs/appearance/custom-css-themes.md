@@ -26,7 +26,7 @@ To carry the look into the rest of the chat, use the three switches below the co
 
 Each switch starts off and works independently. For example, you can use Mari's lettering while keeping the chat's usual colors. Turning a switch off restores that part of the usual chat styling. Choosing another preset keeps your switch choices. Professor Mari can create custom themes for these areas too.
 
-Custom CSS themes can still override these presets. The public window and drawer variables below take precedence over the preset colors. Use `--mari-window-font-family` for window lettering, `--mari-drawer-radius` for section corners, and `--mari-window-ornament: none` to hide the title ornament. To remove all preset decoration, choose **Default** first.
+Custom CSS themes can still override these presets. The public window and drawer variables below take precedence over the preset colors. Use `--mari-window-font-family` for window lettering and `--mari-drawer-radius` for section corners. To remove all preset decoration, choose **Default** first.
 
 ## What a custom theme is
 
@@ -183,7 +183,6 @@ Each variable falls back to the shared chat chrome colors, so a theme only needs
 | `--mari-window-shadow` | Window shadow |
 | `--mari-window-backdrop-filter` | Blur behind the window |
 | `--mari-window-header-bg`, `--mari-window-header-text`, `--mari-window-header-border` | Title bar colors |
-| `--mari-window-header-padding` | Title bar spacing |
 | `--mari-window-control-color`, `--mari-window-control-color-hover`, `--mari-window-control-bg-hover` | Title bar buttons, including the favorite star |
 | `--mari-window-control-color-active`, `--mari-window-control-bg-active` | Pressed title bar buttons, including pin, lock and a filled favorite star |
 | `--mari-window-control-radius`, `--mari-window-control-gap` | Button rounding and spacing |
@@ -214,41 +213,44 @@ Set a variable in `:root` to change every window, or on a selector to change one
 
 ## Styling modal windows
 
-Every app dialog — settings sections, the game setup wizard, the window a desktop icon opens — is drawn by one component, `Modal`. With `chrome="window"` it is a Windows 11 window: an acrylic surface, the shared window corner, and a title bar holding the window keys. A confirmation that is answered rather than managed keeps the plain title-and-close bar instead, through `chrome="dialog"`.
+Every app dialog — settings sections, the game setup wizard, the window a desktop icon opens — is drawn by one component, `Modal`, and renders the one window shell every window in the app uses: an acrylic surface, the shared window corner, and a title bar holding the window's keys. A confirmation is answered rather than managed, so it keeps the close key alone.
 
 | Part | Class |
 | --- | --- |
-| The window surface, in both chromes | `.mari-modal-panel` |
+| The window surface | `.mari-modal-panel` (the shell itself: `.mari-window`) |
 | The dimmed area behind the window | `.mari-modal-backdrop` |
-| The Windows 11 shell, its title bar, title and 16px icon | `.mari-win11-window`, `.mari-win11-window__titlebar`, `.mari-win11-window__title`, `.mari-win11-window__title-icon` |
-| The title bar keys | `.mari-win11-window__control`, with `--close` on the close key |
-| The scrollable body | `.mari-win11-window__body` |
+| The title bar, its title and its icon slot | `.mari-window__header`, `.mari-window__title`, `.mari-window__title-icon` |
+| The key group in the bar, and one key | `.mari-window__controls`, `.mari-window__control` |
+| The close key | `.mari-window__control--close` |
+| The scrollable body | `.mari-window__body` |
 
-Two data attributes let a theme tell the two bars apart and repaint the keys:
+Two data attributes tell a theme what a window is, and name its keys:
 
-- `data-modal-chrome` is `"window"` or `"dialog"` on the panel.
-- `data-modal-control` names each title bar key: `"minimize"`, `"maximize"` or `"close"`. Minimize and maximize are the shell's shape rather than a promise — a modal has no window state to collapse or restore — so they are inert: `aria-disabled="true"` and `tabindex="-1"`. Below the `sm` breakpoint the title bar renders the close key alone, so the inert keys are not in the DOM at all.
+- `data-window-shell-chrome` is `"window"` or `"dialog"`.
+- `data-window-control` names a key: `"close"` on the close key, `"pin"` or `"lock"` on a chat window that has them, and `"put-back"` on a popped-out drawer's window. A window renders only the keys it really has — a dialog has no second state, so it has no minimize or maximize key at all.
 
-Floating windows are the other shell: they use `.mari-window…` and `[data-window-control]`, as described in **Styling chat windows and drawers** above. The modal surface, border, shadow and corner read the same tokens as the taskbar (`--marinara-home-acrylic-surface`, `--marinara-home-acrylic-border`, `--marinara-home-acrylic-shadow`, `--marinara-win11-radius`), so a theme that repaints the Home shell repaints these windows too.
+`[data-component="WindowTitleBar"]` is the stable hook for the bar in both of its modes: a dialog and a shell window put a 16px icon in `.mari-window__title-icon`, while a centre-area surface draws its icon in a tile (`[data-component="WindowTitleBarIcon"]`) above an `h1`.
+
+Floating chat windows use the same shell with their own geometry, as described in **Styling chat windows and drawers** above. The surface, border, shadow and corner read the same tokens as the taskbar (`--marinara-home-acrylic-surface`, `--marinara-home-acrylic-border`, `--marinara-home-acrylic-shadow`, `--marinara-win11-radius`), so a theme that repaints the Home shell repaints these windows too.
 
 ```css
-/* Repaint a window's title bar and give its keys a theme colour. */
-.mari-win11-window .mari-win11-window__titlebar {
+/* Repaint a window's title bar and give its close key a theme colour. */
+.mari-window .mari-window__header {
   background: var(--card);
 }
 
-.mari-win11-window [data-modal-control="close"]:hover {
+.mari-window [data-window-control="close"]:hover {
   background: #c42b1c;
   color: #ffffff;
 }
 
-/* A confirmation keeps the plain bar, so target it by its chrome. */
-.mari-modal-panel[data-modal-chrome="dialog"] {
+/* A confirmation keeps its own chrome role, so target it by that. */
+.mari-modal-panel[data-window-shell-chrome="dialog"] {
   border-radius: var(--radius);
 }
 ```
 
-When a chat-widget theme is enabled, the three window keys fall under that chat theme's rules. That is intentional: a themed chat owns its own window chrome.
+When a chat-widget theme is enabled, a window's keys fall under that chat theme's rules. That is intentional: a themed chat owns its own window chrome.
 
 ## Styling messages, input boxes and chat controls
 

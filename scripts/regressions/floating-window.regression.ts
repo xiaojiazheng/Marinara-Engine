@@ -329,18 +329,21 @@ try {
 
 // ── Theming contract: stable classes, attributes and variables ──
 const floatingWindow = read("packages/client/src/components/ui/FloatingWindow.tsx");
+const titleBar = read("packages/client/src/components/window/WindowTitleBar.tsx");
 const drawer = read("packages/client/src/components/ui/Drawer.tsx");
 const globals = read("packages/client/src/styles/globals.css");
-for (const part of [
-  "mari-window ",
-  "mari-window__header",
-  "mari-window__title",
-  "mari-window__controls",
-  "mari-window__body",
-  "mari-window__resize-handle",
-]) {
+// The frame and its body belong to the host that owns the geometry; the bar, its title and its key
+// group belong to the one title bar that host composes. Assert each part where it is rendered.
+for (const part of ["mari-window ", "mari-window__body", "mari-window__resize-handle", "<WindowTitleBar"]) {
   assert.ok(floatingWindow.includes(part), `FloatingWindow must render ${part.trim()}`);
 }
+for (const part of ["mari-window__header", "mari-window__title", "mari-window__controls"]) {
+  assert.ok(titleBar.includes(part), `WindowTitleBar must render ${part.trim()}`);
+}
+// The window composes its bar, so the close key is the title bar's to build: the host must hand over
+// the close handler instead of drawing a second one.
+assert.match(floatingWindow, /<WindowTitleBar\b[\s\S]*?onClose=/u, "FloatingWindow must hand close to WindowTitleBar");
+assert.doesNotMatch(floatingWindow, /data-window-control="close"/u, "the close key belongs to WindowTitleBar");
 for (const attribute of ["data-window={id}", "data-pinned=", "data-locked=", "data-detached="]) {
   assert.ok(floatingWindow.includes(attribute), `FloatingWindow must expose ${attribute}`);
 }
@@ -364,13 +367,8 @@ assert.match(
 );
 assert.match(
   globals,
-  /\[data-marinara-chat-chrome-accent-mode="gradient"\] \.marinara-chat-popover:not\([^)]*\.mari-win11-window[^)]*\)/u,
-  "the gradient popover rule must not repaint the Win11 window shell",
-);
-assert.match(
-  globals,
-  /:where\(\[data-marinara-chat-chrome-accent-mode="gradient"\]\) \.mari-win11-window\.mari-chat-style-surface \{/u,
-  "the Win11 window's chat-surface paint must stay below the chat theme's specificity",
+  /:where\(\[data-marinara-chat-chrome-accent-mode="gradient"\]\) \.mari-window\.mari-chat-style-surface \{/u,
+  "the window's chat-surface paint must stay below the chat theme's specificity",
 );
 assert.match(
   globals,
@@ -877,11 +875,11 @@ assert.match(
   /@media \(pointer: coarse\) \{\s*\.mari-window-bubble::before \{[\s\S]*100% - 44px/u,
   "Touch gets a 44px tap area around every bubble",
 );
-assert.match(
-  floatingWindowSource,
-  /data-window-control="pin"[\s\S]*data-window-control="lock"[\s\S]*data-window-control="close"/u,
-);
-assert.doesNotMatch(floatingWindowSource, /data-window-control="minimize"/u);
+assert.match(floatingWindowSource, /data-window-control="pin"[\s\S]*data-window-control="lock"/u);
+// The close key is built by the title bar now, so the "no second key" assertions live with it: a
+// negative assertion on a file that no longer renders keys is vacuously true.
+assert.doesNotMatch(titleBar, /data-window-control="minimize"/u);
+assert.doesNotMatch(titleBar, /data-window-control="maximize"/u);
 assert.match(read("packages/client/src/styles/globals.css"), /--mari-window-bubble-bg[\s\S]*--mari-window-snap-guide/u);
 
 console.log("floating window regression passed");

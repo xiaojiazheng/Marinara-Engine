@@ -22,7 +22,7 @@ import {
   type ReactNode,
   type Ref,
 } from "react";
-import { Lock, Pin, Unlock, X } from "lucide-react";
+import { Lock, Pin, Unlock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/utils";
 import {
@@ -50,6 +50,7 @@ import { CHAT_VISUAL_VIEWPORT_CHANGE_EVENT } from "../../hooks/use-visual-viewpo
 import { BUBBLE_SNAP_GAP_PX } from "../../lib/window-bubble-snap";
 import { DrawerHostContext, type DrawerHost } from "./drawer-host";
 import { WindowBubble } from "./WindowBubble";
+import { WindowTitleBar } from "../window/WindowTitleBar";
 import { useChatToolsMenuStore } from "../../stores/chat-tools-menu.store";
 import {
   FLOATING_WINDOW_Z_BASE,
@@ -68,9 +69,13 @@ export interface FloatingWindowProps {
   titleIcon?: ReactNode;
   /** Rendered after the title, outside the heading (a help button, for example). */
   titleAccessory?: ReactNode;
-  /** The window's own buttons in the title bar, before minimize, pin, lock and close (`mari-window__control`). */
+  /**
+   * The window's own buttons in the title bar, drawn before the pin, lock and close keys
+   * (`mari-window__control`). Minimizing is a window state — it folds the window into a bubble — and never
+   * a key in the bar.
+   */
   headerControls?: ReactNode;
-  /** A title bar button just before close (a popped-out drawer's Put back). */
+  /** A title bar button drawn after pin and lock, just before close (a popped-out drawer's Put back). */
   closeAccessory?: ReactNode;
   closeLabel: string;
   /** Where the window opens before the user moves it, and where Reset View puts it back. */
@@ -814,67 +819,57 @@ export function FloatingWindow({
         onFocusCapture={() => bringToFront(id)}
         onKeyDown={handleRootKeyDown}
       >
-        <div
-          className={cn(
-            "mari-window__header flex shrink-0 items-center justify-between gap-2",
-            !sheet && !locked && "cursor-grab touch-none select-none active:cursor-grabbing",
-            headerClassName,
-          )}
-          role={sheet || locked ? undefined : "group"}
-          tabIndex={sheet || locked ? undefined : 0}
-          aria-label={sheet || locked ? undefined : t("window.controls.move")}
-          onPointerDown={handleHeaderPointerDown}
-          onPointerMove={updatePointerSession}
-          onPointerUp={endPointerSession}
-          onPointerCancel={endPointerSession}
-          onKeyDown={handleHeaderKeyDown}
-        >
-          <span className="mari-window__title-row flex min-w-0 items-center gap-1.5">
-            {titleIcon}
-            <h2 id={titleId} className={cn("mari-window__title truncate", titleClassName)}>
-              {title}
-            </h2>
-            {titleAccessory}
-          </span>
-          <div className="mari-window__controls flex shrink-0 items-center">
-            {headerControls}
-            {!sheet && (
+        <WindowTitleBar
+          title={title}
+          titleId={titleId}
+          icon={titleIcon}
+          titleAccessory={titleAccessory}
+          titleClassName={cn("truncate", titleClassName)}
+          className={headerClassName}
+          onClose={() => requestClose("close-button")}
+          closeLabel={closeLabel}
+          rowProps={{
+            role: sheet || locked ? undefined : "group",
+            tabIndex: sheet || locked ? undefined : 0,
+            "aria-label": sheet || locked ? undefined : t("window.controls.move"),
+            onPointerDown: handleHeaderPointerDown,
+            onPointerMove: updatePointerSession,
+            onPointerUp: endPointerSession,
+            onPointerCancel: endPointerSession,
+            onKeyDown: handleHeaderKeyDown,
+            className: cn(!sheet && !locked && "cursor-grab touch-none select-none active:cursor-grabbing"),
+          }}
+          actions={
+            <>
+              {headerControls}
+              {!sheet && (
+                <button
+                  type="button"
+                  data-window-control="pin"
+                  aria-pressed={pinned}
+                  aria-label={t("window.controls.pin")}
+                  title={t(pinned ? "window.controls.unpinHint" : "window.controls.pinHint")}
+                  className="mari-window__control"
+                  onClick={() => commitLayout({ pinned: !pinned })}
+                >
+                  <Pin size="0.875rem" fill={pinned ? "currentColor" : "none"} />
+                </button>
+              )}
               <button
                 type="button"
-                data-window-control="pin"
-                aria-pressed={pinned}
-                aria-label={t("window.controls.pin")}
-                title={t(pinned ? "window.controls.unpinHint" : "window.controls.pinHint")}
+                data-window-control="lock"
+                aria-pressed={locked}
+                aria-label={t("window.controls.lock")}
+                title={t(locked ? "window.controls.unlockHint" : "window.controls.lockHint")}
                 className="mari-window__control"
-                onClick={() => commitLayout({ pinned: !pinned })}
+                onClick={() => commitLayout({ locked: !locked })}
               >
-                <Pin size="0.875rem" fill={pinned ? "currentColor" : "none"} />
+                {locked ? <Lock size="0.875rem" /> : <Unlock size="0.875rem" />}
               </button>
-            )}
-            <button
-              type="button"
-              data-window-control="lock"
-              aria-pressed={locked}
-              aria-label={t("window.controls.lock")}
-              title={t(locked ? "window.controls.unlockHint" : "window.controls.lockHint")}
-              className="mari-window__control"
-              onClick={() => commitLayout({ locked: !locked })}
-            >
-              {locked ? <Lock size="0.875rem" /> : <Unlock size="0.875rem" />}
-            </button>
-            {closeAccessory}
-            <button
-              type="button"
-              data-window-control="close"
-              aria-label={closeLabel}
-              title={closeLabel}
-              className="mari-window__control"
-              onClick={() => requestClose("close-button")}
-            >
-              <X size="1rem" />
-            </button>
-          </div>
-        </div>
+              {closeAccessory}
+            </>
+          }
+        />
         <div ref={bodyRef} className={cn("mari-window__body flex min-h-0 flex-1 flex-col", bodyClassName)}>
           {drawerHost ? (
             <DrawerHostContext.Provider value={drawerHostValue}>{children}</DrawerHostContext.Provider>

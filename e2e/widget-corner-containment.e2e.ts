@@ -24,7 +24,49 @@ async function readPixels(page: Page, screenshot: Buffer) {
   }, screenshot.toString("base64"));
 }
 
-async function expectClearCorner(page: Page, window: Locator, label: string, expectedBlur?: string) {
+/**
+ * A window draws no frame of its own any more: no cut corner, no decorative pseudo-element. What the
+ * shell keeps is its shadow and the Windows 11 radius, and the surface is painted by the shell's acrylic
+ * or by whatever colour the theme put on it.
+ */
+async function expectNoWindowFrame(window: Locator, label: string) {
+  const measured = await window.evaluate(async (element) => {
+    const host = getComputedStyle(element);
+    const before = getComputedStyle(element, "::before");
+    const after = getComputedStyle(element, "::after");
+    const probe = document.createElement("span");
+    probe.style.borderRadius = "var(--marinara-win11-radius, 0.5rem)";
+    document.body.append(probe);
+    const win11Radius = getComputedStyle(probe).borderRadius;
+    probe.remove();
+    return {
+      before: before.content,
+      after: after.content,
+      beforeClip: before.clipPath,
+      afterClip: after.clipPath,
+      shadow: host.boxShadow,
+      background: host.backgroundColor,
+      image: host.backgroundImage,
+      radius: host.borderRadius,
+      win11Radius,
+    };
+  });
+  expect(measured, `${label}: a window draws no frame of its own`).toMatchObject({
+    before: "none",
+    after: "none",
+    beforeClip: "none",
+    afterClip: "none",
+    radius: measured.win11Radius,
+  });
+  expect(measured.shadow, `${label}: the shell's shadow is kept`).not.toBe("none");
+  expect(
+    measured.background !== "rgba(0, 0, 0, 0)" || measured.image !== "none",
+    `${label}: the shell or the theme paints the surface`,
+  ).toBe(true);
+}
+
+/** The paint that remains must stay inside the rounded corner. */
+async function expectClearCorner(page: Page, window: Locator, label: string) {
   await expect(window).toBeVisible();
   // A detached drawer animates in with a transform. Settle it before reading
   // geometry; screenshot's animation freeze otherwise moves the frame after
@@ -37,11 +79,6 @@ async function expectClearCorner(page: Page, window: Locator, label: string, exp
         .map((animation) => animation.finished.catch(() => undefined)),
     );
   });
-  if (expectedBlur) {
-    await expect
-      .poll(() => window.evaluate((element) => getComputedStyle(element, "::after").backdropFilter))
-      .toBe(expectedBlur);
-  }
   // A sharp scene makes an otherwise nearly invisible rectangular backdrop blur
   // measurable. Exclude the legitimate decorative shadow from this paint proof.
   const originalStyle = await window.getAttribute("style");
@@ -73,26 +110,36 @@ async function expectClearCorner(page: Page, window: Locator, label: string, exp
     const behind = await page.screenshot({ clip, scale: "css", animations: "disabled", path: scenePath });
     await window.evaluate((element) => ((element as HTMLElement).style.visibility = ""));
     const [actual, expected] = await Promise.all([readPixels(page, painted), readPixels(page, behind)]);
-    const differences: number[] = [];
-    // Stay several pixels outside the diagonal (x + y < 14), away from its
-    // antialiasing. Compare RGB rather than compressed PNG byte identity.
-    for (let y = 2; y <= 4; y++) {
-      for (let right = 2; right <= 4; right++) {
-        const pixel = (y * 16 + 16 - right) * 4;
+    // The corner is rounded and the surface carries the shell's backdrop blur, so what has to hold is
+    // that the window's own paint reaches the corner *inside* the arc: a window that clipped its content
+    // away, or painted nothing there, would leave the scenery visible through it. Sample a few pixels
+    // well inside the arc, away from its antialiasing, and compare RGB rather than PNG byte identity.
+    const radius = await window.evaluate((element) => Number.parseFloat(getComputedStyle(element).borderTopRightRadius));
+    const inside: number[] = [];
+    for (let row = 4; row < 12; row += 1) {
+      for (let right = 4; right < 12; right += 1) {
+        const column = 16 - right;
+        if (column < 0) continue;
+        if (Math.hypot(column - (16 - radius), row - radius) > radius - 2) continue;
+        const pixel = (row * 16 + column) * 4;
         for (let channel = 0; channel < 3; channel++) {
-          differences.push(Math.abs(actual[pixel + channel]! - expected[pixel + channel]!));
+          inside.push(Math.abs(actual[pixel + channel]! - expected[pixel + channel]!));
         }
       }
     }
+    expect(inside.length, `the corner proof must sample pixels inside the ${radius}px arc`).toBeGreaterThanOrEqual(4);
     await test.info().attach(`${label}-corner`, { path: paintedPath, contentType: "image/png" });
     await test.info().attach(`${label}-scene`, { path: scenePath, contentType: "image/png" });
-    expect(Math.max(...differences), `${label}: the cut-out must reveal unchanged scenery`).toBeLessThanOrEqual(2);
-    // The inner surface must still paint; accidentally hiding the entire frame
-    // would also make the outside pixels match.
+    // Averaged over the sample: a single pixel can coincide with the scenery through a translucent
+    // acrylic, but a frame that painted nothing would leave every sample unchanged.
+    const averageDifference = inside.reduce((total, entry) => total + entry, 0) / inside.length;
+    expect(averageDifference, `${label}: the window paints inside its rounded corner`).toBeGreaterThan(8);
+    // The bar beyond the corner must paint too; a frame that stopped painting entirely would also fail
+    // the sample above, but this one names the shallower failure.
     const insidePixel = (13 * 16 + 2) * 4;
     expect(
       actual.slice(insidePixel, insidePixel + 3),
-      `${label}: the header inside the cut must remain visible`,
+      `${label}: the bar keeps painting beyond the corner`,
     ).not.toEqual(expected.slice(insidePixel, insidePixel + 3));
   } finally {
     await window.evaluate((element, style) => {
@@ -103,7 +150,7 @@ async function expectClearCorner(page: Page, window: Locator, label: string, exp
   }
 }
 
-test("Dottore windows keep scene blur and custom paint inside their cut corners", async ({ page, request }) => {
+test("A window draws no frame of its own and keeps its paint inside its rounded corner", async ({ page, request }) => {
   test.setTimeout(120_000);
   const original = (await (await request.get(UI_SETTINGS_PATH)).json()) as { value: string | null };
   let chatId: string | undefined;
@@ -173,8 +220,8 @@ test("Dottore windows keep scene blur and custom paint inside their cut corners"
             : null;
         try {
           const settings = await openChatSettings(page);
-          const expectedBlur = paint === "custom-theme" ? "blur(20px)" : undefined;
-          await expectClearCorner(page, settings, `${theme}-${paint}-settings`, expectedBlur);
+          // A: the whole matrix proves the frame is gone, without taking a screenshot.
+          await expectNoWindowFrame(settings, `${theme}-${paint}-settings`);
           await settings.locator('[data-drawer="chat-name"] [data-drawer-control="pop-out"]').click();
           // Opening through the shared store isolates this frame proof from the
           // separate phone launcher/menu presentation being tested elsewhere.
@@ -183,7 +230,7 @@ test("Dottore windows keep scene blur and custom paint inside their cut corners"
             useFloatingWindowStore.getState().openWindow(id);
           }, DETACHED_ID);
           const detached = page.locator(`.mari-window[data-window="${DETACHED_ID}"]`);
-          await expectClearCorner(page, detached, `${theme}-${paint}-detached`, expectedBlur);
+          await expectNoWindowFrame(detached, `${theme}-${paint}-detached`);
           await detached.locator('[data-window-control="put-back"]').click();
           await expect(detached).toHaveCount(0);
         } finally {
@@ -191,8 +238,28 @@ test("Dottore windows keep scene blur and custom paint inside their cut corners"
         }
       }
     }
-    // Non-cut presets keep a single backdrop pass, including when a custom
-    // border creates the decorative pseudo-element and a theme sets local blur.
+    // B: the paint that is left stays inside the rounded corner — outside the radius the scenery is
+    // untouched and the bar just inside it is still painted. Four cells keep the pixel proof cheap.
+    for (const theme of ["dark", "light"] as const) {
+      await page.evaluate(async (theme) => {
+        const { useUIStore } = await import("/src/stores/ui.store.ts" as string);
+        useUIStore.getState().setTheme(theme);
+      }, theme);
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      const settings = await openChatSettings(page);
+      await expectClearCorner(page, settings, `${theme}-rounded-settings`);
+      await settings.locator('[data-drawer="chat-name"] [data-drawer-control="pop-out"]').click();
+      await page.evaluate(async (id) => {
+        const { useFloatingWindowStore } = await import("/src/stores/floating-window.store.ts" as string);
+        useFloatingWindowStore.getState().openWindow(id);
+      }, DETACHED_ID);
+      const detached = page.locator(`.mari-window[data-window="${DETACHED_ID}"]`);
+      await expectClearCorner(page, detached, `${theme}-rounded-detached`);
+      await detached.locator('[data-window-control="put-back"]').click();
+      await expect(detached).toHaveCount(0);
+    }
+    // No preset paints a frame either, and a theme's blur lands on the window itself: there is never a
+    // second blur pass behind a pseudo-element that no longer draws anything.
     const customBlur = await page.addStyleTag({
       content: ".mari-window { --mari-window-backdrop-filter: blur(20px); }",
     });
@@ -210,10 +277,10 @@ test("Dottore windows keep scene blur and custom paint inside their cut corners"
           .poll(() =>
             settings.evaluate((element) => {
               const frame = getComputedStyle(element, "::after");
-              return { painted: frame.content !== "none", blur: frame.backdropFilter };
+              return { content: frame.content, blur: frame.backdropFilter };
             }),
           )
-          .toEqual({ painted: true, blur: "none" });
+          .toEqual({ content: "none", blur: "none" });
       }
     } finally {
       await customBlur.evaluate((element) => element.parentNode?.removeChild(element));

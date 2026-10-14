@@ -14,10 +14,8 @@ import { hasProfessorMariFloatingFollowup } from "../chat/professor-mari-floatin
 import {
   getTrackerPanelWidthForProfile,
   isMobileShellViewport,
-  RIGHT_PANEL_WIDTH_MAX,
-  RIGHT_PANEL_WIDTH_MIN,
-  SIDEBAR_WIDTH_MAX,
-  SIDEBAR_WIDTH_MIN,
+  SHARED_PANE_WIDTH_MAX,
+  SHARED_PANE_WIDTH_MIN,
   TRACKER_PANEL_DEFAULT_BACKGROUND_COLOR,
   useUIStore,
 } from "../../stores/ui.store";
@@ -50,6 +48,13 @@ import {
 } from "../../features/tracker-panel/components/TrackerPanelDetachedWindow";
 import { TrackerWindowProvider } from "../../features/tracker-panel/components/TrackerWindowContext";
 import { usePersonaPortraitSaveCoordinator } from "../../features/tracker-panel/hooks/use-persona-portrait-save";
+import { WindowBackdrop } from "../window/WindowBackdrop";
+import {
+  WINDOW_SHELL_BASE_CLASS,
+  WINDOW_SHELL_COMPONENT,
+  WINDOW_SHELL_VARIANT_CLASS,
+  windowShellDataAttributes,
+} from "../window/window-chrome";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { createPortal } from "react-dom";
@@ -115,10 +120,8 @@ function clampWidth(width: number, min: number, max: number) {
 }
 
 // Both desktop popovers take their width from one shared value: the Appearance slider writes
-// `sidebarWidth` and `rightPanelWidth` together, and the clamp keeps that value inside the range
-// the two panes were laid out for.
-const SHARED_SIDEBAR_WIDTH_MIN = Math.max(SIDEBAR_WIDTH_MIN, RIGHT_PANEL_WIDTH_MIN);
-const SHARED_SIDEBAR_WIDTH_MAX = Math.min(SIDEBAR_WIDTH_MAX, RIGHT_PANEL_WIDTH_MAX);
+// `sidebarWidth` and `rightPanelWidth` together, and the clamp keeps that value inside the shared
+// window range (`SHARED_PANE_WIDTH_MIN` / `_MAX` in `ui.store.ts`).
 const TRACKER_PANEL_EDGE_OFFSET = 8;
 const TRACKER_PANEL_HUD_GAP = 6;
 const TRACKER_PANEL_CHAT_GAP = 8;
@@ -136,6 +139,20 @@ const MOBILE_SHELL_PANEL_BOTTOM_PADDING_CLASS =
 const CENTER_COMPACT_WIDTH = 768;
 const CENTER_COMPACT_HYSTERESIS = 80;
 const CENTER_COMPACT_SCAN_DEPTH = 6;
+/**
+ * The desktop surfaces that fill the centre area — the detail host (every editor, the card library and
+ * the agent catalog) plus the two browsers — are the shared window shell in its `maximized` variant.
+ * They float on a dimmed backdrop under the top bar instead of replacing the page, so the shell behind
+ * them stays visible and the top bar keeps working, exactly like the two `ShellOverlayPopover` panes.
+ *
+ * They are presented in place rather than through the popover layer on purpose: `main` sets
+ * `@container` (a containing block for `fixed` descendants), and the detail host must keep one React
+ * tree position across the mobile breakpoint or an editor in progress would lose its unsaved state
+ * (`e2e/core-flows.e2e.ts` pins that). Mobile keeps its own full-screen sheet unchanged.
+ */
+const CENTRE_WINDOW_CLASS = cn(WINDOW_SHELL_BASE_CLASS, WINDOW_SHELL_VARIANT_CLASS.maximized);
+/** The shell's own attributes, so an in-place frame is the same window to CSS and to the specs. */
+const CENTRE_WINDOW_ATTRIBUTES = windowShellDataAttributes("maximized");
 
 function TrackerPanelHostSlot({ host }: { host: HTMLElement }) {
   const slotRef = useRef<HTMLDivElement>(null);
@@ -181,15 +198,18 @@ function MainPaneFallback() {
   );
 }
 /** Mounts children once `open` becomes true, then keeps them mounted so state persists.
- *  `overlay` mode uses framer-motion slide-in and never unmounts. */
+ *  `overlay` mode uses framer-motion slide-in and never unmounts. `windowed` (desktop) presents the
+ *  overlay as a Windows 11 window on the shell's dimmed backdrop instead of a page-filling surface. */
 function MountOnceWhenOpened({
   open,
   children,
   overlay,
+  windowed = false,
 }: {
   open: boolean;
   children: React.ReactNode;
   overlay?: boolean;
+  windowed?: boolean;
 }) {
   const [everOpened, setEverOpened] = useState(false);
   useEffect(() => {
@@ -202,8 +222,11 @@ function MountOnceWhenOpened({
         initial={{ opacity: 0, x: 30 }}
         animate={open ? { opacity: 1, x: 0 } : { opacity: 0, x: 30 }}
         transition={{ duration: 0.2 }}
+        data-component={windowed ? WINDOW_SHELL_COMPONENT : undefined}
+        {...(windowed ? CENTRE_WINDOW_ATTRIBUTES : {})}
         className={cn(
-          "mari-app-background-paint absolute inset-0 flex flex-col overflow-hidden",
+          "absolute inset-0 flex flex-col overflow-hidden",
+          windowed ? CENTRE_WINDOW_CLASS : "mari-app-background-paint",
           open ? "z-20" : "z-10 pointer-events-none",
         )}
       >
@@ -430,11 +453,7 @@ export function AppShell({
     closeAgentDetail();
     openRightPanel("agents");
   }, [closeAgentDetail, openRightPanel]);
-  const sharedSidebarWidth = clampWidth(
-    rightPanelWidth || sidebarWidth,
-    SHARED_SIDEBAR_WIDTH_MIN,
-    SHARED_SIDEBAR_WIDTH_MAX,
-  );
+  const sharedSidebarWidth = clampWidth(rightPanelWidth || sidebarWidth, SHARED_PANE_WIDTH_MIN, SHARED_PANE_WIDTH_MAX);
   const trackerPanelWidth = getTrackerPanelWidthForProfile(trackerPanelSizeProfile);
   const [trackerPanelResolvedWidth, setTrackerPanelResolvedWidth] = useState(trackerPanelWidth);
   const [trackerPanelWidthMeasured, setTrackerPanelWidthMeasured] = useState(false);
@@ -680,9 +699,9 @@ export function AppShell({
   ) : characterDetailId ? (
     <CharacterEditor />
   ) : characterLibraryOpen ? (
-    <CharacterLibraryView key={cardLibraryKind} />
+    <CharacterLibraryView key={cardLibraryKind} windowTitleBar={!shellOverlayMode} />
   ) : agentCatalogOpen ? (
-    <AgentCatalogView />
+    <AgentCatalogView windowTitleBar={!shellOverlayMode} />
   ) : lorebookDetailId ? (
     <LorebookEditor />
   ) : null;
@@ -1183,13 +1202,18 @@ export function AppShell({
         <div className="flex-shrink-0 md:hidden h-[env(safe-area-inset-top)] bg-[var(--marinara-page-backing,var(--background))]" />
         <TopBar mobileTopbarNavigation={shellOverlayMode} />
         <div className="mari-app-background-paint relative flex flex-1 flex-col overflow-hidden">
+          {/* One backdrop for every desktop window that covers this area: the detail host and the two
+              browsers. It swallows presses, so the page behind a window stays inert. */}
+          {!shellOverlayMode && (hasDetailView || botBrowserOpen || gameAssetsBrowserOpen) && (
+            <WindowBackdrop className="z-10" />
+          )}
           {/* Browser — kept mounted once opened so state persists across close/reopen */}
-          <MountOnceWhenOpened open={botBrowserOpen} overlay>
-            <BotBrowserView />
+          <MountOnceWhenOpened open={botBrowserOpen} overlay windowed={!shellOverlayMode}>
+            <BotBrowserView windowTitleBar={!shellOverlayMode} />
           </MountOnceWhenOpened>
           {/* Game Assets Browser — kept mounted once opened so state persists across close/reopen */}
-          <MountOnceWhenOpened open={gameAssetsBrowserOpen} overlay>
-            <GameAssetsBrowserView />
+          <MountOnceWhenOpened open={gameAssetsBrowserOpen} overlay windowed={!shellOverlayMode}>
+            <GameAssetsBrowserView windowTitleBar={!shellOverlayMode} />
           </MountOnceWhenOpened>
           <div
             className={cn(
@@ -1230,16 +1254,18 @@ export function AppShell({
                 exit={shellOverlayMode ? { opacity: 0, x: 24 } : undefined}
                 transition={{ type: "spring", damping: 30, stiffness: 360 }}
                 data-component={shellOverlayMode ? "MobileDetailSheet" : "DetailEditor"}
+                {...(shellOverlayMode ? {} : CENTRE_WINDOW_ATTRIBUTES)}
                 aria-label={localizeUi("ui.layout.appshell.detailEditor")}
                 tabIndex={-1}
                 className={cn(
-                  "mari-app-background-paint flex min-h-0 flex-1 flex-col overflow-hidden",
-                  shellOverlayMode &&
-                    cn(
-                      "mari-mobile-detail-sheet !fixed bottom-0 right-0 z-50 !w-full bg-[var(--background)]/95 shadow-2xl backdrop-blur-xl",
-                      MOBILE_SHELL_PANEL_TOP_CLASS,
-                      MOBILE_SHELL_PANEL_BOTTOM_PADDING_CLASS,
-                    ),
+                  "flex min-h-0 flex-col overflow-hidden",
+                  shellOverlayMode
+                    ? cn(
+                        "mari-app-background-paint mari-mobile-detail-sheet !fixed bottom-0 right-0 z-50 !w-full bg-[var(--background)]/95 shadow-2xl backdrop-blur-xl",
+                        MOBILE_SHELL_PANEL_TOP_CLASS,
+                        MOBILE_SHELL_PANEL_BOTTOM_PADDING_CLASS,
+                      )
+                    : cn("absolute inset-0 z-20", CENTRE_WINDOW_CLASS),
                 )}
               >
                 <Suspense fallback={<MainPaneFallback />}>{detailView}</Suspense>

@@ -57,6 +57,7 @@ import {
 import { mergeChubDetailIntoCharacterJson } from "../../lib/chub-character-card";
 import { useTranslation as useUiTranslation } from "react-i18next";
 import { Modal } from "../ui/Modal";
+import { WindowTitleBar } from "../window/WindowTitleBar";
 
 // ════════════════════════════════════════════════
 // Types
@@ -1449,7 +1450,12 @@ function getProvider(id: string): ProviderConfig {
 // Main Component
 // ════════════════════════════════════════════════
 
-export function BotBrowserView() {
+/**
+ * `windowTitleBar` is set on desktop, where this browser is a Windows 11 window of its own: the
+ * window title bar carries the title and the close control, so the content keeps only its source
+ * picker and search. Mobile keeps the full header, because its overlay has no window chrome.
+ */
+export function BotBrowserView({ windowTitleBar = false }: { windowTitleBar?: boolean } = {}) {
   const { t: localizeUi } = useUiTranslation();
   const qc = useQueryClient();
   const botBrowserOpen = useUIStore((s) => s.botBrowserOpen);
@@ -2137,25 +2143,42 @@ export function BotBrowserView() {
       data-component="BotBrowserView"
       className="mari-chrome-token-scope flex h-full min-h-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,_color-mix(in_srgb,var(--marinara-chat-chrome-accent)_14%,transparent),_transparent_30%),radial-gradient(circle_at_top_right,_color-mix(in_srgb,var(--marinara-chat-chrome-text)_10%,transparent),_transparent_26%),var(--background)] text-[var(--marinara-chat-chrome-panel-text)]"
     >
+      {windowTitleBar && (
+        <WindowTitleBar
+          iconTile
+          title={localizeUi("ui.botBrowser.botbrowserview.browseCharacterCardsOnline")}
+          subtitle={localizeUi("ui.botBrowser.botbrowserview.cardsLibrary")}
+          icon={<Bot size="0.875rem" />}
+          iconClassName="bg-gradient-to-br from-lime-400 via-green-500 to-cyan-500 text-white"
+          onClose={closeBotBrowser}
+          closeLabel={localizeUi("ui.characters.characterlibraryview.closeLibrary")}
+        />
+      )}
       {/* ═══ Header ═══ */}
       <header className="relative z-10 flex shrink-0 flex-col gap-2 border-b border-[var(--marinara-chat-chrome-panel-divider)] bg-[var(--card)]/85 px-3 py-2 backdrop-blur-xl md:px-6 md:py-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <button
-            type="button"
-            onClick={closeBotBrowser}
-            className="mari-chrome-control h-9 w-9 shrink-0 rounded-2xl p-0 md:h-10 md:w-10"
-            title={localizeUi("ui.characters.characterlibraryview.closeLibrary")}
-            aria-label={localizeUi("ui.characters.characterlibraryview.closeLibrary")}
-          >
-            <ArrowLeft size="0.95rem" />
-          </button>
+          {!windowTitleBar && (
+            <button
+              type="button"
+              onClick={closeBotBrowser}
+              className="mari-chrome-control h-9 w-9 shrink-0 rounded-2xl p-0 md:h-10 md:w-10"
+              title={localizeUi("ui.characters.characterlibraryview.closeLibrary")}
+              aria-label={localizeUi("ui.characters.characterlibraryview.closeLibrary")}
+            >
+              <ArrowLeft size="0.95rem" />
+            </button>
+          )}
           <div className="min-w-0">
-            <p className="text-[0.625rem] font-semibold uppercase tracking-[0.28em] text-[var(--marinara-chat-chrome-panel-muted)]">
-              {localizeUi("ui.botBrowser.botbrowserview.cardsLibrary")}
-            </p>
-            <h1 className="truncate text-base font-semibold text-[var(--marinara-chat-chrome-panel-title)] md:text-2xl">
-              {localizeUi("ui.botBrowser.botbrowserview.browseCharacterCardsOnline")}
-            </h1>
+            {!windowTitleBar && (
+              <>
+                <p className="text-[0.625rem] font-semibold uppercase tracking-[0.28em] text-[var(--marinara-chat-chrome-panel-muted)]">
+                  {localizeUi("ui.botBrowser.botbrowserview.cardsLibrary")}
+                </p>
+                <h1 className="truncate text-base font-semibold text-[var(--marinara-chat-chrome-panel-title)] md:text-2xl">
+                  {localizeUi("ui.botBrowser.botbrowserview.browseCharacterCardsOnline")}
+                </h1>
+              </>
+            )}
             <p className="truncate text-xs text-[var(--marinara-chat-chrome-panel-muted)] md:text-sm">
               {provider.unavailable
                 ? provider.name

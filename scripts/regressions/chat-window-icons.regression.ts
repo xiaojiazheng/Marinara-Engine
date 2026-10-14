@@ -110,14 +110,17 @@ assert.match(
   /icon=\{<TrackerPanelIcon/u,
   "the phone Tracker Panel bubble shows the dice too",
 );
+// The keys are spread over two files since the title bar builds the close key: assert each one where
+// it is rendered, and keep the "no inert key" assertion on the file that renders keys.
 const floatingWindow = read("packages/client/src/components/ui/FloatingWindow.tsx");
-assert.doesNotMatch(floatingWindow, /data-window-control="minimize"/u, "Close is the only minimize control");
-for (const [control, icon] of [
-  ["pin", "Pin"],
-  ["lock", "Unlock"],
-  ["close", "X"],
+const titleBar = read("packages/client/src/components/window/WindowTitleBar.tsx");
+assert.doesNotMatch(titleBar, /data-window-control="minimize"/u, "Close is the only minimize control");
+for (const [source, control, icon] of [
+  [floatingWindow, "pin", "Pin"],
+  [floatingWindow, "lock", "Unlock"],
+  [titleBar, "close", "X"],
 ] as const) {
-  assert.match(floatingWindow, new RegExp(`data-window-control="${control}"[\\s\\S]*?<${icon}\\b`, "u"));
+  assert.match(source, new RegExp(`data-window-control="${control}"[\\s\\S]*?<${icon}\\b`, "u"));
   record(icon, `window ${control}`);
 }
 record("Lock", "window lock");

@@ -408,16 +408,19 @@ test("UX sweep: Appearance groups, quick access, width and hidden-panel state", 
   }
   await modes.getByRole("button", { name: "App", exact: true }).click();
   const slider = panel.getByLabel("Desktop panel width", { exact: true });
-  await slider.fill("280");
+  // The narrowest width the range allows: the mode buttons must still not overflow at it.
+  await slider.fill("520");
   await modes.scrollIntoViewIfNeeded();
   expect(
     await modes
       .locator("button")
       .evaluateAll((buttons) => buttons.every((button) => button.scrollWidth <= button.clientWidth)),
   ).toBe(true);
-  await page.screenshot({ path: testInfo.outputPath("appearance-narrow.png") });
-  await slider.fill("480");
-  await expect(slider).toHaveValue("480");
+  // Named for what it shows: this is the narrowest width the range allows (520), not the historical 280.
+  await page.screenshot({ path: testInfo.outputPath("appearance-narrowest-legal.png") });
+  // On the slider's 8px step grid, so the value is accepted and the width really moves.
+  await slider.fill("720");
+  await expect(slider).toHaveValue("720");
   await page.screenshot({ path: testInfo.outputPath("appearance-groups.png") });
   await page.getByRole("tab", { name: "General", exact: true }).click();
   await page.getByPlaceholder("Search settings").fill("width draft preserved");
@@ -430,7 +433,7 @@ test("UX sweep: Appearance groups, quick access, width and hidden-panel state", 
     useUIStore.getState().openRightPanel("settings");
   });
   await page.getByRole("tab", { name: "Appearance", exact: true }).click();
-  await expect(page.getByLabel("Desktop panel width", { exact: true })).toHaveValue("480");
+  await expect(page.getByLabel("Desktop panel width", { exact: true })).toHaveValue("720");
 });
 
 test("UX sweep: Background library mobile toolbar, accent marker and settled modal", async ({ page }, testInfo) => {

@@ -15,7 +15,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -241,6 +241,34 @@ try {
       ruleBody.includes("direction: ltr"),
       `${cssRule} must force direction: ltr in CSS — the chat HTML path strips dir attributes, so the stylesheet is the only protection there`,
     );
+  }
+
+  // ── G17: the in-tree zh-hans manifest and its docs folder agree both ways ──
+  // A regenerated manifest that lists a stale path, or a doc added without a manifest entry, ships
+  // a pack the installer cannot verify. Compare the two set lists BOTH ways and re-hash every file.
+  const zhDocsRoot = join(repoRoot, "packages", "server", "src", "assets", "language-packs", "docs", "zh-hans");
+  const inTreeManifest = JSON.parse(readFileSync(join(zhDocsRoot, "manifest.json"), "utf8")) as {
+    files: { path: string; sha256: string; bytes: number }[];
+  };
+  const listMarkdown = (directory: string, prefix = ""): string[] => {
+    const found: string[] = [];
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const next = prefix ? `${prefix}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) found.push(...listMarkdown(join(directory, entry.name), next));
+      // manifest.json is not a `.md` file, so it is excluded by construction.
+      else if (entry.isFile() && entry.name.endsWith(".md")) found.push(next);
+    }
+    return found;
+  };
+  assert.deepEqual(
+    inTreeManifest.files.map((file) => file.path).sort(),
+    listMarkdown(zhDocsRoot).sort(),
+    "the zh-hans manifest must list exactly the .md files on disk, and the disk exactly the manifest's",
+  );
+  for (const entry of inTreeManifest.files) {
+    const content = readFileSync(join(zhDocsRoot, entry.path), "utf8");
+    assert.equal(sha256(content), entry.sha256, `${entry.path} must match its manifest hash`);
+    assert.equal(Buffer.byteLength(content), entry.bytes, `${entry.path} must match its manifest size`);
   }
 
   // Shipped Chinese installs/repairs and reconciles a stored choice offline.

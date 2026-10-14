@@ -558,7 +558,6 @@ export function EchoChamberPanel({ hiddenOnMobile = false }: EchoChamberPanelPro
   const title = localizeUi("ui.chat.echochamberpanel.title");
   const rootAttributes = {
     "data-roleplay-agent-window": "echo",
-    "data-header-ornament": isMobile ? "inline" : undefined,
   };
   const status = (
     <span aria-hidden="true" className="relative flex h-1.5 w-1.5 shrink-0">

@@ -34,6 +34,7 @@ const GUARDS = [
   'scripts/regressions/mobile-safe-area-inset.regression.ts',
   'scripts/regressions/theme-css-security.regression.ts',
   'scripts/regressions/docs-language.regression.ts',
+  'scripts/regressions/win11-window-chrome.regression.ts',
   'scripts/regressions/open-issues.regression.ts',
 ];
 

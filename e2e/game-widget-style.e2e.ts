@@ -285,18 +285,22 @@ for (const [preset, theme] of [
       // A preset alone styles windows, not chat surfaces.
       await setStore(page, { setChatWidgetPreset: preset });
       await expect(page.locator("html")).toHaveAttribute("data-chat-widget-preset", preset);
-      await expectBaseline(await measure());
+      // Observable round trip: the interval does contain the preset write above — on purpose. With every
+      // axis off the preset must be invisible on chat surfaces, so the rendered appearance equals the
+      // pre-switch `baseline` even though the preset dimension itself still differs.
+      const themed = await measure();
+      await expectBaseline(themed);
       await closeSheet();
 
       await application(page, ["font"]);
       const lettering = await measure();
       const font = lettering.get("narration")!.font;
-      expect(font).not.toBe(baseline.get("narration")!.font);
+      expect(font).not.toBe(themed.get("narration")!.font);
       for (const [name, value] of lettering) {
         if (name === "narration") continue;
         expect(value.font, `${name} uses the chat font`).toBe(font);
-        expect({ ...value, font: baseline.get(name)!.font }, `${name} keeps its shape and colors`).toEqual(
-          baseline.get(name),
+        expect({ ...value, font: themed.get(name)!.font }, `${name} keeps its shape and colors`).toEqual(
+          themed.get(name),
         );
       }
       await closeSheet();
@@ -403,6 +407,9 @@ for (const [preset, theme] of [
       await application(page, []);
       await setStore(page, { setChatWidgetPreset: "default" });
       await expect(page.locator("html")).not.toHaveAttribute("data-chat-widget-preset");
+      // True round trip (S2): both the axes and the preset return to the starting state — the axes are
+      // off and `default` DELETES the attribute, which is awaited above — so the net state difference is
+      // empty and the whole `baseline` must match exactly.
       await expectBaseline(await measure());
       await closeSheet();
     } catch (error) {

@@ -470,7 +470,12 @@
 
 /* Popup lists, action dialogs, Game widget headers and character sheet banners
    paint to their edges. Keep those fills inside the cut frame without clipping the media or
-   controls on ordinary chat surfaces. */
+   controls on ordinary chat surfaces.
+   Shape conditions are read on `:root`, which only ever carries a *resolved* value: `App.tsx` maps
+   store `preset → "cut-corner"` for dottore / `"arched"` for mari and *removes* the attribute for
+   `default`. The raw `"preset"` value exists only on the settings preview element (`SettingsPanel`),
+   which is why `chat-widgets.css` keeps a `preset` form for its write-side tokens. So this gate names
+   the explicit value only: a `preset` branch here would never match anything. */
 :root[data-chat-widget-apply-shape="true"][data-chat-widget-shape="cut-corner"]
   :is(.mari-chat-input-popup, .mari-game-panel-surface, .mari-chat-action-panel) {
   clip-path: var(--mari-chat-frame-clip, var(--mari-widget-frame-clip));

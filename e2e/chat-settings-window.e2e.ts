@@ -12,6 +12,12 @@ const APP_VERSION = (
   JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string }
 ).version;
 const MARGIN = 8;
+/**
+ * A stored shell-pane width inside the shared desktop window range (`SHARED_PANE_WIDTH_MIN` /
+ * `_MAX` in `ui.store.ts`). The panes are Windows 11 windows now, so a docked-column width such as
+ * 320 is raised to the window floor and can no longer be asserted as the layer's width.
+ */
+const SHELL_PANE_WIDTH = 600;
 
 async function createChat(request: APIRequestContext, mode: ChatMode, metadata: Record<string, unknown> = {}) {
   const response = await request.post("/api/chats", {
@@ -1169,7 +1175,11 @@ test("sidebars keep saved buttons separately reachable and restore their positio
   };
   const chat = await createChat(request, "conversation", { enableAgents: false, windowLayout: layout });
   try {
-    await prepare(page, chat.id, { chatSettingsMoveTipDismissed: true, sidebarWidth: 320, rightPanelWidth: 320 });
+    await prepare(page, chat.id, {
+      chatSettingsMoveTipDismissed: true,
+      sidebarWidth: SHELL_PANE_WIDTH,
+      rightPanelWidth: SHELL_PANE_WIDTH,
+    });
     await page.goto("/");
     const buttons = page.locator(".mari-window-bubble");
     await expect(buttons).toHaveCount(5);
@@ -1217,10 +1227,10 @@ test("sidebars keep saved buttons separately reachable and restore their positio
     const chatsLayer = page.locator('[data-component="ShellOverlayPopover"]:has([data-component="ChatSidebarPanel"])');
     await topbar.getByTitle("Settings", { exact: true }).click();
     await expect(settingsLayer).toHaveAttribute("aria-hidden", "false");
-    await expect.poll(async () => (await box(settingsLayer.locator('[role="dialog"]'))).width).toBe(320);
+    await expect.poll(async () => (await box(settingsLayer.locator('[role="dialog"]'))).width).toBe(SHELL_PANE_WIDTH);
     await topbar.getByTitle("Chats", { exact: true }).click();
     await expect(chatsLayer).toHaveAttribute("aria-hidden", "false");
-    await expect.poll(async () => (await box(chatsLayer.locator('[role="dialog"]'))).width).toBe(320);
+    await expect.poll(async () => (await box(chatsLayer.locator('[role="dialog"]'))).width).toBe(SHELL_PANE_WIDTH);
     // A centered layer covers the chat, so the floating bubbles are deliberately out of reach while one
     // is open. Their saved places still must not move, so read the layout instead of hit-testing here.
     await expect.poll(() => readSavedLayout(request, chat.id)).toEqual(layout);
@@ -1261,7 +1271,7 @@ test("a shell layer keeps the default Settings button clear of a saved button", 
   const id = "drawer:chat-settings:conversation-chat-branches";
   const chat = await createChat(request, "conversation");
   try {
-    await prepare(page, chat.id, { sidebarWidth: 320, rightPanelWidth: 320 });
+    await prepare(page, chat.id, { sidebarWidth: SHELL_PANE_WIDTH, rightPanelWidth: SHELL_PANE_WIDTH });
     await page.goto("/");
     await expect(chatSettingsButton(page)).toBeVisible();
     const originalSettings = await box(chatSettingsButton(page));
@@ -1284,7 +1294,7 @@ test("a shell layer keeps the default Settings button clear of a saved button", 
     );
     await page.locator('[data-component="TopBar"]').getByTitle("Settings", { exact: true }).click();
     await expect(settingsLayer).toHaveAttribute("aria-hidden", "false");
-    await expect.poll(async () => (await box(settingsLayer.locator('[role="dialog"]'))).width).toBe(320);
+    await expect.poll(async () => (await box(settingsLayer.locator('[role="dialog"]'))).width).toBe(SHELL_PANE_WIDTH);
     // The layer covers the chat instead of reserving a column, so nothing reflows under it. The
     // invariant this test is about is overlap, not movement: the default Chat Settings button has to
     // stay clear of the saved bubble, which sits 320px to its left.

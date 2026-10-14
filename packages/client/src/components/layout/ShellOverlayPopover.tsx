@@ -1,10 +1,11 @@
 // ──────────────────────────────────────────────
-// Shell overlay popover — the Windows 11 style centered modal layer that the desktop
-// chat list sidebar and the right settings panel are shown in.
+// Shell overlay popover — the layer the desktop chat list sidebar and the right settings panel are
+// shown in.
 //
-// The shell is a *layer*: it owns the backdrop, the modal semantics (Escape, focus
-// trap, inert while closed) and the acrylic surface, and renders the pane as children.
-// The pane keeps owning its header, its scrolling and its state.
+// The shell here is a *layer*: it owns the placement under the top bar, the backdrop, the modal
+// semantics (Escape, focus trap, inert while closed) and the reveal; the window inside it is the
+// shared <WindowShell>, so the two panes are the same acrylic window as every other surface. The pane
+// keeps owning its header, its scrolling and its state.
 //
 // Two properties make it safe to reuse for both panes:
 //   - It is mounted once and never unmounted, so pane-local state survives a close
@@ -18,12 +19,13 @@
 // (`transform`, `filter`, `contain: paint`).
 // ──────────────────────────────────────────────
 import { useEffect, useRef, type ReactNode } from "react";
-import { motion } from "framer-motion";
 import { useBackdropDismiss } from "../../hooks/use-backdrop-dismiss";
 import { useDialogFocusScope } from "../../hooks/use-dialog-focus-scope";
 import { useReducedAmbientEffects } from "../../hooks/use-reduced-ambient-effects";
 import { registerModalOverlay, type ModalOverlayRegistration } from "../../lib/modal-overlay-registry";
 import { Z_PANEL_OVERLAY } from "../../lib/z-layers";
+import { WindowBackdrop } from "../window/WindowBackdrop";
+import { WindowShell } from "../window/WindowShell";
 
 export type ShellOverlayPopoverProps = {
   open: boolean;
@@ -49,7 +51,8 @@ const SURFACE_MAX_WIDTH = `calc(100vw - ${SURFACE_VIEWPORT_GUTTER})`;
  */
 const SHELL_OVERLAY_TOP_INSET = "3rem";
 // The surface is centered inside the layer and never taller than what is left under the top bar.
-const SURFACE_MAX_HEIGHT = `min(44rem, calc(100dvh - ${SHELL_OVERLAY_TOP_INSET} - ${SURFACE_VIEWPORT_GUTTER}))`;
+// 40rem keeps it a Windows 11 window rather than a full-height drawer on tall viewports.
+const SURFACE_MAX_HEIGHT = `min(40rem, calc(100dvh - ${SHELL_OVERLAY_TOP_INSET} - ${SURFACE_VIEWPORT_GUTTER}))`;
 
 /**
  * How long the closed wrapper stays `visible` after `open` flips false, so the exit
@@ -60,9 +63,9 @@ const MOTION_DURATION_S = 0.18;
 const MOTION_EASE = [0.16, 1, 0.3, 1] as const;
 
 /**
- * Windows 11 style centered modal layer for a shell pane. Renders `children` inside an
- * acrylic surface: Escape and a backdrop press close it, Tab is trapped inside it, and
- * while closed it is `inert`, `aria-hidden` and non-interactive.
+ * The layer the two shell panes are shown in. It renders `children` inside the shared window shell:
+ * Escape and a backdrop press close it, Tab is trapped inside it, and while closed it is `inert`,
+ * `aria-hidden` and non-interactive.
  */
 export function ShellOverlayPopover({ open, onClose, label, width, children }: ShellOverlayPopoverProps) {
   const reduceMotion = useReducedAmbientEffects();
@@ -149,9 +152,8 @@ export function ShellOverlayPopover({ open, onClose, label, width, children }: S
     >
       {/* Backdrop. `useBackdropDismiss` (attached to the wrapper above) dismisses only when the press
           starts and ends on this surface, or on the wrapper itself. */}
-      <motion.div
-        data-backdrop-dismiss-surface="true"
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+      <WindowBackdrop
+        dismissible
         initial={{ opacity: 0 }}
         animate={{ opacity: open ? 1 : 0 }}
         transition={motionTarget.transition}
@@ -160,8 +162,8 @@ export function ShellOverlayPopover({ open, onClose, label, width, children }: S
       {/* Centering layer. It never takes pointer events itself, so a press in the gutter
           around the surface reaches the backdrop and dismisses, exactly like `Modal`. */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
-        <motion.div
-          ref={surfaceRef}
+        <WindowShell
+          surfaceRef={surfaceRef}
           role="dialog"
           aria-modal="true"
           aria-label={label}
@@ -172,16 +174,14 @@ export function ShellOverlayPopover({ open, onClose, label, width, children }: S
           // The surface only takes presses while open. The wrapper stops taking them immediately on
           // close but stays `visible` for the exit transition, so without this the fading panel would
           // swallow a press made in that window instead of letting it reach the chat behind it.
-          className={`${
-            open ? "pointer-events-auto" : "pointer-events-none"
-          } flex flex-col overflow-hidden rounded-xl border border-[var(--marinara-home-acrylic-border)] bg-marinara-acrylic shadow-[var(--marinara-home-acrylic-shadow)] backdrop-blur-xl outline-none`}
+          className={`${open ? "pointer-events-auto" : "pointer-events-none"} outline-none`}
           style={{ width: `min(${width}px, ${SURFACE_MAX_WIDTH})`, height: SURFACE_MAX_HEIGHT }}
           initial={motionTarget.hidden}
           animate={open ? motionTarget.shown : motionTarget.hidden}
           transition={motionTarget.transition}
         >
           {children}
-        </motion.div>
+        </WindowShell>
       </div>
     </div>
   );

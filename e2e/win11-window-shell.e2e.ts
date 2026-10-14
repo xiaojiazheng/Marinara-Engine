@@ -1,13 +1,16 @@
-// The Windows 11 window shell every <Modal chrome="window"> draws: a title bar with the
-// shell's three keys at the right, over the acrylic surface. Minimize and maximize are the
-// shell's shape rather than a promise (a modal has no window state), so they stay inert,
-// and a phone-width window renders the close key alone — the inert keys are not in the DOM.
+// The Windows 11 window every `<WindowShell>` draws: one acrylic frame, one title bar and only the keys
+// a window really has. A modal has no second state, so no minimize or maximize key exists — not even an
+// inert one. A phone-width window renders its close key alone, on a square full-screen surface.
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { seedUIState } from "./ui-state-fixture.js";
 
 const version = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version as string;
 const WINDOWS_CLOSE_HOVER = "oklch(0.55 0.19 27)";
+
+/** The window surface, inside the modal layer that names the window. */
+const WINDOW_SHELL = '[data-component="Modal"] [data-component="WindowShell"]';
+const MISSING_STATE_KEYS = '[data-window-control="minimize"], [data-window-control="maximize"]';
 
 test.use({ actionTimeout: 10_000 });
 test.beforeEach(async ({ page }) => {
@@ -39,7 +42,7 @@ async function openWindow(page: Page): Promise<Locator> {
   const icon = page.locator('[data-home-desktop-icon="clock"]');
   await expect(icon).toBeVisible({ timeout: 30_000 });
   await icon.locator("button").dblclick();
-  const window = page.locator('[data-component="Modal"] .mari-modal-panel').last();
+  const window = page.locator(WINDOW_SHELL).last();
   await expect(window.locator("[data-clock-time]")).toBeVisible({ timeout: 30_000 });
   return window;
 }
@@ -59,24 +62,24 @@ async function resolveCssColor(page: Page, property: string, value: string) {
   );
 }
 
-test("a window draws minimize, maximize and close, and only Close is live", async ({ page }) => {
+test("a window is the shared shell: one acrylic frame, the shared bar, and only the close key", async ({ page }) => {
   const window = await openWindow(page);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await expect(window).toHaveAttribute("data-modal-chrome", "window");
+  await expect(window).toHaveAttribute("data-window-shell-chrome", "window");
+  await expect(window).toHaveAttribute("data-window-shell-variant", "fixed");
+  // The window is the canonical `.mari-window`, so the whole class family and its tokens apply to it.
+  await expect(window).toHaveClass(/\bmari-window\b/u);
 
-  const minimize = window.locator('[data-modal-control="minimize"]');
-  const maximize = window.locator('[data-modal-control="maximize"]');
-  const close = window.locator('[data-modal-control="close"]');
-  await expect(minimize).toHaveCount(1);
-  await expect(maximize).toHaveCount(1);
-  await expect(close).toHaveCount(1);
-
-  await expect(minimize).toHaveAttribute("aria-disabled", "true");
-  await expect(maximize).toHaveAttribute("aria-disabled", "true");
+  // A modal has no second state, so it renders no minimize or maximize key at all.
+  await expect(window.locator(MISSING_STATE_KEYS)).toHaveCount(0);
+  const keys = await window
+    .locator("[data-window-control]")
+    .evaluateAll((elements) => elements.map((element) => element.getAttribute("data-window-control")));
+  expect(keys).toEqual(["close"]);
+  const close = window.locator('[data-window-control="close"]');
   await expect(close).not.toHaveAttribute("aria-disabled", "true");
-
-  // Floating windows keep their own [data-window-control] namespace to themselves.
-  await expect(window.locator("[data-window-control]")).toHaveCount(0);
+  // The bar is the shared one, and the content no longer repeats the heading.
+  await expect(window.locator('[data-component="WindowTitleBar"]')).toBeVisible();
 
   // The shell paints the taskbar's acrylic and the --marinara-win11-radius corner, not a chat panel's
   // colour or the shared --radius-lg scale.
@@ -150,13 +153,14 @@ test("a phone-width window renders the close key alone", async ({ page }) => {
   const window = await openWindow(page);
   await page.setViewportSize({ width: 320, height: 844 });
 
-  const close = window.locator('[data-modal-control="close"]');
+  // The same shell, in its sheet variant: the frame it draws is the same one, filling the viewport.
+  await expect(window).toHaveAttribute("data-window-shell-variant", "sheet");
+  const close = window.locator('[data-window-control="close"]');
   await expect(close).toHaveCount(1);
   await expect(close).toBeVisible();
-  // The narrow title bar holds one key, so the inert ones are not rendered at all.
-  await expect(window.locator('[data-modal-control="minimize"]')).toHaveCount(0);
-  await expect(window.locator('[data-modal-control="maximize"]')).toHaveCount(0);
+  // The phone bar holds one key, so the keys this window never had are not rendered at all.
+  await expect(window.locator(MISSING_STATE_KEYS)).toHaveCount(0);
   // A full-screen phone window stays square: the radius lives in the shell's utilities, where
-  // `max-sm:rounded-none` can still win.
+  // `max-sm:rounded-none` can still win over the acrylic frame.
   await expect(window).toHaveCSS("border-radius", "0px");
 });

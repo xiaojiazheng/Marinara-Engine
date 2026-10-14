@@ -442,38 +442,31 @@ async function drag(page: Page, element: Locator, dx: number, dy: number) {
   await page.mouse.up();
 }
 
-async function expectCustomColorsKeepCutCorners(page: Page) {
+async function expectCustomWindowColorsPaintTheWindow(page: Page) {
   const settings = await openChatSettings(page);
-  const frameClip = await settings.evaluate((element) => getComputedStyle(element, "::after").clipPath);
   const customTheme = await page.addStyleTag({
     content: `.mari-window[data-window="chat-settings"] {
-    --mari-window-bg: #18324b;
-    --mari-window-border: #e4bc70;
-    --mari-window-header-bg: #e7faff;
-  }`,
+   --mari-window-bg: #18324b;
+   --mari-window-border: #e4bc70;
+   --mari-window-header-bg: #e7faff;
+ }`,
   });
   try {
-    await expect(settings).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-    await expect(settings).toHaveCSS("border-top-color", "rgba(0, 0, 0, 0)");
+    // A window paints itself now: the theme's colours land on the window and its bar, and no frame is
+    // drawn behind them. The pseudo-elements that used to carry the paint must stay empty.
+    await expect(settings).toHaveCSS("background-color", "rgb(24, 50, 75)");
+    await expect(settings).toHaveCSS("border-top-color", "rgb(228, 188, 112)");
     await expect(settings).toHaveCSS("clip-path", "none");
     expect(
       await settings.evaluate((element) => ({
-        fill: getComputedStyle(element, "::after").backgroundColor,
-        border: getComputedStyle(element, "::before").backgroundColor,
-        clip: getComputedStyle(element, "::after").clipPath,
+        before: getComputedStyle(element, "::before").content,
+        after: getComputedStyle(element, "::after").content,
       })),
-    ).toEqual({ fill: "rgb(24, 50, 75)", border: "rgb(228, 188, 112)", clip: frameClip });
+      "a window draws no decorative frame of its own",
+    ).toEqual({ before: "none", after: "none" });
     const header = settings.locator(".mari-window__header");
-    await expect(header).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-    expect(
-      await header.evaluate((element) => ({
-        fill: getComputedStyle(element, "::before").backgroundColor,
-        clip: getComputedStyle(element, "::before").clipPath,
-        top: getComputedStyle(element, "::before").top,
-        left: getComputedStyle(element, "::before").left,
-        right: getComputedStyle(element, "::before").right,
-      })),
-    ).toEqual({ fill: "rgb(231, 250, 255)", clip: "none", top: "7px", left: "7px", right: "7px" });
+    await expect(header).toHaveCSS("background-color", "rgb(231, 250, 255)");
+    expect(await header.evaluate((element) => getComputedStyle(element, "::before").content)).toBe("none");
   } finally {
     await customTheme.evaluate((element) => element.parentNode?.removeChild(element));
     await closeChatSettings(page);
@@ -525,7 +518,9 @@ async function expectCompactFramedWidgets(page: Page, preset: "dottore" | "mari"
   expect(await header.evaluate((element) => getComputedStyle(element, "::before").backgroundImage)).not.toContain(
     "url(",
   );
-  expect(await header.evaluate((element) => getComputedStyle(element, "::after").content)).not.toBe("none");
+  // The header's decorative `::after` is gone: the cut frame is carried by the window's clip-path rather
+  // than by a pseudo-element. (Stable: one header element per run, unlike the close key in the sibling spec.)
+  expect(await header.evaluate((element) => getComputedStyle(element, "::after").content)).toBe("none");
   if (preset === "dottore") {
     // The shadow must follow the painted cut frame, while handles and the crest stay unclipped.
     await expect(settings).toHaveCSS("box-shadow", "none");
@@ -544,13 +539,17 @@ async function expectCompactFramedWidgets(page: Page, preset: "dottore" | "mari"
     .toBeLessThanOrEqual(1);
 
   const body = settings.locator(".mari-window__body");
+  // The window's body geometry belongs to the shell, not the theme: §4a2 declares no body inset, and the old
+  // `--mari-widget-body-inset` lost its consumer in the same change that dropped `--mari-window-header-padding`.
+  // So the body sits flush against the frame (the 1px is the border), and THAT is what is pinned here — if a
+  // theme-driven inset is ever reintroduced, this fails.
   expect(
     await settings.evaluate((element) => {
       const frame = element.getBoundingClientRect();
       const content = element.querySelector(".mari-window__body")!.getBoundingClientRect();
       return frame.bottom - content.bottom;
     }),
-  ).toBeGreaterThanOrEqual(4);
+  ).toBeLessThanOrEqual(1);
   const scroller = body.locator(":scope > .overflow-y-auto");
   await scroller.evaluate((element) => {
     element.scrollTop = (element.scrollHeight - element.clientHeight) / 2;
@@ -606,12 +605,22 @@ for (const theme of ["dark", "light"] as const) {
           ready: true,
         });
       const baseline = await measureWidgets(page);
-      // Default keeps the existing theme hooks, including the transparent drawer/title-bar surfaces.
+      // One window chrome: with the Default preset the window is painted by the shell's material — the
+      // acrylic surface and its border — instead of the chat panel's paint it used to share, while the
+      // drawer and title-bar surfaces below stay transparent as before.
       expect(baseline.window.background).toBe(
-        await resolvedStyle(page, "background-color", "var(--marinara-chat-chrome-panel-bg)"),
+        await resolvedStyle(
+          page,
+          "background-color",
+          "var(--mari-window-bg, var(--mari-widget-custom-background, var(--mari-widget-bg, var(--marinara-home-acrylic-surface))))",
+        ),
       );
       expect(baseline.window.border).toBe(
-        await resolvedStyle(page, "color", "var(--marinara-chat-chrome-panel-border)"),
+        await resolvedStyle(
+          page,
+          "color",
+          "var(--mari-window-border, var(--mari-widget-custom-border-solid, var(--mari-widget-border, var(--marinara-home-acrylic-border))))",
+        ),
       );
       expect(baseline.title.color).toBe(await resolvedStyle(page, "color", "var(--marinara-chat-chrome-panel-title)"));
       expect(baseline.header.background).toBe("rgba(0, 0, 0, 0)");
@@ -634,11 +643,14 @@ for (const theme of ["dark", "light"] as const) {
         expect(appearance.title.font).toContain(preset === "dottore" ? "monospace" : "serif");
         expect(appearance.frame.background).not.toBe(baseline.frame.background);
         expect(appearance.window.clip).toBe("none");
-        if (preset === "dottore") expect(appearance.frame.clip).toContain("polygon(");
+        // A window draws no frame of its own, so the dottore preset's cut corner is gone from the window
+        // and from its frame. Cut corners still belong to the bubbles and drawers, which
+        // `expectCompactFramedWidgets` covers below.
+        if (preset === "dottore") expect(appearance.frame.clip).toBe("none");
         expect(appearance.header).not.toEqual(baseline.header);
         expect(appearance.drawer).not.toEqual(baseline.drawer);
         expect(appearance.bubble).not.toEqual(baseline.bubble);
-        if (preset === "dottore") await expectCustomColorsKeepCutCorners(page);
+        if (preset === "dottore") await expectCustomWindowColorsPaintTheWindow(page);
         await exerciseWindow(page, testInfo.project.name.includes("desktop"));
         await expectCompactFramedWidgets(page, preset, theme);
         await page.screenshot({
@@ -709,7 +721,12 @@ test("widget font, shape and color choices survive reload and a fresh browser, a
     const square = await measureWidgets(page);
     expect(square.title.font).toContain("serif");
     expect(square.title.font).not.toBe(preset.title.font);
-    expect(square.window.radius).toBe("0px");
+    // A window's radius belongs to the shell, not the theme: §4a2 pins it to
+    // `var(--mari-window-radius, var(--marinara-win11-radius, 0.5rem))` regardless of preset or shape.
+    // Bubbles still follow the shape option. (Stable: one window element, not a cross-element lookup.)
+    expect(square.window.radius).toBe(
+      await resolvedStyle(page, "border-radius", "var(--mari-window-radius, var(--marinara-win11-radius, 0.5rem))"),
+    );
     expect(square.bubble.radius).toBe("0px");
     const expected = {
       preset: "dottore",

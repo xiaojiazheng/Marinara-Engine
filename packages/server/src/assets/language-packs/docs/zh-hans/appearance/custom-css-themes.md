@@ -28,7 +28,7 @@
 
 每个开关初始都是关闭的，且独立生效。例如，可以使用 Professor Mari 的字体，同时保留聊天原本的颜色。关闭某个开关，就会恢复聊天对应部分原本的样式。选择其他预设不会改变开关状态。也可以让 Professor Mari 为这些区域创建自定义主题。
 
-自定义 CSS 主题仍可覆盖这些预设。下面的窗口和抽屉公共变量优先于预设颜色。用 `--mari-window-font-family` 设置窗口字体，`--mari-drawer-radius` 设置区域圆角，`--mari-window-ornament: none` 隐藏标题装饰。想去掉所有预设装饰，先选择 **Default**。
+自定义 CSS 主题仍可覆盖这些预设。下面的窗口和抽屉公共变量优先于预设颜色。用 `--mari-window-font-family` 设置窗口字体，`--mari-drawer-radius` 设置区域圆角。想去掉所有预设装饰，先选择 **Default**。
 
 
 ## 什么是自定义主题
@@ -187,7 +187,6 @@
 | `--mari-window-shadow` | 窗口阴影 |
 | `--mari-window-backdrop-filter` | 窗口背后的模糊 |
 | `--mari-window-header-bg`, `--mari-window-header-text`, `--mari-window-header-border` | 标题栏颜色 |
-| `--mari-window-header-padding` | 标题栏间距 |
 | `--mari-window-control-color`, `--mari-window-control-color-hover`, `--mari-window-control-bg-hover` | 标题栏按钮，包括收藏星标 |
 | `--mari-window-control-color-active`, `--mari-window-control-bg-active` | 按下的标题栏按钮，包括固定、锁定和填满的收藏星标 |
 | `--mari-window-control-radius`, `--mari-window-control-gap` | 按钮圆角和间距 |
@@ -220,41 +219,44 @@
 
 ## 为模态窗口设置样式
 
-应用里的每个对话框——设置面板、游戏设置向导、桌面图标打开的窗口——都由同一个组件 `Modal` 绘制。`chrome="window"` 时它是一个 Windows 11 窗口：亚克力表面、共享的窗口圆角，以及带三键的标题栏。只等回答、无需管理的确认框则通过 `chrome="dialog"` 保留朴素的标题加关闭栏。
+应用里的每个对话框——设置面板、游戏设置向导、桌面图标打开的窗口——都由同一个组件 `Modal` 绘制，并渲染全应用唯一的窗口外壳：亚克力表面、共享的窗口圆角，以及承载窗口按键的标题栏。确认框只等回答、无需管理，因此只保留关闭键。
 
 | 部分 | 类名 |
 | --- | --- |
-| 窗口表面（两种 chrome 都用） | `.mari-modal-panel` |
+| 窗口表面 | `.mari-modal-panel`（外壳本身：`.mari-window`） |
 | 窗口后面的暗色遮罩 | `.mari-modal-backdrop` |
-| Windows 11 外壳、它的标题栏、标题与 16px 图标 | `.mari-win11-window`、`.mari-win11-window__titlebar`、`.mari-win11-window__title`、`.mari-win11-window__title-icon` |
-| 标题栏按钮 | `.mari-win11-window__control`，关闭键另有 `--close` |
-| 可滚动的内容区 | `.mari-win11-window__body` |
+| 标题栏、标题与图标槽 | `.mari-window__header`、`.mari-window__title`、`.mari-window__title-icon` |
+| 栏中的键簇与单个键 | `.mari-window__controls`、`.mari-window__control` |
+| 关闭键 | `.mari-window__control--close` |
+| 可滚动的内容区 | `.mari-window__body` |
 
-两个数据属性可以让主题区分这两种标题栏，并重绘这些按钮：
+两个数据属性用来告诉主题这是什么窗口，并标识它的键：
 
-- `data-modal-chrome` 在面板上为 `"window"` 或 `"dialog"`。
-- `data-modal-control` 标识每个标题栏按钮：`"minimize"`、`"maximize"` 或 `"close"`。最小化和最大化只是外壳的形状、并非承诺——模态窗口没有可折叠或还原的窗口状态——所以它们是惰性的：`aria-disabled="true"` 且 `tabindex="-1"`。低于 `sm` 断点时标题栏只渲染关闭键，这些惰性按钮根本不在 DOM 里。
+- `data-window-shell-chrome` 为 `"window"` 或 `"dialog"`。
+- `data-window-control` 标识每个键：关闭键为 `"close"`，带这些功能的聊天窗口还有 `"pin"` 或 `"lock"`，弹开的抽屉窗口则是 `"put-back"`。窗口只渲染它真正拥有的键——对话框没有第二态，因此根本不存在最小化或最大化键。
 
-浮动窗口是另一套外壳：它们使用 `.mari-window…` 和 `[data-window-control]`，见上文 **设置聊天窗口和抽屉的样式**。模态窗口的表面、边框、阴影和圆角使用与任务栏相同的令牌（`--marinara-home-acrylic-surface`、`--marinara-home-acrylic-border`、`--marinara-home-acrylic-shadow`、`--marinara-win11-radius`），因此重绘 Home 外壳的主题也会重绘这些窗口。
+`[data-component="WindowTitleBar"]` 是标题栏在两种模式下的稳定锚点：对话框与外壳窗口把 16px 图标放在 `.mari-window__title-icon` 里，中栏表面则把图标画在方块中（`[data-component="WindowTitleBarIcon"]`）并配一个 `h1`。
+
+浮动的聊天窗口使用同一个外壳，只是几何位置不同，见上文 **设置聊天窗口和抽屉的样式**。窗口的表面、边框、阴影和圆角使用与任务栏相同的令牌（`--marinara-home-acrylic-surface`、`--marinara-home-acrylic-border`、`--marinara-home-acrylic-shadow`、`--marinara-win11-radius`），因此重绘 Home 外壳的主题也会重绘这些窗口。
 
 ```css
-/* 重绘窗口标题栏，并给按钮换成主题色。 */
-.mari-win11-window .mari-win11-window__titlebar {
+/* 重绘窗口标题栏，并给关闭键换成主题色。 */
+.mari-window .mari-window__header {
   background: var(--card);
 }
 
-.mari-win11-window [data-modal-control="close"]:hover {
+.mari-window [data-window-control="close"]:hover {
   background: #c42b1c;
   color: #ffffff;
 }
 
-/* 确认框保留朴素标题栏，因此按 chrome 定位它。 */
-.mari-modal-panel[data-modal-chrome="dialog"] {
+/* 确认框保留自己的 chrome 角色，因此按该属性定位它。 */
+.mari-modal-panel[data-window-shell-chrome="dialog"] {
   border-radius: var(--radius);
 }
 ```
 
-启用聊天控件主题后，这三个窗口按钮归该聊天主题的规则管辖。这是有意为之：被主题化的聊天应当拥有自己的窗口外壳。
+启用聊天控件主题后，窗口的键归该聊天主题的规则管辖。这是有意为之：被主题化的聊天应当拥有自己的窗口外壳。
 
 ## 为消息、输入框和聊天控件设置样式
 

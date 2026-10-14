@@ -11,7 +11,21 @@ import {
   useState,
   type UIEvent,
 } from "react";
-import { ArrowLeft, ArrowUpDown, Download, Hash, MessageCircle, Pencil, Plus, Search, Star, User } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowUpDown,
+  Download,
+  Hash,
+  MessageCircle,
+  Pencil,
+  Plus,
+  Search,
+  Star,
+  User,
+  Users,
+  VenetianMask,
+} from "lucide-react";
+import { WindowTitleBar } from "../window/WindowTitleBar";
 import { estimateTextTokens, type CharacterData, type Persona } from "@marinara-engine/shared";
 import type { CharacterCatalogEntry } from "@marinara-engine/shared";
 import { useTranslation, useTranslation as useUiTranslation } from "react-i18next";
@@ -359,7 +373,13 @@ function CardLibraryDetailCard({
   );
 }
 
-export function CharacterLibraryView() {
+/**
+ * `windowTitleBar` is set on desktop, where the library is a Windows 11 window of its own: the window
+ * title bar carries the title and the close control, so the content keeps only its toolbar (the
+ * heading, the surface name and the close button would otherwise show twice). Mobile keeps the full
+ * header, because its full-screen sheet has no window chrome.
+ */
+export function CharacterLibraryView({ windowTitleBar = false }: { windowTitleBar?: boolean } = {}) {
   const { t: localizeUi } = useUiTranslation();
   const { t } = useTranslation();
   const localize = useLocalizedUiText();
@@ -577,23 +597,43 @@ export function CharacterLibraryView() {
       onScroll={handleLibraryScroll}
       className="mari-chrome-token-scope flex h-full min-h-0 flex-col overflow-y-auto overflow-x-hidden bg-[radial-gradient(circle_at_top_left,_color-mix(in_srgb,var(--marinara-chat-chrome-accent)_14%,transparent),_transparent_30%),radial-gradient(circle_at_top_right,_color-mix(in_srgb,var(--marinara-chat-chrome-text)_10%,transparent),_transparent_26%),var(--background)] text-[var(--marinara-chat-chrome-panel-text)] lg:overflow-hidden"
     >
+      {windowTitleBar && (
+        <WindowTitleBar
+          iconTile
+          title={copy.heading}
+          subtitle={copy.title}
+          icon={isPersonaLibrary ? <VenetianMask size="0.875rem" /> : <Users size="0.875rem" />}
+          iconClassName={cn(
+            "mari-panel-gradient-surface",
+            isPersonaLibrary ? "mari-panel-gradient--personas" : "mari-panel-gradient--characters",
+          )}
+          onClose={closeLibrary}
+          closeLabel={localizeUi("ui.characters.characterlibraryview.closeLibrary")}
+        />
+      )}
       <div className="sticky top-0 z-10 border-b border-[var(--marinara-chat-chrome-panel-divider)] bg-[var(--card)]/85 backdrop-blur-xl">
         <div className="flex flex-col gap-2 px-3 py-2 md:px-6 md:py-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex min-w-0 items-center gap-3">
-            <button
-              onClick={closeLibrary}
-              className="mari-chrome-control h-9 w-9 rounded-2xl p-0 md:h-10 md:w-10"
-              title={localizeUi("ui.characters.characterlibraryview.closeLibrary")}
-            >
-              <ArrowLeft size="0.95rem" />
-            </button>
+            {!windowTitleBar && (
+              <button
+                onClick={closeLibrary}
+                className="mari-chrome-control h-9 w-9 rounded-2xl p-0 md:h-10 md:w-10"
+                title={localizeUi("ui.characters.characterlibraryview.closeLibrary")}
+              >
+                <ArrowLeft size="0.95rem" />
+              </button>
+            )}
             <div className="min-w-0">
-              <p className="text-[0.625rem] font-semibold uppercase tracking-[0.28em] text-[var(--marinara-chat-chrome-panel-muted)]">
-                {copy.title}
-              </p>
-              <h1 className="truncate text-base font-semibold text-[var(--marinara-chat-chrome-panel-title)] md:text-2xl">
-                {copy.heading}
-              </h1>
+              {!windowTitleBar && (
+                <>
+                  <p className="text-[0.625rem] font-semibold uppercase tracking-[0.28em] text-[var(--marinara-chat-chrome-panel-muted)]">
+                    {copy.title}
+                  </p>
+                  <h1 className="truncate text-base font-semibold text-[var(--marinara-chat-chrome-panel-title)] md:text-2xl">
+                    {copy.heading}
+                  </h1>
+                </>
+              )}
               <p className="text-xs text-[var(--marinara-chat-chrome-panel-muted)] md:text-sm">
                 {filteredCards.length} {localizeUi("ui.characters.characterlibraryview.outOf")} {cards.length}{" "}
                 {localizeUi("ui.characters.characterlibraryview.card")}

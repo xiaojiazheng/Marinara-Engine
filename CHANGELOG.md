@@ -4,6 +4,10 @@ This file is the release-notes source of truth for Marinara Engine. Reuse these 
 
 ## [Unreleased]
 
+- The desktop chat list and settings windows now open at a Windows 11 window size instead of a narrow strip: their width runs from 520px to 760px in **Settings → Appearance** (a width saved before this change is moved into that range), and a window stops at 640px tall rather than stretching to the bottom of the screen. The **Agents** panel's actions are one command row with the primary **Download Agents** button first, and its empty state is a centered icon and message.
+
+- On desktop, the surfaces that used to take the chat's place now open as Windows 11 windows over it: every editor, the character and persona library, the **Download Agents** catalog and the two browsers float on a dimmed backdrop under the top bar, which keeps working, instead of replacing the page. The library, the catalog and the character browser carry a Windows 11 title bar — icon, title and a close control that turns red on hover — and their content keeps only its toolbar, so no heading shows twice. Phones keep their full-screen sheets unchanged.
+
 - On desktop, the chat list and the settings panel now open as centered Windows 11-style windows over a dimmed backdrop instead of squeezing the chat: the chat keeps its full width while either one is open. **Esc**, a click outside the window, the header's X or the matching top-bar button closes it, and only one opens at a time. Selecting a chat or starting a new one closes the list, and closing a character, lorebook, preset, connection, persona or agent editor brings back the settings panel you opened it from. A fresh install starts with the chat list closed, and the dividers for dragging their width are gone. The top bar stays visible and clickable while a window is open, so switching straight from **Chats** to **Settings** takes one click.
 
 - Simplified Chinese UI and documentation are bundled with the app, so switching language and repairing Chinese packs works offline without downloading from GitHub.
@@ -17,6 +21,10 @@ This file is the release-notes source of truth for Marinara Engine. Reuse these 
 - The light theme now renders as a native Windows 11 desktop: soft grey `#f3f3f3` surfaces, white windows, near-black text and the Windows accent blue `#0078d4` instead of the lavender-and-pink palette. The dark theme keeps Marinara's night purple identity.
 
 - Added a custom-branch container build and a deployment guide for preserving existing data, credentials, and rollback backups on a personal fork.
+
+- Every window now draws one shell. The desktop chat list and settings windows, the centre-area surfaces (every editor, the character and persona library, the **Download Agents** catalog and the two browsers) and every dialog share the same Windows 11 acrylic surface, corner, title bar and close key, so a custom theme repaints them with one rule instead of several. Dialogs no longer render an inert minimize or maximize key: a window shows only the keys it really has, and only its close key turns red on hover. Themes written against the retired `.mari-win11-window*` classes or `data-modal-chrome` / `data-modal-control` should move to the shared `.mari-window*` classes with `data-window-shell-chrome` and `data-window-control`; `.mari-modal-panel`, `.mari-modal-backdrop`, `.mari-window*`, `.mari-drawer*` and `--mari-window-*` are unchanged.
+
+- The window chrome cleanup finished: a window now has one shell and one title bar, so the retired hooks `--mari-window-ornament`, `--mari-window-header-height`, `--mari-window-header-padding` and `--mari-window-control-size`, the `.mari-win11-window*` classes and the `data-modal-chrome` / `data-modal-control` attributes no longer do anything on a window. Decoration and shape now apply only to message bubbles, drawers and panels, which keep working as before.
 
 ## [2.5.0]
 
